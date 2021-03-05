@@ -69,14 +69,6 @@ class FillJobHLTs extends IrTransformationStep
 		return true
 	}
 
-//	private def print(DirectedWeightedPseudograph<Job, DefaultWeightedEdge> g)
-//	{
-//		println('Graph nodes : ')
-//		g.vertexSet.forEach[x|println('  ' + x.name)]
-//		println('Graph arcs : ')
-//		g.edgeSet.forEach[x|println('  ' + g.getEdgeSource(x).name + ' -> ' + g.getEdgeTarget(x).name)]
-//	}
-
 	/** Build the jgrapht graph corresponding to IrModule and check if it has cycles */
 	private def hasCycles(IrRoot ir)
 	{
@@ -111,8 +103,6 @@ class FillJobHLTs extends IrTransformationStep
 		for (startNode : g.vertexSet.filter[v | v !== sourceNode && g.incomingEdgesOf(v).empty])
 			g.addEdge(sourceNode, startNode)
 
-		// display graph
-		//g.print
 		return g
 	}
 

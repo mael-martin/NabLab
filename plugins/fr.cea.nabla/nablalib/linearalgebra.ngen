@@ -11,7 +11,7 @@
 Provider LinearAlgebraStl : LinearAlgebra
 {
 	target = StlThread;
-	compatibleTargets = CppSequential, OpenMP;
+	compatibleTargets = CppSequential, OpenMP, OpenMPTask;
 	outputPath = "/.nablab/linearalgebra";
 }
 

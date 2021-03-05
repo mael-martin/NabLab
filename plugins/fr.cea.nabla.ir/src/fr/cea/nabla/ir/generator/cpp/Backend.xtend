@@ -43,7 +43,7 @@ class SequentialBackend extends Backend
 		instructionContentProvider = new SequentialInstructionContentProvider(typeContentProvider, expressionContentProvider)
 		functionContentProvider = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
 		traceContentProvider = new TraceContentProvider
-		includesContentProvider = new IncludesContentProvider
+		includesContentProvider = new SequentialIncludesContentProvider
 		jsonContentProvider = new JsonContentProvider(expressionContentProvider)
 		jobCallerContentProvider = new JobCallerContentProvider
 		jobContentProvider = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)

@@ -21,10 +21,10 @@ class IncludesContentProvider
 		«FOR include : getUserIncludes(hasLevelDB, hasPostProcessing)»
 		#include "«include»"
 		«ENDFOR»
-		'''
+	'''
 
-		def getUsings(boolean hasLevelDB)
-		'''
+	def getUsings(boolean hasLevelDB)
+	'''
 		«FOR ns : getSystemNs(hasLevelDB)»
 		using namespace «ns»;
 		«ENDFOR»
@@ -57,10 +57,9 @@ class IncludesContentProvider
 		val userIncludes = new LinkedHashSet<String>
 		userIncludes += "nablalib/mesh/CartesianMesh2DFactory.h"
 		userIncludes += "nablalib/mesh/CartesianMesh2D.h"
-		if (hasPostProcessing) userIncludes += "nablalib/mesh/PvdFileWriter2D.h"
-		userIncludes +=  "nablalib/utils/Utils.h"
-		userIncludes +=  "nablalib/utils/Timer.h"
-		userIncludes +=  "nablalib/types/Types.h"
+		userIncludes += "nablalib/utils/Utils.h"
+		userIncludes += "nablalib/utils/Timer.h"
+		userIncludes += "nablalib/types/Types.h"
 		if (hasLevelDB) userIncludes += "nablalib/utils/Serializer.h"
 		return userIncludes
 	}
@@ -76,7 +75,6 @@ class IncludesContentProvider
 		userNs += "nablalib::mesh"
 		userNs +=  "nablalib::utils"
 		userNs +=  "nablalib::types"
-		if (hasLevelDB) userNs +=  "nablalib::utils"
 		return userNs
 	}
 }
@@ -87,6 +85,8 @@ class StlThreadIncludesContentProvider extends IncludesContentProvider
 	{
 		val includes = super.getUserIncludes(hasLevelDB, hasPostProcessing)
 		includes += "nablalib/utils/stl/Parallel.h"
+		includes += "nablalib/mesh/stl/PvdFileWriter2D.h"
+		if (hasLevelDB) includes += "nablalib/utils/stl/Serializer.h"
 		return includes
 	}
 
@@ -112,6 +112,7 @@ class KokkosIncludesContentProvider extends IncludesContentProvider
 	{
 		val includes = super.getUserIncludes(hasLevelDB, hasPostProcessing)
 		includes += "nablalib/utils/kokkos/Parallel.h"
+		includes += "nablalib/mesh/kokkos/PvdFileWriter2D.h"
 		if (hasLevelDB) includes += "nablalib/utils/kokkos/Serializer.h"
 		return includes
 	}
@@ -119,12 +120,31 @@ class KokkosIncludesContentProvider extends IncludesContentProvider
 	override getUserNs(boolean hasLevelDB)
 	{
 		val userNs = super.getUserNs(hasLevelDB)
-		userNs +=  "nablalib::utils::kokkos"
+		userNs += "nablalib::utils::kokkos"
+		userNs += "nablalib::mesh::kokkos"
 		return userNs
 	}
 }
 
-class OpenMpIncludesContentProvider extends IncludesContentProvider
+class SequentialIncludesContentProvider extends IncludesContentProvider
+{
+	override getUserIncludes(boolean hasLevelDB, boolean hasPostProcessing)
+	{
+		val includes = super.getUserIncludes(hasLevelDB, hasPostProcessing)
+		if (hasLevelDB) includes += "nablalib/utils/stl/Serializer.h"
+		includes += "nablalib/mesh/PvdFileWriter2D.h"
+		return includes
+	}
+
+	override getUserNs(boolean hasLevelDB)
+	{
+		val userNs = super.getUserNs(hasLevelDB)
+		if (hasLevelDB) userNs += "nablalib::utils::stl"
+		return userNs
+	}
+}
+
+class OpenMpIncludesContentProvider extends SequentialIncludesContentProvider
 {
 	override getSystemIncludes(boolean hasLevelDB)
 	{
