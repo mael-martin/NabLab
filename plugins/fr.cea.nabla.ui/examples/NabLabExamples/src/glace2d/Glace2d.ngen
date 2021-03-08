@@ -55,6 +55,12 @@ OpenMP
 	N_CXX_COMPILER = "/usr/bin/g++";
 }
 
+OpenMPTask
+{
+	outputPath = "/NablaExamples/src-gen-cpp/openmptask";
+	N_CXX_COMPILER = "/usr/bin/g++";
+}
+
 CppSequential
 {
 	outputPath = "/NabLabExamples/src-gen-cpp/sequential";

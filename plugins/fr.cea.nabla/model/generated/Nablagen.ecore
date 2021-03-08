@@ -89,7 +89,8 @@
     <eLiterals name="CppSequential" value="1" literal="CppSequential"/>
     <eLiterals name="StlThread" value="2" literal="StlThread"/>
     <eLiterals name="OpenMP" value="3" literal="OpenMP"/>
-    <eLiterals name="Kokkos" value="4" literal="Kokkos"/>
-    <eLiterals name="KokkosTeamThread" value="5" literal="KokkosTeamThread"/>
+    <eLiterals name="OpenMPTask" value="4" literal="OpenMPTask"/>
+    <eLiterals name="Kokkos" value="5" literal="Kokkos"/>
+    <eLiterals name="KokkosTeamThread" value="6" literal="KokkosTeamThread"/>
   </eClassifiers>
 </ecore:EPackage>

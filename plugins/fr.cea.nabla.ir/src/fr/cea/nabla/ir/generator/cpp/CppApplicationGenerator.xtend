@@ -475,6 +475,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 	int main(int argc, char* argv[]) 
 	{
+		int ret = EXIT_SUCCESS;
 		«backend.mainContentProvider.getContentFor(it, levelDBPath)»
 		return ret;
 	}

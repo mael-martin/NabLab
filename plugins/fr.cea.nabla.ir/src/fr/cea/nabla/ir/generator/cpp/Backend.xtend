@@ -1,6 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2020 CEA
- * This program and the accompanying materials are made available under the 
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
  *
@@ -128,5 +128,25 @@ class OpenMpBackend extends Backend
 		jobCallerContentProvider = new JobCallerContentProvider
 		jobContentProvider = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
 		mainContentProvider = new MainContentProvider(jsonContentProvider)
+	}
+}
+
+/** Expected variables: N_CXX_COMPILER */
+class OpenMpTaskBackend extends Backend
+{
+	new()
+	{
+		name = 'OpenMPTask'
+		cmakeContentProvider = new OpenMpCMakeContentProvider
+		typeContentProvider = new StlThreadTypeContentProvider
+		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
+		instructionContentProvider = new OpenMpTaskInstructionContentProvider(typeContentProvider, expressionContentProvider)
+		functionContentProvider = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
+		traceContentProvider = new TraceContentProvider
+		includesContentProvider = new OpenMpIncludesContentProvider
+		jsonContentProvider = new JsonContentProvider(expressionContentProvider)
+		jobCallerContentProvider = new OpenMpTaskJobCallerContentProvider
+		jobContentProvider = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
+		mainContentProvider = new OpenMpTaskMainContentProvider(jsonContentProvider)
 	}
 }

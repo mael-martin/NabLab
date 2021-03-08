@@ -1,6 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2020 CEA
- * This program and the accompanying materials are made available under the 
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
  *
@@ -25,6 +25,30 @@ class JobCallerContentProvider
 		«j.callName.replace('.', '->')»(); // @«j.at»
 		«ENDFOR»
 
+	'''
+}
+
+class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
+{
+	override getCallsHeader(JobCaller it) ''''''
+
+	override getCallsContent(JobCaller it)
+	'''
+		«var jobsByAt = calls.groupBy[at]»
+		«FOR at : jobsByAt.keySet.sort»
+			«var atJobs = jobsByAt.get(at)»
+			// @«at»
+			«FOR j : atJobs»
+				«IF j.callName != 'executeTimeLoopN'»
+				#pragma omp task
+				«j.callName.replace('.', '->')»(); // New task «j.callName»@«j.at»
+				«ELSE»
+				#pragma omp taskwait
+				«j.callName.replace('.', '->')»(); // @«j.at» Contains tasks
+				«ENDIF»
+			«ENDFOR»
+            #pragma omp taskwait
+		«ENDFOR»
 	'''
 }
 

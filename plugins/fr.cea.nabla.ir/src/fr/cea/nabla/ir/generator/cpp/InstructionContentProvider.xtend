@@ -306,3 +306,31 @@ class OpenMpInstructionContentProvider extends InstructionContentProvider
 		modifiedVars.filter[global]
 	}
 }
+
+@Data
+class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
+{
+	override getReductionContent(ReductionInstruction it)
+	'''
+		«result.type.cppType» «result.name»(«result.defaultValue.content»);
+		#pragma omp taskloop reduction(min:«result.name»)
+		«iterationBlock.defineInterval('''
+		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
+		{
+			«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
+		}''')»
+	'''
+
+	override getParallelLoopContent(Loop it)
+	'''
+		«val vars = modifiedVariables»
+		#pragma omp taskloop«IF !vars.empty» shared(«vars.map[codeName].join(', ')»«ENDIF»)
+		«sequentialLoopContent»
+	'''
+
+	private def getModifiedVariables(Loop l)
+	{
+		val modifiedVars = l.eAllContents.filter(Affectation).map[left.target].toSet
+		modifiedVars.filter[global]
+	}
+}

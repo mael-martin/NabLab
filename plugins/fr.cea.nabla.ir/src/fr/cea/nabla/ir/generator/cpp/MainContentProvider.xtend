@@ -1,6 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2020 CEA
- * This program and the accompanying materials are made available under the 
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
  *
@@ -24,7 +24,6 @@ class MainContentProvider
 	def getContentFor(IrModule it, String levelDBPath)
 	'''
 		string dataFile;
-		int ret = 0;
 
 		if (argc == 2)
 		{
@@ -60,11 +59,8 @@ class MainContentProvider
 			«m.instanciation»
 		«ENDFOR»
 
-		// Start simulation
-		// Simulator must be a pointer when a finalize is needed at the end (Kokkos, omp...)
-		«name»->simulate();
+		«getSimulationCall(it)»
 		«IF !levelDBPath.nullOrEmpty»
-
 			«val nrName = Utils.NonRegressionNameAndValue.key»
 			«val dbName = irRoot.name + "DB"»
 			// Non regression testing
@@ -96,6 +92,31 @@ class MainContentProvider
 		}
 		«className»* «name» = new «className»(mesh, «name»Options);
 		«IF !main»«name»->setMainModule(«irRoot.mainModule.name»);«ENDIF»
+	'''
+
+	protected def getSimulationCall(IrModule it)
+	'''
+	// Start simulation
+	// Simulator must be a pointer when a finalize is needed at the end (Kokkos, omp...)
+	«name»->simulate();
+	'''
+}
+
+@Data
+class OpenMpTaskMainContentProvider extends MainContentProvider
+{
+	override protected getSimulationCall(IrModule it)
+	'''
+		// Start simulation
+		// Simulator must be a pointer when a finalize is needed at the end
+		// Wrap the simulate in OMP region => mono producer
+		#pragma omp parallel
+		{
+			#pragma omp single nowait
+			{
+				«name»->simulate();
+			}
+		}
 	'''
 }
 
