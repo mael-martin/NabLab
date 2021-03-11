@@ -9,6 +9,8 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
+import java.util.Set
+
 import fr.cea.nabla.ir.ir.Affectation
 import fr.cea.nabla.ir.ir.ConnectivityCall
 import fr.cea.nabla.ir.ir.Exit
@@ -36,7 +38,6 @@ import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
-import java.util.Set
 
 @Data
 abstract class InstructionContentProvider
@@ -317,35 +318,74 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	override getReductionContent(ReductionInstruction it)
 	/* Don't bother with reductions for the moment */
 	'''
+		/* REDUCTION BEGIN */
 		«result.type.cppType» «result.name»(«result.defaultValue.content»);
 		«iterationBlock.defineInterval('''
 		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
 		{
 			«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
 		}''')»
+		/* REDUCTION END */
 	'''
 
+	/* Slice the loop in chunks and feed it to the tasks. Will launch taskN
+	 * tasks +1 maybe if there are remaining things.
+	 * For the moment, taskN is static. TODO: Fix that. */
 	override getParallelLoopContent(Loop it)
 	{
-		val shared = modifiedVariables	/* Modified outside variables in inside loops */
-		val ins = getInVars 			/* Need to be computed before, consumed */
-		val outs = getOutVars			/* Produced, unlock jobs that need them */
-		val Set<Variable> inouts = ins.clone.toSet	/* Produced and consumed variables */
+		'''
+		/* TASKLOOP BEGIN */
+		«launchTasks(OMPTaskMaxNumber) /* Each loop is 10 tasks */»
+		/* TASKLOOP END */
+		'''
+	}
+	
+	protected def launchTasks(Loop it, int taskN)
+	{
+		val shared = modifiedVariables  /* Modified outside variables in inside loops  */
+		val ins = getInVars             /* Need to be computed before, consumed        */
+		val outs = getOutVars           /* Produced, unlock jobs that need them        */
+		val Set<Variable> inouts = ins.clone.toSet  /* Produced and consumed variables */
 		inouts.retainAll(outs)
 		ins.removeAll(inouts)
 		outs.removeAll(inouts)
+
+		/* Shortcuts */
+		val indexName = iterationBlock.indexName
+		val nbElems = iterationBlock.nbElems
+
+		/* The code */
 		'''
-			#pragma omp task«getDependencies('in', ins)»«getDependencies('out', outs)»«getDependencies('inout', inouts)»«IF !shared.empty» shared(«shared.map[codeName].join(', ')»)«ENDIF»
-			«sequentialLoopContent»
+			for (size_t task = 0; task < («taskN»-1); ++task)
+			{
+				const size_t baseIndex = («nbElems» / «taskN») * task;
+				const size_t taskNbElems = («nbElems» / «taskN»);
+				#pragma omp task firstprivate(baseIndex, taskNbElems)«getDependencies('in', ins)»«getDependencies('out', outs)»«getDependencies('inout', inouts)»«IF !shared.empty» shared(«shared.map[codeName].join(', ')»)«ENDIF»
+				for (size_t «indexName» = baseIndex; «indexName»<(baseIndex+taskNbElems); «indexName»++)
+				{
+					«body.innerContent»
+				}
+			}
+			{
+				const size_t remaining = («nbElems» % «taskN»);
+				const size_t taskNbElems = («nbElems» / «taskN»);
+				#pragma omp task firstprivate(taskNbElems, remaining)«getDependencies('in', ins)»«getDependencies('out', outs)»«getDependencies('inout', inouts)»«IF !shared.empty» shared(«shared.map[codeName].join(', ')»)«ENDIF»
+				for (size_t «indexName» = «nbElems» - remaining - taskNbElems; «indexName»<«nbElems»; «indexName»++)
+				{
+					«body.innerContent»
+				}
+			}
 		'''
 	}
-
+	
 	protected override CharSequence getSequentialLoopContent(Loop it)
 	'''
+		/* SEQUENTIAL LOOP BEGIN */
 		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
 		{
 			«body.innerContent»
 		}
+		/* SEQUENTIAL LOOP END */
 	'''
 
 	def getDependencies(String inout, Iterable<Variable> deps)
@@ -354,12 +394,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		else ''''''
 	}
 
-	private def getVariableName(Variable it)
-	{
-		if (isOption) '''options.«name»'''
-		else '''this->«name»'''
-	}
+	/* Variable name that will let OMP use it with the depend clauses... */
+	private def getVariableName(Variable it) { isOption ? '''options.«name»''' : '''this->«name»''' }
 	
+	/* Get DF */
 	private def getInVars(Loop it)
 	{
 		val allVars = eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target]

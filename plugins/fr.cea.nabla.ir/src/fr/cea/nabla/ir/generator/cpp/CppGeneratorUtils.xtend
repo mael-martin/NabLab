@@ -39,4 +39,9 @@ class CppGeneratorUtils
 	{
 		'__' + name.toUpperCase + '_H_'
 	}
+	
+	static def getOMPTaskMaxNumber()
+	{
+		return 10; /* FIXME: Need to be given from the NGEN file */
+	}
 }
