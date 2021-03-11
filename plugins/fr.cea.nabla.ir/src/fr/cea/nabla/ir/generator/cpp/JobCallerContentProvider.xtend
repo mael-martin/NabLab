@@ -14,10 +14,6 @@ import fr.cea.nabla.ir.ir.JobCaller
 import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
-import fr.cea.nabla.ir.DefaultVarDependencies
-import fr.cea.nabla.ir.ir.Variable
-import java.util.Set
-import fr.cea.nabla.ir.ir.Job
 
 class JobCallerContentProvider
 {
@@ -34,52 +30,17 @@ class JobCallerContentProvider
 
 class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 {
-	static val extension DefaultVarDependencies = new DefaultVarDependencies
 	
-	def getDependencies(Job j)
-	{
-		val Set<Variable> ins = j.inVars.toSet
-		val Set<Variable> outs = j.outVars.toSet
-		val Set<Variable> inouts = ins.clone.toSet
-		inouts.retainAll(outs)
-		ins.removeAll(inouts)
-		outs.removeAll(inouts)
-		'''«getDependencies('in', ins)»«getDependencies('out', outs)»«getDependencies('inout', inouts)»'''
-	}
-
-	def getDependencies(String inout, Iterable<Variable> deps)
-	{
-		if (deps.length != 0)
-			''' depend(«inout»: «FOR v : deps SEPARATOR ', '»«__getVariableName(v)»«ENDFOR»)'''
-		else
-			''''''
-	}
-	
-	def __getVariableName(Variable it)
-	{
-		if (isOption)
-			'''options.«name»'''
-		else
-			'''this->«name»'''
-	}
-
 	override getCallsHeader(JobCaller it) ''''''
 
 	override getCallsContent(JobCaller it)
 	'''
-		«var jobsByAt = calls.groupBy[at]»
-		«FOR at : jobsByAt.keySet.sort»
-			«var atJobs = jobsByAt.get(at)»
-
-			// @«at»
-			«FOR j : atJobs»
-				#pragma omp task«getDependencies(j)»
-				«j.callName.replace('.', '->')»(); // New task «j.callName»@«j.at»
-			«ENDFOR»
-		«ENDFOR»
+		// Launch all tasks for this loop...
 		
+		«super.getCallsContent(it)»
 		// Wait for this loop tasks to be done...
 		#pragma omp taskwait
+
 	'''
 }
 

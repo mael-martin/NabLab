@@ -26,6 +26,9 @@ import fr.cea.nabla.ir.ir.Return
 import fr.cea.nabla.ir.ir.SetDefinition
 import fr.cea.nabla.ir.ir.VariableDeclaration
 import fr.cea.nabla.ir.ir.While
+import fr.cea.nabla.ir.ir.Variable
+import fr.cea.nabla.ir.ir.ArgOrVarRef
+import fr.cea.nabla.ir.ir.IrPackage
 import org.eclipse.xtend.lib.annotations.Data
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
@@ -33,6 +36,7 @@ import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
+import java.util.Set
 
 @Data
 abstract class InstructionContentProvider
@@ -311,9 +315,9 @@ class OpenMpInstructionContentProvider extends InstructionContentProvider
 class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 {
 	override getReductionContent(ReductionInstruction it)
+	/* Don't bother with reductions for the moment */
 	'''
 		«result.type.cppType» «result.name»(«result.defaultValue.content»);
-		#pragma omp taskloop reduction(min:«result.name»)
 		«iterationBlock.defineInterval('''
 		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
 		{
@@ -322,11 +326,50 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	'''
 
 	override getParallelLoopContent(Loop it)
+	{
+		val shared = modifiedVariables	/* Modified outside variables in inside loops */
+		val ins = getInVars 			/* Need to be computed before, consumed */
+		val outs = getOutVars			/* Produced, unlock jobs that need them */
+		val Set<Variable> inouts = ins.clone.toSet	/* Produced and consumed variables */
+		inouts.retainAll(outs)
+		ins.removeAll(inouts)
+		outs.removeAll(inouts)
+		'''
+			#pragma omp task«getDependencies('in', ins)»«getDependencies('out', outs)»«getDependencies('inout', inouts)»«IF !shared.empty» shared(«shared.map[codeName].join(', ')»)«ENDIF»
+			«sequentialLoopContent»
+		'''
+	}
+
+	protected override CharSequence getSequentialLoopContent(Loop it)
 	'''
-		«val vars = modifiedVariables»
-		#pragma omp taskloop«IF !vars.empty» shared(«vars.map[codeName].join(', ')»«ENDIF»)
-		«sequentialLoopContent»
+		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
+		{
+			«body.innerContent»
+		}
 	'''
+
+	def getDependencies(String inout, Iterable<Variable> deps)
+	{
+		if (deps.length != 0) ''' depend(«inout»: «FOR v : deps SEPARATOR ', '»«getVariableName(v)»«ENDFOR»)'''
+		else ''''''
+	}
+
+	private def getVariableName(Variable it)
+	{
+		if (isOption) '''options.«name»'''
+		else '''this->«name»'''
+	}
+	
+	private def getInVars(Loop it)
+	{
+		val allVars = eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target]
+		return allVars.filter(Variable).filter[global].toSet
+	}
+	
+	private def getOutVars(Loop it)
+	{
+		return eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet
+	}
 
 	private def getModifiedVariables(Loop l)
 	{
