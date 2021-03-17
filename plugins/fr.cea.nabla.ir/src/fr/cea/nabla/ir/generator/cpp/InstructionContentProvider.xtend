@@ -31,6 +31,9 @@ import fr.cea.nabla.ir.ir.While
 import fr.cea.nabla.ir.ir.Variable
 import fr.cea.nabla.ir.ir.ArgOrVarRef
 import fr.cea.nabla.ir.ir.IrPackage
+import fr.cea.nabla.ir.ir.ItemIndex
+import fr.cea.nabla.ir.ir.ItemIdValueIterator
+import fr.cea.nabla.ir.ir.ArgOrVar
 import org.eclipse.xtend.lib.annotations.Data
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
@@ -38,6 +41,7 @@ import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
+import java.util.HashMap
 
 @Data
 abstract class InstructionContentProvider
@@ -315,6 +319,9 @@ class OpenMpInstructionContentProvider extends InstructionContentProvider
 @Data
 class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 {
+	HashMap<String, Pair<Integer, Integer>> dataShift = new HashMap(); /* item name => iterator shift */
+	HashMap<String, String>  dataConnectivity = new HashMap(); /* item name => connectivity type */
+
 	override getReductionContent(ReductionInstruction it)
 	/* Don't bother with reductions for the moment */
 	'''
@@ -329,16 +336,67 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	'''
 
 	/* Slice the loop in chunks and feed it to the tasks. Will launch taskN
-	 * tasks +1 maybe if there are remaining things.
-	 * For the moment, taskN is static. TODO: Fix that. */
+	 * tasks. For the moment, taskN is static. TODO: Fix that. */
 	override getParallelLoopContent(Loop it)
 	{
+		dataShift.clear()
+		dataConnectivity.clear()
+		eAllContents.filter(ItemIdDefinition).forEach[item |
+			val itemid = item.id
+			val value = item.value as ItemIdValueIterator
+			addDataShift(itemid.itemName, value)
+		]
 		'''
 		/* TASKLOOP BEGIN */
+		// «eAllContents.filter(ItemIdDefinition).size»
+		// «dataShift»
+		// «dataConnectivity»
 		«launchTasks(OMPTaskMaxNumber) /* Each loop is 10 tasks */»
 		/* TASKLOOP END */
 		'''
 	}
+	
+	/* Compute the shift pair, the first element is the negative shift, the second the positive shift. */
+	protected def Pair<Integer, Integer> computeShiftPair(Pair<Integer, Integer> pair, int shift)
+	{
+		return shift < 0 ? new Pair<Integer, Integer>(Math::min(pair.key, shift), pair.value)
+		                 : new Pair<Integer, Integer>(pair.key, Math::max(pair.value, shift))
+	}
+	
+	protected def void addDataShift(String itemName, ItemIdValueIterator value)
+	{
+		var Pair<Integer, Integer> shifts = dataShift.get(itemName)
+		if (shifts === null) { shifts = new Pair<Integer, Integer>(0, 0); } /* New shift! */
+		shifts = computeShiftPair(shifts, value.shift);
+		dataShift.put(itemName, shifts);
+		dataConnectivity.put(itemName, value.iterator.container.connectivityCall.connectivity.name)
+	}
+	
+	protected def loopDataDependencies(Loop it)
+	'''
+		«FOR itemindex : iterationBlock.eAllContents.filter(ItemIndex).toIterable»
+			 // [«itemindex.itemName» => «dataShift.get(itemindex.itemName.toString)» | «dataConnectivity.get(itemindex.itemName.toString)»]
+		«ENDFOR»
+	'''
+	
+	protected def launchSingleTask(Loop it, /* The CORE loop */
+		CharSequence taskNum, CharSequence taskLimit,
+		CharSequence baseIndex, CharSequence taskNbElems, /* The limits */
+		Set<Variable> ins, Set<Variable> outs, Set<Variable> inouts, Iterable<ArgOrVar> shared /* The variables dependencies (DataFlow) */
+	)
+	'''
+	{
+		// Launch task `«taskNum»` out of `«taskLimit»`
+		«loopDataDependencies»
+		const size_t baseIndex = «baseIndex»;
+		const size_t taskNbElems = «taskNbElems»;
+		#pragma omp task firstprivate(baseIndex, taskNbElems)«getDependencies('in', ins)»«getDependencies('out', outs)»«getDependencies('inout', inouts)»«IF !shared.empty» shared(«shared.map[codeName].join(', ')»)«ENDIF»
+		for (size_t «iterationBlock.indexName» = baseIndex; «iterationBlock.indexName»<(baseIndex+taskNbElems); «iterationBlock.indexName»++)
+		{
+			«body.innerContent»
+		}
+	}
+	'''
 	
 	protected def launchTasks(Loop it, int taskN)
 	{
@@ -350,37 +408,22 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		ins.removeAll(inouts)
 		outs.removeAll(inouts)
 
-		/* Shortcuts */
-		val indexName = iterationBlock.indexName
-		val nbElems = iterationBlock.nbElems
-
 		/* The code */
+		val nbElems = iterationBlock.nbElems
 		'''
 			for (size_t task = 0; task < («taskN»-1); ++task)
-			{
-				const size_t baseIndex = («nbElems» / «taskN») * task;
-				const size_t taskNbElems = («nbElems» / «taskN»);
-				#pragma omp task firstprivate(baseIndex, taskNbElems)«getDependencies('in', ins)»«getDependencies('out', outs)»«getDependencies('inout', inouts)»«IF !shared.empty» shared(«shared.map[codeName].join(', ')»)«ENDIF»
-				for (size_t «indexName» = baseIndex; «indexName»<(baseIndex+taskNbElems); «indexName»++)
-				{
-					«body.innerContent»
-				}
-			}
-			{
-				const size_t remaining = («nbElems» % «taskN»);
-				const size_t taskNbElems = («nbElems» / «taskN»);
-				#pragma omp task firstprivate(taskNbElems, remaining)«getDependencies('in', ins)»«getDependencies('out', outs)»«getDependencies('inout', inouts)»«IF !shared.empty» shared(«shared.map[codeName].join(', ')»)«ENDIF»
-				for (size_t «indexName» = «nbElems» - remaining - taskNbElems; «indexName»<«nbElems»; «indexName»++)
-				{
-					«body.innerContent»
-				}
-			}
+			«launchSingleTask('''task''', '''«taskN»''', '''(«nbElems» / «taskN») * task''', '''(«nbElems» / «taskN»)''', ins, outs, inouts, shared)»
+			/* TASKLOOP REMAIN */
+			«val remaining = '''(«nbElems» % «taskN»)'''»
+			«val taskNbElems = '''(«nbElems» / «taskN»)'''»
+			«launchSingleTask('''(«taskN» - 1)''', '''«taskN»''', '''«nbElems» - «remaining» - «taskNbElems»''', nbElems, ins, outs, inouts, shared)»
 		'''
 	}
 	
 	protected override CharSequence getSequentialLoopContent(Loop it)
 	'''
 		/* SEQUENTIAL LOOP BEGIN */
+		«loopDataDependencies»
 		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
 		{
 			«body.innerContent»
@@ -398,20 +441,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	private def getVariableName(Variable it) { isOption ? '''options.«name»''' : '''this->«name»''' }
 	
 	/* Get DF */
-	private def getInVars(Loop it)
-	{
-		val allVars = eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target]
-		return allVars.filter(Variable).filter[global].toSet
-	}
-	
-	private def getOutVars(Loop it)
-	{
-		return eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet
-	}
-
-	private def getModifiedVariables(Loop l)
-	{
-		val modifiedVars = l.eAllContents.filter(Affectation).map[left.target].toSet
-		modifiedVars.filter[global]
-	}
+	private def getInVars(Loop it) { return eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet }
+	private def getOutVars(Loop it) { return eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet }
+	private def getModifiedVariables(Loop l) { return l.eAllContents.filter(Affectation).map[left.target].toSet.filter[global] }
 }
