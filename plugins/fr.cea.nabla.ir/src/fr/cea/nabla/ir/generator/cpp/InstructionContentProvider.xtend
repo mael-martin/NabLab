@@ -381,25 +381,28 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	protected def launchSingleTask(Loop it, /* The CORE loop */
 		CharSequence taskNum, CharSequence taskLimit,
 		CharSequence baseIndex, CharSequence taskNbElems, /* The limits */
-		Set<Variable> ins, Set<Variable> outs, Set<Variable> inouts, Iterable<ArgOrVar> shared /* The variables dependencies (DataFlow) */
-	)
+		Set<Variable> ins, Set<Variable> outs, Set<Variable> inouts /* The variables dependencies (DataFlow) */
+	) {
 	'''
-	{
-		// Launch task `«taskNum»` out of `«taskLimit»`
-		«loopDataDependencies»
-		const size_t baseIndex = «baseIndex»;
-		const size_t taskNbElems = «taskNbElems»;
-		#pragma omp task firstprivate(baseIndex, taskNbElems)«getDependencies('in', ins)»«getDependencies('out', outs)»«getDependencies('inout', inouts)»«IF !shared.empty» shared(«shared.map[codeName].join(', ')»)«ENDIF»
-		for (size_t «iterationBlock.indexName» = baseIndex; «iterationBlock.indexName»<(baseIndex+taskNbElems); «iterationBlock.indexName»++)
 		{
-			«body.innerContent»
+			// Launch task `«taskNum»` out of `«taskLimit»`
+			«loopDataDependencies»
+			const size_t baseIndex = «baseIndex»;
+			const size_t taskNbElems = «taskNbElems»;
+			#pragma omp task firstprivate(baseIndex, taskNbElems)«
+				getDependencies('in', ins)        /* Consumed by the task */»«
+				getDependencies('out', outs)      /* Produced by the task */»«
+				getDependencies('inout', inouts)  /* Consumed AND produced by the task */»
+			for (size_t «iterationBlock.indexName» = baseIndex; «iterationBlock.indexName»<(baseIndex+taskNbElems); «iterationBlock.indexName»++)
+			{
+				«body.innerContent»
+			}
 		}
-	}
 	'''
+	}
 	
 	protected def launchTasks(Loop it, int taskN)
 	{
-		val shared = modifiedVariables  /* Modified outside variables in inside loops  */
 		val ins = getInVars             /* Need to be computed before, consumed        */
 		val outs = getOutVars           /* Produced, unlock jobs that need them        */
 		val Set<Variable> inouts = ins.clone.toSet  /* Produced and consumed variables */
@@ -412,11 +415,11 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		if (taskN > 1)
 			'''
 				for (size_t task = 0; task < («taskN»-1); ++task)
-				«launchSingleTask('''task''', '''«taskN»''', '''(«nbElems» / «taskN») * task''', '''(«nbElems» / «taskN»)''', ins, outs, inouts, shared)»
+				«launchSingleTask('''task''', '''«taskN»''', '''(«nbElems» / «taskN») * task''', '''(«nbElems» / «taskN»)''', ins, outs, inouts)»
 				/* TASKLOOP REMAIN */
 				«val remaining = '''(«nbElems» % «taskN»)'''»
 				«val taskNbElems = '''(«nbElems» / «taskN»)'''»
-				«launchSingleTask('''(«taskN» - 1)''', '''«taskN»''', '''«nbElems» - «remaining» - «taskNbElems»''', nbElems, ins, outs, inouts, shared)»
+				«launchSingleTask('''(«taskN» - 1)''', '''«taskN»''', '''«nbElems» - «remaining» - «taskNbElems»''', nbElems, ins, outs, inouts)»
 			'''
 		else
 		{
@@ -430,7 +433,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			} else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
 			'''
 				// Single task, lots of auto detections will be done here, be aware of bugs ! (XXX)
-				«launchSingleTask('''0''', '''1''', '''0''', nbElems, ins, outs, inouts, shared)»
+				«launchSingleTask('''0''', '''1''', '''0''', nbElems, ins, outs, inouts)»
 			'''
 		}
 	}
@@ -458,5 +461,4 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	/* Get DF */
 	private def getInVars(Loop it) { return eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet }
 	private def getOutVars(Loop it) { return eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet }
-	private def getModifiedVariables(Loop l) { return l.eAllContents.filter(Affectation).map[left.target].toSet.filter[global] }
 }
