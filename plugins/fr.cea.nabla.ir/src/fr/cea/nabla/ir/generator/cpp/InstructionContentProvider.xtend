@@ -42,6 +42,7 @@ import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
 import java.util.HashMap
+import java.util.regex.Pattern
 
 @Data
 abstract class InstructionContentProvider
@@ -346,12 +347,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			val value = item.value as ItemIdValueIterator
 			addDataShift(itemid.itemName, value)
 		]
+		val itemidcount = eAllContents.filter(ItemIdDefinition).size
 		'''
 		/* TASKLOOP BEGIN */
-		// «eAllContents.filter(ItemIdDefinition).size»
-		// «dataShift»
-		// «dataConnectivity»
-		«launchTasks(OMPTaskMaxNumber) /* Each loop is 10 tasks */»
+		«launchTasks(itemidcount > 0 ? OMPTaskMaxNumber : 1) /* Each loop is 10 tasks */»
 		/* TASKLOOP END */
 		'''
 	}
@@ -410,14 +409,30 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		/* The code */
 		val nbElems = iterationBlock.nbElems
-		'''
-			for (size_t task = 0; task < («taskN»-1); ++task)
-			«launchSingleTask('''task''', '''«taskN»''', '''(«nbElems» / «taskN») * task''', '''(«nbElems» / «taskN»)''', ins, outs, inouts, shared)»
-			/* TASKLOOP REMAIN */
-			«val remaining = '''(«nbElems» % «taskN»)'''»
-			«val taskNbElems = '''(«nbElems» / «taskN»)'''»
-			«launchSingleTask('''(«taskN» - 1)''', '''«taskN»''', '''«nbElems» - «remaining» - «taskNbElems»''', nbElems, ins, outs, inouts, shared)»
-		'''
+		if (taskN > 1)
+			'''
+				for (size_t task = 0; task < («taskN»-1); ++task)
+				«launchSingleTask('''task''', '''«taskN»''', '''(«nbElems» / «taskN») * task''', '''(«nbElems» / «taskN»)''', ins, outs, inouts, shared)»
+				/* TASKLOOP REMAIN */
+				«val remaining = '''(«nbElems» % «taskN»)'''»
+				«val taskNbElems = '''(«nbElems» / «taskN»)'''»
+				«launchSingleTask('''(«taskN» - 1)''', '''«taskN»''', '''«nbElems» - «remaining» - «taskNbElems»''', nbElems, ins, outs, inouts, shared)»
+			'''
+		else
+		{
+			val String itemname = iterationBlock.indexName.toString
+			if (Pattern.matches(".*Cells", itemname) || Pattern.matches(".*cells", itemname)) {
+				dataShift.put(String::valueOf(itemname.charAt(0)), new Pair<Integer, Integer>(0, 0))
+				dataConnectivity.put(String::valueOf(itemname.charAt(0)), "cells");
+			} else if (Pattern.matches(".*Nodes", itemname) || Pattern.matches(".*nodes", itemname)) {
+				dataShift.put(String::valueOf(itemname.charAt(0)), new Pair<Integer, Integer>(0, 0))
+				dataConnectivity.put(String::valueOf(itemname.charAt(0)), "nodes");
+			} else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
+			'''
+				// Single task, lots of auto detections will be done here, be aware of bugs ! (XXX)
+				«launchSingleTask('''0''', '''1''', '''0''', nbElems, ins, outs, inouts, shared)»
+			'''
+		}
 	}
 	
 	protected override CharSequence getSequentialLoopContent(Loop it)
