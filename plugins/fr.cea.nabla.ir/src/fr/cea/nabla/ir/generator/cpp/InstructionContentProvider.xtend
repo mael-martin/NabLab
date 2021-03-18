@@ -43,6 +43,9 @@ import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
 import java.util.HashMap
 import java.util.regex.Pattern
+import fr.cea.nabla.ir.ir.ConnectivityType
+import fr.cea.nabla.ir.ir.BaseType
+import fr.cea.nabla.ir.ir.LinearAlgebraType
 
 @Data
 abstract class InstructionContentProvider
@@ -320,6 +323,12 @@ class OpenMpInstructionContentProvider extends InstructionContentProvider
 @Data
 class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 {
+	enum VARIABLE_TYPE {
+		BASIC,
+		BASE,
+		CONNECTIVITY
+	}
+	
 	HashMap<String, Pair<Integer, Integer>> dataShift = new HashMap(); /* item name => iterator shift */
 	HashMap<String, String>  dataConnectivity = new HashMap(); /* item name => connectivity type */
 
@@ -347,10 +356,9 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			val value = item.value as ItemIdValueIterator
 			addDataShift(itemid.itemName, value)
 		]
-		val itemidcount = eAllContents.filter(ItemIdDefinition).size
 		'''
 		/* TASKLOOP BEGIN */
-		«launchTasks(itemidcount > 0 ? OMPTaskMaxNumber : 1) /* Each loop is 10 tasks */»
+		«launchTasks(OMPTaskMaxNumber) /* Each loop is 10 tasks */»
 		/* TASKLOOP END */
 		'''
 	}
@@ -390,9 +398,9 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			const size_t baseIndex = «baseIndex»;
 			const size_t taskNbElems = «taskNbElems»;
 			#pragma omp task firstprivate(baseIndex, taskNbElems)«
-				getDependencies('in', ins)        /* Consumed by the task */»«
-				getDependencies('out', outs)      /* Produced by the task */»«
-				getDependencies('inout', inouts)  /* Consumed AND produced by the task */»
+				getDependencies('in',    ins,    taskNum, taskLimit) /* Consumed by the task */»«
+				getDependencies('out',   outs,   taskNum, taskLimit) /* Produced by the task */»«
+				getDependencies('inout', inouts, taskNum, taskLimit) /* Consumed AND produced by the task */»
 			for (size_t «iterationBlock.indexName» = baseIndex; «iterationBlock.indexName»<(baseIndex+taskNbElems); «iterationBlock.indexName»++)
 			{
 				«body.innerContent»
@@ -412,16 +420,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		/* The code */
 		val nbElems = iterationBlock.nbElems
-		if (taskN > 1)
-			'''
-				for (size_t task = 0; task < («taskN»-1); ++task)
-				«launchSingleTask('''task''', '''«taskN»''', '''(«nbElems» / «taskN») * task''', '''(«nbElems» / «taskN»)''', ins, outs, inouts)»
-				/* TASKLOOP REMAIN */
-				«val remaining = '''(«nbElems» % «taskN»)'''»
-				«val taskNbElems = '''(«nbElems» / «taskN»)'''»
-				«launchSingleTask('''(«taskN» - 1)''', '''«taskN»''', '''«nbElems» - «remaining» - «taskNbElems»''', nbElems, ins, outs, inouts)»
-			'''
-		else
+		val itemidcount = eAllContents.filter(ItemIdDefinition).size
+		if (itemidcount == 0)
 		{
 			val String itemname = iterationBlock.indexName.toString
 			if (Pattern.matches(".*Cells", itemname) || Pattern.matches(".*cells", itemname)) {
@@ -431,11 +431,15 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				dataShift.put(String::valueOf(itemname.charAt(0)), new Pair<Integer, Integer>(0, 0))
 				dataConnectivity.put(String::valueOf(itemname.charAt(0)), "nodes");
 			} else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
-			'''
-				// Single task, lots of auto detections will be done here, be aware of bugs ! (XXX)
-				«launchSingleTask('''0''', '''1''', '''0''', nbElems, ins, outs, inouts)»
-			'''
 		}
+		'''
+			for (size_t task = 0; task < («taskN»-1); ++task)
+			«launchSingleTask('''task''', '''«taskN»''', '''(«nbElems» / «taskN») * task''', '''(«nbElems» / «taskN»)''', ins, outs, inouts)»
+			/* TASKLOOP REMAIN */
+			«val remaining = '''(«nbElems» % «taskN»)'''»
+			«val taskNbElems = '''(«nbElems» / «taskN»)'''»
+			«launchSingleTask('''(«taskN» - 1)''', '''«taskN»''', '''(«nbElems»-«remaining»-«taskNbElems»)''', '''(«taskNbElems» + «remaining»)''', ins, outs, inouts)»
+		'''
 	}
 	
 	protected override CharSequence getSequentialLoopContent(Loop it)
@@ -449,14 +453,33 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		/* SEQUENTIAL LOOP END */
 	'''
 
-	def getDependencies(String inout, Iterable<Variable> deps)
+	def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskCurrent, CharSequence taskLimit)
 	{
-		if (deps.length != 0) ''' depend(«inout»: «FOR v : deps SEPARATOR ', '»«getVariableName(v)»«ENDFOR»)'''
+		if (deps.length != 0)
+			''' depend(«inout»: «FOR v : deps SEPARATOR ', '»«
+				getVariableName(v)»«getVariableRange(v, taskCurrent, taskLimit)
+			»«ENDFOR»)'''
 		else ''''''
 	}
 
 	/* Variable name that will let OMP use it with the depend clauses... */
 	private def getVariableName(Variable it) { isOption ? '''options.«name»''' : '''this->«name»''' }
+	private def getVariableRange(Variable it, CharSequence taskCurrent, CharSequence taskLimit)
+	{
+		val type = (it as ArgOrVar).type;
+		switch (type) {
+			ConnectivityType: {
+				val connectivites = (type as ConnectivityType).connectivities.map[name];
+				val cppname       = getVariableName;
+				val depInferior   = '''«cppname».size()*(«taskCurrent»)/(«taskLimit»)'''
+				// val depSuperior   = '''«cppname».size()*(«taskCurrent»+1)/(«taskLimit»)'''
+				return '''[«depInferior»]/*«connectivites»*/'''
+			}
+			LinearAlgebraType: return '''''' /* This is an opaque type, don't know what to do with it */
+			BaseType: return '''''' /* An integer, etc => the name is the dependency */
+			default: return '''''' /* Don't know => pin all the variable */
+		}
+	}
 	
 	/* Get DF */
 	private def getInVars(Loop it) { return eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet }
