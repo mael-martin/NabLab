@@ -150,6 +150,7 @@ class OpenMpIncludesContentProvider extends SequentialIncludesContentProvider
 	{
 		val includes = super.getSystemIncludes(hasLevelDB)
 		includes += "omp.h"
+		includes += "cstdio"
 		return includes
 	}
 }

@@ -395,12 +395,19 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		{
 			// Launch task `«taskNum»` out of `«taskLimit»`
 			«loopDataDependencies»
+			// static unsigned long ___task_id = 0;
 			const size_t baseIndex = «baseIndex»;
 			const size_t taskNbElems = «taskNbElems»;
 			#pragma omp task firstprivate(baseIndex, taskNbElems)«
 				getDependencies('in',    ins,    taskNum, taskLimit) /* Consumed by the task */»«
 				getDependencies('out',   outs,   taskNum, taskLimit) /* Produced by the task */»«
 				getDependencies('inout', inouts, taskNum, taskLimit) /* Consumed AND produced by the task */»
+			#pragma omp atomic
+			this->task_id++;
+			// (UNIQ_task_id, ['in', 'in', ...], ['out', 'out', ...], start, duration) // with DAG-dot
+			fprintf(stderr, "('task_%ld', [«
+				FOR v : ins SEPARATOR ', '»'«v.name»'«ENDFOR»«FOR v : inouts SEPARATOR ', '»'«v.name»'«ENDFOR»], [«
+				FOR v : outs SEPARATOR ', '»'«v.name»'«ENDFOR»«FOR v : inouts SEPARATOR ', '»'«v.name»'«ENDFOR»], 0, 0)\n", task_id);
 			for (size_t «iterationBlock.indexName» = baseIndex; «iterationBlock.indexName»<(baseIndex+taskNbElems); «iterationBlock.indexName»++)
 			{
 				«body.innerContent»
