@@ -16,13 +16,12 @@ import fr.cea.nabla.ir.ir.InstructionJob
 import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.TimeLoopCopy
+import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.TimeLoopJob
-import fr.cea.nabla.ir.ir.ArgOrVarRef
-import fr.cea.nabla.ir.ir.Affectation
-import fr.cea.nabla.ir.ir.IrPackage
 import fr.cea.nabla.ir.ir.Variable
 import java.util.ArrayList
 import java.util.List
+import java.util.stream.IntStream
 import org.eclipse.xtend.lib.annotations.Data
 
 import static extension fr.cea.nabla.ir.IrModuleExtensions.*
@@ -30,9 +29,7 @@ import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
-import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
-import static extension fr.cea.nabla.ir.generator.Utils.*
-import fr.cea.nabla.ir.ir.SetUpTimeLoopJob
+import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 
 @Data
 abstract class JobContentProvider
@@ -184,16 +181,59 @@ class OpenMpTaskJobContentProvider extends JobContentProvider
 
 	override protected dispatch CharSequence getInnerContent(TimeLoopJob it)
 	{
-		val ins  = copies.map[source].map[name]
-		val outs = copies.map[destination].map[name]
+		val ins  = copies.map[source]
+		val outs = copies.map[destination]
 		'''
-			/* INS: «FOR n : ins SEPARATOR ", "»«n»«ENDFOR»
-			 * OUTS: «FOR n : outs SEPARATOR ", "»«n»«ENDFOR»
+			/* INS: «FOR n : ins.map[name] SEPARATOR ", "»«n»«ENDFOR»
+			 * OUTS: «FOR n : outs.map[name] SEPARATOR ", "»«n»«ENDFOR»
 			 */
+			#pragma omp task\
+			«getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)»\
+			«getDependenciesAll('out', outs, 0, OMPTaskMaxNumber)»
 			«FOR c : copies»
 				«c.content»
 			«ENDFOR»
 		'''
+	}
+
+	/* FIXME: Duplicated utility functions (see InstructionContentProvider.xtend) */
+	private def getVariableName(Variable it) { isOption ? '''options.«name»''' : '''this->«name»''' }
+	private def isVariableRange(Variable it)
+	{
+		val type = (it as ArgOrVar).type;
+		switch (type) {
+			ConnectivityType: return true
+			default: return false
+		}
+	}
+	private def getVariableRange(Variable it, CharSequence taskCurrent, CharSequence taskLimit)
+	{
+		val type = (it as ArgOrVar).type;
+		switch (type) {
+			ConnectivityType: {
+				val connectivites = (type as ConnectivityType).connectivities.map[name];
+				val cppname       = getVariableName;
+				val depInferior   = '''«cppname».size()*(«taskCurrent»)/(«taskLimit»)'''
+				// val depSuperior   = '''«cppname».size()*(«taskCurrent»+1)/(«taskLimit»)'''
+				return '''[«depInferior»]/*«connectivites»*/'''
+			}
+			LinearAlgebraType: return '''''' /* This is an opaque type, don't know what to do with it */
+			BaseType: return '''''' /* An integer, etc => the name is the dependency */
+			default: return '''''' /* Don't know => pin all the variable */
+		}
+	}
+	def getDependenciesAll(String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
+	{
+		if (deps.length != 0)
+		{
+			val range = IntStream.range(fromTask, taskLimit).toArray
+			''' depend(«inout»: «
+			FOR v : deps SEPARATOR ',\\\n'»«
+				IF v.isVariableRange»«FOR i : range SEPARATOR ',\\\n'»«getVariableName(v)»«getVariableRange(v, i.toString, taskLimit.toString)»«ENDFOR»«
+				ELSE»«getVariableName(v)»«ENDIF»«
+			ENDFOR»)'''
+		}
+		else ''''''
 	}
 }
 
