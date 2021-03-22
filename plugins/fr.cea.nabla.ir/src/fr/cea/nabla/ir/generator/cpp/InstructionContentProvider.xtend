@@ -337,6 +337,18 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	HashMap<String, Pair<Integer, Integer>> dataShift = new HashMap(); /* item name => iterator shift    */
 	HashMap<String, String> dataConnectivity = new HashMap();          /* item name => connectivity type */
 
+	override dispatch getInnerContent(InstructionBlock it)
+	'''
+		«val isReduction = (instructions.size == 2) && (instructions.toList.head instanceof ReductionInstruction) && (instructions.toList.last instanceof Affectation)»
+		«FOR i : instructions»
+		«i.content»
+		«ENDFOR»
+		««« This bracket is opened in the getReductionContent function
+		«IF isReduction»
+		}
+		«ENDIF»
+	'''
+
 	override dispatch CharSequence getContent(Affectation it)
 	{
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job);
@@ -371,6 +383,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			 */
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)«getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)» depend(out: «out.name»)
+			{
 			«iterationBlock.defineInterval('''
 			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
 			{
