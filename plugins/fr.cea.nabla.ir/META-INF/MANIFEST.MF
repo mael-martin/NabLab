@@ -29,6 +29,7 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.core.resources,
  com.google.gson,
  leveldb;bundle-version="0.13.0",
- org.eclipse.emf.ecore.xmi
+ org.eclipse.emf.ecore.xmi,
+ org.eclipse.xtext;bundle-version="2.24.0"
 Bundle-ActivationPolicy: lazy
 

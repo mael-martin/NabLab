@@ -9,7 +9,12 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
+import org.eclipse.xtext.EcoreUtil2
+import org.eclipse.xtend.lib.annotations.Data
+
 import java.util.Set
+import java.util.HashMap
+import java.util.regex.Pattern
 
 import fr.cea.nabla.ir.ir.Affectation
 import fr.cea.nabla.ir.ir.ConnectivityCall
@@ -34,19 +39,18 @@ import fr.cea.nabla.ir.ir.IrPackage
 import fr.cea.nabla.ir.ir.ItemIndex
 import fr.cea.nabla.ir.ir.ItemIdValueIterator
 import fr.cea.nabla.ir.ir.ArgOrVar
-import org.eclipse.xtend.lib.annotations.Data
+import fr.cea.nabla.ir.ir.ConnectivityType
+import fr.cea.nabla.ir.ir.BaseType
+import fr.cea.nabla.ir.ir.LinearAlgebraType
+import fr.cea.nabla.ir.ir.IterableInstruction
+import fr.cea.nabla.ir.ir.Job
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
-import java.util.HashMap
-import java.util.regex.Pattern
-import fr.cea.nabla.ir.ir.ConnectivityType
-import fr.cea.nabla.ir.ir.BaseType
-import fr.cea.nabla.ir.ir.LinearAlgebraType
-import fr.cea.nabla.ir.ir.IterableInstruction
+import java.util.stream.IntStream
 
 @Data
 abstract class InstructionContentProvider
@@ -331,23 +335,30 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	}
 	
 	HashMap<String, Pair<Integer, Integer>> dataShift = new HashMap(); /* item name => iterator shift */
-	HashMap<String, String>  dataConnectivity = new HashMap(); /* item name => connectivity type */
+	HashMap<String, String> dataConnectivity = new HashMap(); /* item name => connectivity type */
 
 	override getReductionContent(ReductionInstruction it)
-	/* Don't bother with reductions for the moment */
-	'''
-		/* REDUCTION BEGIN
-		 * IN:  «inVars.map[name]»
-		 * OUT: «outVars.map[name]»
-		 */
-		«result.type.cppType» «result.name»(«result.defaultValue.content»);
-		«iterationBlock.defineInterval('''
-		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
-		{
-			«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
-		}''')»
-		/* REDUCTION END */
-	'''
+	{
+		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
+		val ins = parentJob.getInVars       /* Need to be computed before, consumed */
+		val out = parentJob.getOutVars.head /* Produced, unlock jobs that need them */
+		'''
+			/* REDUCTION BEGIN for job «parentJob.name»@«parentJob.at»
+			 * IN:    «ins.map[name]»
+			 * OUT:   «out.name»
+			 */
+			«result.type.cppType» «result.name»(«result.defaultValue.content»);
+			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)\
+			 «getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)» \
+			 depend(out: «out.name»)
+			«iterationBlock.defineInterval('''
+			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
+			{
+				«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
+			}''')»
+			/* REDUCTION END */
+		'''
+	}
 
 	/* Slice the loop in chunks and feed it to the tasks. Will launch taskN
 	 * tasks. For the moment, taskN is static. TODO: Fix that. */
@@ -463,6 +474,20 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		}
 		/* SEQUENTIAL LOOP END */
 	'''
+	
+	def getDependenciesAll(String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
+	{
+		if (deps.length != 0)
+		{
+			val range = IntStream.range(fromTask, taskLimit).toArray
+			''' depend(«inout»: «
+			FOR v : deps SEPARATOR ',\\\n'»«
+				IF v.isVariableRange»«FOR i : range SEPARATOR ',\\\n'»«getVariableName(v)»«getVariableRange(v, i.toString, taskLimit.toString)»«ENDFOR»«
+				ELSE»«getVariableName(v)»«ENDIF»«
+			ENDFOR»)'''
+		}
+		else ''''''
+	}
 
 	def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskCurrent, CharSequence taskLimit)
 	{
@@ -475,6 +500,14 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 	/* Variable name that will let OMP use it with the depend clauses... */
 	private def getVariableName(Variable it) { isOption ? '''options.«name»''' : '''this->«name»''' }
+	private def isVariableRange(Variable it)
+	{
+		val type = (it as ArgOrVar).type;
+		switch (type) {
+			ConnectivityType: return true
+			default: return false
+		}
+	}
 	private def getVariableRange(Variable it, CharSequence taskCurrent, CharSequence taskLimit)
 	{
 		val type = (it as ArgOrVar).type;
@@ -495,4 +528,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	/* Get DF */
 	private def getInVars(IterableInstruction it) { return eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet }
 	private def getOutVars(IterableInstruction it) { return eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet }
+
+	private def getInVars(Job it) { return eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet }
+	private def getOutVars(Job it) { return eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet }
 }
