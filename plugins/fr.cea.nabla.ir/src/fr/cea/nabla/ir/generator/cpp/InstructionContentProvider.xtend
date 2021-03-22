@@ -46,6 +46,7 @@ import java.util.regex.Pattern
 import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.LinearAlgebraType
+import fr.cea.nabla.ir.ir.IterableInstruction
 
 @Data
 abstract class InstructionContentProvider
@@ -335,7 +336,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	override getReductionContent(ReductionInstruction it)
 	/* Don't bother with reductions for the moment */
 	'''
-		/* REDUCTION BEGIN */
+		/* REDUCTION BEGIN
+		 * IN:  «inVars.map[name]»
+		 * OUT: «outVars.map[name]»
+		 */
 		«result.type.cppType» «result.name»(«result.defaultValue.content»);
 		«iterationBlock.defineInterval('''
 		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
@@ -489,6 +493,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	}
 	
 	/* Get DF */
-	private def getInVars(Loop it) { return eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet }
-	private def getOutVars(Loop it) { return eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet }
+	private def getInVars(IterableInstruction it) { return eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet }
+	private def getOutVars(IterableInstruction it) { return eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet }
 }
