@@ -16,12 +16,9 @@ import fr.cea.nabla.ir.ir.InstructionJob
 import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.TimeLoopCopy
-import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.TimeLoopJob
-import fr.cea.nabla.ir.ir.Variable
 import java.util.ArrayList
 import java.util.List
-import java.util.stream.IntStream
 import org.eclipse.xtend.lib.annotations.Data
 
 import static extension fr.cea.nabla.ir.IrModuleExtensions.*
@@ -194,46 +191,6 @@ class OpenMpTaskJobContentProvider extends JobContentProvider
 			«ENDFOR»
 			}
 		'''
-	}
-
-	/* FIXME: Duplicated utility functions (see InstructionContentProvider.xtend) */
-	private def getVariableName(Variable it) { isOption ? '''options.«name»''' : '''this->«name»''' }
-	private def isVariableRange(Variable it)
-	{
-		val type = (it as ArgOrVar).type;
-		switch (type) {
-			ConnectivityType: return true
-			default: return false
-		}
-	}
-	private def getVariableRange(Variable it, CharSequence taskCurrent, CharSequence taskLimit)
-	{
-		val type = (it as ArgOrVar).type;
-		switch (type) {
-			ConnectivityType: {
-				val connectivites = (type as ConnectivityType).connectivities.map[name];
-				val cppname       = getVariableName;
-				val depInferior   = '''«cppname».size()*(«taskCurrent»)/(«taskLimit»)'''
-				// val depSuperior   = '''«cppname».size()*(«taskCurrent»+1)/(«taskLimit»)'''
-				return '''[«depInferior»]/*«connectivites»*/'''
-			}
-			LinearAlgebraType: return '''''' /* This is an opaque type, don't know what to do with it */
-			BaseType: return '''''' /* An integer, etc => the name is the dependency */
-			default: return '''''' /* Don't know => pin all the variable */
-		}
-	}
-	def getDependenciesAll(String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
-	{
-		if (deps.length != 0)
-		{
-			val range = IntStream.range(fromTask, taskLimit).toArray
-			''' depend(«inout»: «
-			FOR v : deps SEPARATOR ', '»«
-				IF v.isVariableRange»«FOR i : range SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, i.toString, taskLimit.toString)»«ENDFOR»«
-				ELSE»«getVariableName(v)»«ENDIF»«
-			ENDFOR»)'''
-		}
-		else ''''''
 	}
 }
 

@@ -9,6 +9,7 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
+import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.OMPTraces
 import fr.cea.nabla.ir.transformers.IrTransformationStep
 import fr.cea.nabla.ir.transformers.ReplaceReductions
 import org.eclipse.xtend.lib.annotations.Accessors
@@ -136,6 +137,7 @@ class OpenMpTaskBackend extends Backend
 {
 	new()
 	{
+		OMPTraces = false
 		name = 'OpenMPTask'
 		cmakeContentProvider = new OpenMpCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider

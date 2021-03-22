@@ -12,7 +12,6 @@ package fr.cea.nabla.ir.generator.cpp
 import org.eclipse.xtext.EcoreUtil2
 import org.eclipse.xtend.lib.annotations.Data
 
-import java.util.stream.IntStream
 import java.util.Set
 import java.util.HashMap
 import java.util.regex.Pattern
@@ -35,15 +34,8 @@ import fr.cea.nabla.ir.ir.SetDefinition
 import fr.cea.nabla.ir.ir.VariableDeclaration
 import fr.cea.nabla.ir.ir.While
 import fr.cea.nabla.ir.ir.Variable
-import fr.cea.nabla.ir.ir.ArgOrVarRef
-import fr.cea.nabla.ir.ir.IrPackage
 import fr.cea.nabla.ir.ir.ItemIndex
 import fr.cea.nabla.ir.ir.ItemIdValueIterator
-import fr.cea.nabla.ir.ir.ArgOrVar
-import fr.cea.nabla.ir.ir.ConnectivityType
-import fr.cea.nabla.ir.ir.BaseType
-import fr.cea.nabla.ir.ir.LinearAlgebraType
-import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.Job
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
@@ -335,7 +327,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	}
 	
 	HashMap<String, Pair<Integer, Integer>> dataShift = new HashMap(); /* item name => iterator shift    */
-	HashMap<String, String> dataConnectivity = new HashMap();          /* item name => connectivity type */
+	HashMap<String, String> dataConnectivity          = new HashMap(); /* item name => connectivity type */
 
 	override dispatch getInnerContent(InstructionBlock it)
 	'''
@@ -427,13 +419,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		dataConnectivity.put(itemName, value.iterator.container.connectivityCall.connectivity.name)
 	}
 	
-	protected def loopDataDependencies(Loop it)
-	'''
-		«FOR itemindex : iterationBlock.eAllContents.filter(ItemIndex).toIterable»
-			 // [«itemindex.itemName» => «dataShift.get(itemindex.itemName.toString)» | «dataConnectivity.get(itemindex.itemName.toString)»]
-		«ENDFOR»
-	'''
-	
 	protected def launchSingleTask(Loop it, /* The CORE loop */
 		CharSequence taskNum, CharSequence taskLimit,
 		CharSequence baseIndex, CharSequence taskNbElems, /* The limits */
@@ -442,23 +427,28 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	'''
 		{
 			// Launch task `«taskNum»` out of `«taskLimit»`
-			«loopDataDependencies»
-			// static unsigned long ___task_id = 0;
+			«FOR itemindex : iterationBlock.eAllContents.filter(ItemIndex).toIterable»
+				 // [«itemindex.itemName» => «dataShift.get(itemindex.itemName.toString)» | «dataConnectivity.get(itemindex.itemName.toString)»]
+			«ENDFOR»
 			const size_t baseIndex = «baseIndex»;
 			const size_t taskNbElems = «taskNbElems»;
 			#pragma omp task firstprivate(baseIndex, taskNbElems)«
 				getDependencies('in',    ins,    taskNum, taskLimit) /* Consumed by the task */»«
 				getDependencies('out',   outs,   taskNum, taskLimit) /* Produced by the task */»«
 				getDependencies('inout', inouts, taskNum, taskLimit) /* Consumed AND produced by the task */»
-			// #pragma omp atomic
-			// this->task_id++;
+			{
+			«IF OMPTraces»
+			#pragma omp atomic
+			this->task_id++;
 			// (UNIQ_task_id, ['in', 'in', ...], ['out', 'out', ...], start, duration) // with DAG-dot
-			// fprintf(stderr, "('task_%ld', [«
+			fprintf(stderr, "('task_%ld', [«
 				FOR v : ins SEPARATOR ', '»'«v.name»'«ENDFOR»«FOR v : inouts SEPARATOR ', '»'«v.name»'«ENDFOR»], [«
 				FOR v : outs SEPARATOR ', '»'«v.name»'«ENDFOR»«FOR v : inouts SEPARATOR ', '»'«v.name»'«ENDFOR»], 0, 0)\n", task_id);
+			«ENDIF»
 			for (size_t «iterationBlock.indexName» = baseIndex; «iterationBlock.indexName»<(baseIndex+taskNbElems); «iterationBlock.indexName»++)
 			{
 				«body.innerContent»
+			}
 			}
 		}
 	'''
@@ -496,72 +486,4 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			«launchSingleTask('''(«taskN» - 1)''', '''«taskN»''', '''(«nbElems»-«remaining»-«taskNbElems»)''', '''(«taskNbElems» + «remaining»)''', ins, outs, inouts)»
 		'''
 	}
-	
-	protected override CharSequence getSequentialLoopContent(Loop it)
-	'''
-		/* SEQUENTIAL LOOP BEGIN */
-		«loopDataDependencies»
-		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
-		{
-			«body.innerContent»
-		}
-		/* SEQUENTIAL LOOP END */
-	'''
-	
-	def getDependenciesAll(String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
-	{
-		if (deps.length != 0)
-		{
-			val range = IntStream.range(fromTask, taskLimit).toArray
-			''' depend(«inout»: «
-			FOR v : deps SEPARATOR ', '»«
-				IF v.isVariableRange»«FOR i : range SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, i.toString, taskLimit.toString)»«ENDFOR»«
-				ELSE»«getVariableName(v)»«ENDIF»«
-			ENDFOR»)'''
-		}
-		else ''''''
-	}
-
-	def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskCurrent, CharSequence taskLimit)
-	{
-		if (deps.length != 0)
-			''' depend(«inout»: «FOR v : deps SEPARATOR ', '»«
-				getVariableName(v)»«getVariableRange(v, taskCurrent, taskLimit)
-			»«ENDFOR»)'''
-		else ''''''
-	}
-
-	/* Variable name that will let OMP use it with the depend clauses... */
-	private def getVariableName(Variable it) { isOption ? '''options.«name»''' : '''this->«name»''' }
-	private def isVariableRange(Variable it)
-	{
-		val type = (it as ArgOrVar).type;
-		switch (type) {
-			ConnectivityType: return true
-			default: return false
-		}
-	}
-	private def getVariableRange(Variable it, CharSequence taskCurrent, CharSequence taskLimit)
-	{
-		val type = (it as ArgOrVar).type;
-		switch (type) {
-			ConnectivityType: {
-				val connectivites = (type as ConnectivityType).connectivities.map[name];
-				val cppname       = getVariableName;
-				val depInferior   = '''«cppname».size()*(«taskCurrent»)/(«taskLimit»)'''
-				// val depSuperior   = '''«cppname».size()*(«taskCurrent»+1)/(«taskLimit»)'''
-				return '''[«depInferior»]/*«connectivites»*/'''
-			}
-			LinearAlgebraType: return '''''' /* This is an opaque type, don't know what to do with it */
-			BaseType: return '''''' /* An integer, etc => the name is the dependency */
-			default: return '''''' /* Don't know => pin all the variable */
-		}
-	}
-	
-	/* Get DF */
-	private def getInVars(IterableInstruction it) { return eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet }
-	private def getOutVars(IterableInstruction it) { return eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet }
-
-	private def getInVars(Job it) { return eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet }
-	private def getOutVars(Job it) { return eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet }
 }
