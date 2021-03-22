@@ -12,6 +12,7 @@ package fr.cea.nabla.ir.generator.cpp
 import org.eclipse.xtext.EcoreUtil2
 import org.eclipse.xtend.lib.annotations.Data
 
+import java.util.stream.IntStream
 import java.util.Set
 import java.util.HashMap
 import java.util.regex.Pattern
@@ -50,7 +51,6 @@ import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
-import java.util.stream.IntStream
 
 @Data
 abstract class InstructionContentProvider

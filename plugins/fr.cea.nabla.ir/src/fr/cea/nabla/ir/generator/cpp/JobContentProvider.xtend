@@ -17,6 +17,10 @@ import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.TimeLoopCopy
 import fr.cea.nabla.ir.ir.TimeLoopJob
+import fr.cea.nabla.ir.ir.ArgOrVarRef
+import fr.cea.nabla.ir.ir.Affectation
+import fr.cea.nabla.ir.ir.IrPackage
+import fr.cea.nabla.ir.ir.Variable
 import java.util.ArrayList
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Data
@@ -26,6 +30,9 @@ import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
+import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
+import static extension fr.cea.nabla.ir.generator.Utils.*
+import fr.cea.nabla.ir.ir.SetUpTimeLoopJob
 
 @Data
 abstract class JobContentProvider
@@ -164,6 +171,29 @@ class StlThreadJobContentProvider extends JobContentProvider
 	override protected copyConnectivityType(String leftName, String rightName, int dimension, List<CharSequence> indexNames)
 	{
 		copyBaseType(leftName, rightName, dimension, indexNames)
+	}
+}
+
+@Data
+class OpenMpTaskJobContentProvider extends JobContentProvider
+{
+	override protected copyConnectivityType(String leftName, String rightName, int dimension, List<CharSequence> indexNames)
+	{
+		copyBaseType(leftName, rightName, dimension, indexNames)
+	}
+
+	override protected dispatch CharSequence getInnerContent(TimeLoopJob it)
+	{
+		val ins  = copies.map[source].map[name]
+		val outs = copies.map[destination].map[name]
+		'''
+			/* INS: «FOR n : ins SEPARATOR ", "»«n»«ENDFOR»
+			 * OUTS: «FOR n : outs SEPARATOR ", "»«n»«ENDFOR»
+			 */
+			«FOR c : copies»
+				«c.content»
+			«ENDFOR»
+		'''
 	}
 }
 
