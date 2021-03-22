@@ -187,12 +187,12 @@ class OpenMpTaskJobContentProvider extends JobContentProvider
 			/* INS: «FOR n : ins.map[name] SEPARATOR ", "»«n»«ENDFOR»
 			 * OUTS: «FOR n : outs.map[name] SEPARATOR ", "»«n»«ENDFOR»
 			 */
-			#pragma omp task\
-			«getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)»\
-			«getDependenciesAll('out', outs, 0, OMPTaskMaxNumber)»
+			#pragma omp task«getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)»«getDependenciesAll('out', outs, 0, OMPTaskMaxNumber)»
+			{
 			«FOR c : copies»
 				«c.content»
 			«ENDFOR»
+			}
 		'''
 	}
 
@@ -228,8 +228,8 @@ class OpenMpTaskJobContentProvider extends JobContentProvider
 		{
 			val range = IntStream.range(fromTask, taskLimit).toArray
 			''' depend(«inout»: «
-			FOR v : deps SEPARATOR ',\\\n'»«
-				IF v.isVariableRange»«FOR i : range SEPARATOR ',\\\n'»«getVariableName(v)»«getVariableRange(v, i.toString, taskLimit.toString)»«ENDFOR»«
+			FOR v : deps SEPARATOR ', '»«
+				IF v.isVariableRange»«FOR i : range SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, i.toString, taskLimit.toString)»«ENDFOR»«
 				ELSE»«getVariableName(v)»«ENDIF»«
 			ENDFOR»)'''
 		}

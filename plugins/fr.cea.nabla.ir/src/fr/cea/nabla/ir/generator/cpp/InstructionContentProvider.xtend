@@ -370,9 +370,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			 * OUT:   «out.name»
 			 */
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
-			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)\
-			 «getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)» \
-			 depend(out: «out.name»)
+			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)«getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)» depend(out: «out.name»)
 			«iterationBlock.defineInterval('''
 			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
 			{
@@ -503,8 +501,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		{
 			val range = IntStream.range(fromTask, taskLimit).toArray
 			''' depend(«inout»: «
-			FOR v : deps SEPARATOR ',\\\n'»«
-				IF v.isVariableRange»«FOR i : range SEPARATOR ',\\\n'»«getVariableName(v)»«getVariableRange(v, i.toString, taskLimit.toString)»«ENDFOR»«
+			FOR v : deps SEPARATOR ', '»«
+				IF v.isVariableRange»«FOR i : range SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, i.toString, taskLimit.toString)»«ENDFOR»«
 				ELSE»«getVariableName(v)»«ENDIF»«
 			ENDFOR»)'''
 		}
