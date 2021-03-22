@@ -334,8 +334,30 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		CONNECTIVITY
 	}
 	
-	HashMap<String, Pair<Integer, Integer>> dataShift = new HashMap(); /* item name => iterator shift */
-	HashMap<String, String> dataConnectivity = new HashMap(); /* item name => connectivity type */
+	HashMap<String, Pair<Integer, Integer>> dataShift = new HashMap(); /* item name => iterator shift    */
+	HashMap<String, String> dataConnectivity = new HashMap();          /* item name => connectivity type */
+
+	override dispatch CharSequence getContent(Affectation it)
+	{
+		val parentJob = EcoreUtil2.getContainerOfType(it, Job);
+
+		if (left.target.linearAlgebra && !(left.iterators.empty && left.indices.empty))
+			'''«left.codeName».setValue(«formatIteratorsAndIndices(left.target.type, left.iterators, left.indices)», «right.content»);'''
+		else if (parentJob !== null && parentJob.eAllContents.filter(Instruction).size == 1)
+		{
+			val ins = parentJob.inVars
+			val outs = parentJob.outVars
+			'''
+				/* ONLY_AFFECTATION */
+				#pragma omp task«
+					getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)»«
+					getDependenciesAll('out', outs, 0, OMPTaskMaxNumber)»
+				«left.content» = «right.content»;
+			'''
+		}
+		else
+			'''«left.content» = «right.content»;'''
+	}
 
 	override getReductionContent(ReductionInstruction it)
 	{
