@@ -34,6 +34,7 @@ class CppGeneratorUtils
 	static def dispatch getCodeName(InternFunction it) { irModule.freeFunctionNs + '::' + name }
 	static def getHDefineName(String name) { '__' + name.toUpperCase + '_H_' }
 	static def getOMPTaskMaxNumber() { return 10; /* FIXME: Need to be given from the NGEN file */ }
+	static def getOMPSideTaskNumber() { return Math::floor(Math::sqrt(OMPTaskMaxNumber)).intValue(); }
 	
 	static public boolean OMPTraces = false
 

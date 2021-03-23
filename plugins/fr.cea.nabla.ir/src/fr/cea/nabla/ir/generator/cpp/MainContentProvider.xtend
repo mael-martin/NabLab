@@ -113,14 +113,13 @@ class OpenMpTaskMainContentProvider extends MainContentProvider
 {
 	override protected getPartitionCreation(IrModule it)
 	'''
-		«val int sidePartitions = Math::floor(Math::sqrt(OMPTaskMaxNumber)).intValue()»
-		«val partitionOptions = '''«OMPTaskMaxNumber», «sidePartitions»'''»
-		CartesianPartition2D<«partitionOptions»> *partition = new CartesianPartition2D<«partitionOptions»>(meshFactory.nbXQuads, meshFactory.nbYQuads, mesh);
+		/* Global variable for the partitions */
+		___partition = new CartesianPartition2D<«OMPTaskMaxNumber», «OMPSideTaskNumber»>(meshFactory.nbXQuads, meshFactory.nbYQuads, mesh);
 	'''
 	
 	override protected getPartitionDestruction(IrModule it)
 	'''
-		delete partition;
+		delete ___partition;
 	'''
 
 	override protected getSimulationCall(IrModule it)

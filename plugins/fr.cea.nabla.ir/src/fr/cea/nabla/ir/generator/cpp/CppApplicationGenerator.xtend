@@ -209,6 +209,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			#include "«m.className».h"
 		«ENDFOR»
 	«ENDIF»
+	
+	«IF isOpenMpTask»
+	/* Global partitionner, for the OpenMPTask backend */
+	static CartesianPartition2D<«OMPTaskMaxNumber», «OMPSideTaskNumber»> *___partition = nullptr;
+	«ENDIF»
 
 	«val internFunctions = functions.filter(InternFunction)»
 	«IF !internFunctions.empty»
@@ -523,6 +528,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	private def isKokkosTeamThread()
 	{
 		backend instanceof KokkosTeamThreadBackend
+	}
+	
+	private def isOpenMpTask()
+	{
+		backend instanceof OpenMpTaskBackend
 	}
 
 	private def getWriteCallContent(Variable v)
