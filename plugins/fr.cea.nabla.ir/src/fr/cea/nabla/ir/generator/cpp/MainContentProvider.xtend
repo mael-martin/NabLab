@@ -15,6 +15,7 @@ import org.eclipse.xtend.lib.annotations.Data
 
 import static extension fr.cea.nabla.ir.IrModuleExtensions.*
 import static extension fr.cea.nabla.ir.IrRootExtensions.*
+import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 
 @Data
 class MainContentProvider
@@ -53,6 +54,7 @@ class MainContentProvider
 			meshFactory.jsonInit(strbuf.GetString());
 		}
 		«meshClassName»* mesh = meshFactory.create();
+		«getPartitionCreation()»
 
 		// Module instanciation(s)
 		«FOR m : irRoot.modules»
@@ -77,6 +79,7 @@ class MainContentProvider
 		«FOR m : irRoot.modules.reverseView»
 			delete «m.name»;
 		«ENDFOR»
+		«getPartitionDestruction()»
 		delete mesh;
 	'''
 
@@ -93,6 +96,9 @@ class MainContentProvider
 		«className»* «name» = new «className»(mesh, «name»Options);
 		«IF !main»«name»->setMainModule(«irRoot.mainModule.name»);«ENDIF»
 	'''
+	
+	protected def getPartitionCreation(IrModule it) ''''''
+	protected def getPartitionDestruction(IrModule it) ''''''
 
 	protected def getSimulationCall(IrModule it)
 	'''
@@ -105,6 +111,18 @@ class MainContentProvider
 @Data
 class OpenMpTaskMainContentProvider extends MainContentProvider
 {
+	override protected getPartitionCreation(IrModule it)
+	'''
+		«val int sidePartitions = Math::floor(Math::sqrt(OMPTaskMaxNumber)).intValue()»
+		«val partitionOptions = '''«OMPTaskMaxNumber», «sidePartitions»'''»
+		CartesianPartition2D<«partitionOptions»> *partition = new CartesianPartition2D<«partitionOptions»>(meshFactory.nbXQuads, meshFactory.nbYQuads, mesh);
+	'''
+	
+	override protected getPartitionDestruction(IrModule it)
+	'''
+		delete partition;
+	'''
+
 	override protected getSimulationCall(IrModule it)
 	'''
 		// Start simulation

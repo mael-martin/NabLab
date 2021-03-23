@@ -23,7 +23,7 @@ public:
 	void jsonInit(const char* jsonContent);
 	CartesianMesh2D* create();
 
-private:
+public: /*easy to get, this is ugly*/
 	size_t nbXQuads;
 	size_t nbYQuads;
 	double xSize;
