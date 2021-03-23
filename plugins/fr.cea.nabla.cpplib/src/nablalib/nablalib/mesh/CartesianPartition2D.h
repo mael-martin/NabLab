@@ -70,7 +70,7 @@ public:
     const size_t OuterPartitionId = SideTaskNumber * SideTaskNumber;
 
     CartesianPartition2D(const uint64_t problem_x, const uint64_t problem_y, CartesianMesh2D *mesh)
-        : m_problem_x(problem_x), m_problem_y(problem_y)
+        : m_problem_x(problem_x), m_problem_y(problem_y), m_geometry(mesh->getGeometry())
     {
         static_assert(SideTaskNumber * SideTaskNumber + 1 == TaskNumber, "TaskNumber must be of the form SideTaskNumber^2+1");
         static_assert(SideTaskNumber >= 3, "At lest need 3 tasks for the sides, e.g. at least 10 tasks");
@@ -123,6 +123,106 @@ private:
     CartesianPartition2D(CartesianPartition2D &&)           = delete;
     CartesianPartition2D& operator=(CartesianPartition2D &) = delete;
 
+    /* Helpers */
+    inline Id cellIdFromPosition(const size_t x, const size_t y) const noexcept { return y * SideTaskNumber + x; }
+
+    inline size_t
+    partitionFromCellId(const Id cell) const noexcept
+    {
+        const size_t mesh_x = cell % m_problem_x;
+        const size_t mesh_y = cell / m_problem_x;
+
+        /* Check outers */
+        if (mesh_x == 0 || mesh_x == m_problem_x - 1 || mesh_y == 0 || mesh_y == m_problem_y - 1)
+            return OuterPartitionId;
+
+        /* Inner partition */
+        const size_t partition_x = math::min<size_t>(mesh_x / SideTaskNumber, SideTaskNumber - 1);
+        const size_t partition_y = math::min<size_t>(mesh_y / SideTaskNumber, SideTaskNumber - 1);
+
+        return partition_y * SideTaskNumber + partition_x;
+    }
+
+    inline vector<pair<Id, Id>>
+    RANGE_cellsFromPartition(const size_t partition) const noexcept
+    {
+        vector<pair<Id, Id>> ret;
+
+        /* Outer partition? */
+        if (partition == OuterPartitionId) {
+            /* Ugly and will be horrible at run time (XXX) */
+            for (const Id id : m_outer_cells)
+                ret.emplace_back(make_pair(id, id));
+        }
+
+        /* This is an inner partition */
+        else {
+            /* Get the coordinates of the bottom left and top right cells */
+            const size_t partition_x           = partition % SideTaskNumber;
+            const size_t partition_y           = partition / SideTaskNumber;
+            const size_t cells_per_partition_x = m_problem_x / SideTaskNumber;
+            const size_t cells_per_partition_y = m_problem_y / SideTaskNumber;
+            const size_t max_partition_coord   = SideTaskNumber - 1;
+
+            /* Bottom left cell, apply corrections if the partition is on the
+             * left or at the bottom of the mesh */
+            const size_t cell_bl_x = (partition_x * cells_per_partition_x) + (partition_x == 0);
+            const size_t cell_bl_y = (partition_y * cells_per_partition_y) + (partition_y == 0);
+
+            /* Top right cell, apply corrections if the partition is on the
+             * right or at the top of the mesh */
+            const size_t cell_tr_x = ((partition_x + 1) * cells_per_partition_x - 1)                                /* Regular part */
+                                   + ((partition_x == max_partition_coord) * ((partition_x % SideTaskNumber) - 1)); /* On the right */
+            const size_t cell_tr_y = ((partition_y + 1) * cells_per_partition_y - 1)                                /* Regular part */
+                                   + ((partition_y == max_partition_coord) * ((partition_x % SideTaskNumber) - 1)); /* On the top   */
+
+            /* Now we have:
+             * +-------------cell_tr
+             * |             |      <- line (a pair) from Id to Id
+             * |  Partition  |      <- line (a pair) from Id to Id
+             * |             |      <- line (a pair) from Id to Id
+             * cell_bl-------+
+             */
+
+            for (size_t y = cell_bl_y; y <= cell_tr_y; ++y) {
+                ret.emplace_back(make_pair(cellIdFromPosition(cell_bl_x, y), cellIdFromPosition(cell_tr_x, y)));
+            }
+        }
+
+        return ret;
+    }
+
+    /* All the cells must be on the same line. With the same mesh:
+     * Lower nodes:
+     * 0: 0,1 | 1: 1,2 | 2: 2,3 | 3: 3,4 <- line 0, 0 -> 4
+     * 4: 5,6 | ... ... ... ... | 7: 8,9 <- line 1, 5 -> 9
+     * ...
+     * For Upper nodes, get the nodes of the next line. With that we can have
+     * the ~~magic~~ simple equations that are used in this function.
+     */
+    inline pair<pair<Id, Id>, pair<Id, Id>>
+    RANGE_nodesFromCells(pair<Id, Id> RANGE_cell) const noexcept
+    {
+        auto[first_cell, last_cell] = RANGE_cell;
+        const size_t line           = first_cell / SideTaskNumber;
+        pair<Id, Id> RANGE_lower    = make_pair(first_cell + line, last_cell + line + 1);
+        pair<Id, Id> RANGE_upper    = make_pair(first_cell + line + 1 + m_problem_x, last_cell + line + 1 + 1 + m_problem_x);
+        return make_pair(RANGE_lower, RANGE_upper);
+    }
+
+    /* Get all nodes from a partition */
+    inline vector<pair<Id, Id>>
+    RANGE_nodesFromPartition(const size_t partition) const noexcept
+    {
+        vector<pair<Id, Id>> ret;
+        const vector<pair<Id, Id>> cells_in_partition = RANGE_cellsFromPartition(partition);
+        for (const auto &cell_range : cells_in_partition) {
+            auto[bottom_range, upper_range] = RANGE_nodesFromCells(cell_range);
+            ret.emplace_back(bottom_range, upper_range);
+        }
+        return ret;
+    }
+
     /* Attributes */
     static inline uint32_t MAX_SHIFT = 0; /* Detected at generation time */
 
@@ -132,6 +232,8 @@ private:
     vector<Id> m_outer_nodes;
     vector<Id> m_outer_cells;
     vector<Id> m_outer_faces;
+
+    MeshGeometry<2> *m_geometry;
 };
 }
 
