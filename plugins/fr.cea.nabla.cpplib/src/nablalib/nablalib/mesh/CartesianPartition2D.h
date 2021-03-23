@@ -70,7 +70,9 @@ public:
     const size_t OuterPartitionId = SideTaskNumber * SideTaskNumber;
 
     CartesianPartition2D(const uint64_t problem_x, const uint64_t problem_y, CartesianMesh2D *mesh)
-        : m_problem_x(problem_x), m_problem_y(problem_y), m_geometry(mesh->getGeometry())
+        : m_problem_x(problem_x), m_problem_y(problem_y),
+        m_cells_per_partition_x(problem_x / SideTaskNumber), m_cells_per_partition_y(problem_y / SideTaskNumber),
+        m_geometry(mesh->getGeometry())
     {
         static_assert(SideTaskNumber * SideTaskNumber + 1 == TaskNumber, "TaskNumber must be of the form SideTaskNumber^2+1");
         static_assert(SideTaskNumber >= 3, "At lest need 3 tasks for the sides, e.g. at least 10 tasks");
@@ -117,32 +119,42 @@ public:
 
     static void setMaxDataShift(uint32_t max_shift) noexcept { MAX_SHIFT = max_shift; }
 
-private:
-    /* Don"t move it around */
-    CartesianPartition2D(const CartesianPartition2D &)      = delete;
-    CartesianPartition2D(CartesianPartition2D &&)           = delete;
-    CartesianPartition2D& operator=(CartesianPartition2D &) = delete;
-
-    /* Helpers */
-    inline Id cellIdFromPosition(const size_t x, const size_t y) const noexcept { return y * SideTaskNumber + x; }
-
-    inline size_t
-    partitionFromCellId(const Id cell) const noexcept
+    /* Pin functions, from a partition get always the same id for the
+     * node/cell/face to mark it as a dependency with OpenMP. Don't have faces
+     * pins for the moment. */
+    inline Id
+    PIN_cellsFromPartition(const size_t partition) const noexcept
     {
-        const size_t mesh_x = cell % m_problem_x;
-        const size_t mesh_y = cell / m_problem_x;
+        /* Outer partition? */
+        if (partition == OuterPartitionId) {
+            return m_outer_cells[0];
+        }
 
-        /* Check outers */
-        if (mesh_x == 0 || mesh_x == m_problem_x - 1 || mesh_y == 0 || mesh_y == m_problem_y - 1)
-            return OuterPartitionId;
-
-        /* Inner partition */
-        const size_t partition_x = math::min<size_t>(mesh_x / SideTaskNumber, SideTaskNumber - 1);
-        const size_t partition_y = math::min<size_t>(mesh_y / SideTaskNumber, SideTaskNumber - 1);
-
-        return partition_y * SideTaskNumber + partition_x;
+        /* Inner partition, get the bl cell. See RANGE_cellsFromPartition. */
+        const size_t partition_x = partition % SideTaskNumber;
+        const size_t partition_y = partition / SideTaskNumber;
+        const size_t cell_bl_x   = (partition_x * m_cells_per_partition_x) + (partition_x == 0);
+        const size_t cell_bl_y   = (partition_y * m_cells_per_partition_y) + (partition_y == 0);
+        return cellIdFromPosition(cell_bl_x, cell_bl_y);
     }
 
+    inline Id
+    PIN_nodesFromCells(const Id cell) const noexcept
+    {
+        /* See RANGE_nodesFromCells. Here we pin the first node from a cell. */
+        const size_t line = cell / SideTaskNumber;
+        return cell + line;
+    }
+
+    inline Id
+    PIN_nodesFromPartition(const size_t partition) const noexcept
+    {
+        /* Pin the first node from a partition */
+        return PIN_nodesFromCells(PIN_cellsFromPartition(partition));
+    }
+
+    /* Range functions, from a partition get a way to iterate through all the
+     * nodes/cells/faces. Don't have faces ranges for the moment (FIXME). */
     inline vector<pair<Id, Id>>
     RANGE_cellsFromPartition(const size_t partition) const noexcept
     {
@@ -158,22 +170,20 @@ private:
         /* This is an inner partition */
         else {
             /* Get the coordinates of the bottom left and top right cells */
-            const size_t partition_x           = partition % SideTaskNumber;
-            const size_t partition_y           = partition / SideTaskNumber;
-            const size_t cells_per_partition_x = m_problem_x / SideTaskNumber;
-            const size_t cells_per_partition_y = m_problem_y / SideTaskNumber;
-            const size_t max_partition_coord   = SideTaskNumber - 1;
+            const size_t partition_x         = partition % SideTaskNumber;
+            const size_t partition_y         = partition / SideTaskNumber;
+            const size_t max_partition_coord = SideTaskNumber - 1;
 
             /* Bottom left cell, apply corrections if the partition is on the
              * left or at the bottom of the mesh */
-            const size_t cell_bl_x = (partition_x * cells_per_partition_x) + (partition_x == 0);
-            const size_t cell_bl_y = (partition_y * cells_per_partition_y) + (partition_y == 0);
+            const size_t cell_bl_x = (partition_x * m_cells_per_partition_x) + (partition_x == 0);
+            const size_t cell_bl_y = (partition_y * m_cells_per_partition_y) + (partition_y == 0);
 
             /* Top right cell, apply corrections if the partition is on the
              * right or at the top of the mesh */
-            const size_t cell_tr_x = ((partition_x + 1) * cells_per_partition_x - 1)                                /* Regular part */
+            const size_t cell_tr_x = ((partition_x + 1) * m_cells_per_partition_x - 1)                              /* Regular part */
                                    + ((partition_x == max_partition_coord) * ((partition_x % SideTaskNumber) - 1)); /* On the right */
-            const size_t cell_tr_y = ((partition_y + 1) * cells_per_partition_y - 1)                                /* Regular part */
+            const size_t cell_tr_y = ((partition_y + 1) * m_cells_per_partition_y - 1)                              /* Regular part */
                                    + ((partition_y == max_partition_coord) * ((partition_x % SideTaskNumber) - 1)); /* On the top   */
 
             /* Now we have:
@@ -223,11 +233,39 @@ private:
         return ret;
     }
 
+private:
+    /* Don"t move it around */
+    CartesianPartition2D(const CartesianPartition2D &)      = delete;
+    CartesianPartition2D(CartesianPartition2D &&)           = delete;
+    CartesianPartition2D& operator=(CartesianPartition2D &) = delete;
+
+    /* Helpers */
+    inline Id cellIdFromPosition(const size_t x, const size_t y) const noexcept { return y * SideTaskNumber + x; }
+
+    inline size_t
+    partitionFromCellId(const Id cell) const noexcept
+    {
+        const size_t mesh_x = cell % m_problem_x;
+        const size_t mesh_y = cell / m_problem_x;
+
+        /* Check outers */
+        if (mesh_x == 0 || mesh_x == m_problem_x - 1 || mesh_y == 0 || mesh_y == m_problem_y - 1)
+            return OuterPartitionId;
+
+        /* Inner partition */
+        const size_t partition_x = math::min<size_t>(mesh_x / SideTaskNumber, SideTaskNumber - 1);
+        const size_t partition_y = math::min<size_t>(mesh_y / SideTaskNumber, SideTaskNumber - 1);
+
+        return partition_y * SideTaskNumber + partition_x;
+    }
+
     /* Attributes */
     static inline uint32_t MAX_SHIFT = 0; /* Detected at generation time */
 
     const uint64_t m_problem_x;
     const uint64_t m_problem_y;
+    const size_t m_cells_per_partition_x;
+    const size_t m_cells_per_partition_y;
 
     vector<Id> m_outer_nodes;
     vector<Id> m_outer_cells;
