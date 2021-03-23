@@ -153,5 +153,12 @@ class OpenMpIncludesContentProvider extends SequentialIncludesContentProvider
 		includes += "cstdio"
 		return includes
 	}
+	
+	override getUserIncludes(boolean hasLevelDB, boolean hasPostProcessing)
+	{
+		val includes = super.getUserIncludes(hasLevelDB, hasPostProcessing)
+		includes    += "nablalib/mesh/CartesianPartition2D.h"
+		return includes
+	}
 }
 
