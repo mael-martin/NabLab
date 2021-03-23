@@ -16,6 +16,7 @@ import org.eclipse.xtend.lib.annotations.Data
 import static extension fr.cea.nabla.ir.IrModuleExtensions.*
 import static extension fr.cea.nabla.ir.IrRootExtensions.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+import fr.cea.nabla.ir.ir.ItemIdValueIterator
 
 @Data
 class MainContentProvider
@@ -114,6 +115,7 @@ class OpenMpTaskMainContentProvider extends MainContentProvider
 	override protected getPartitionCreation(IrModule it)
 	'''
 		/* Global variable for the partitions */
+		CartesianPartition2D<«OMPTaskMaxNumber», «OMPSideTaskNumber»>::setMaxDataShift(«eAllContents.filter(ItemIdValueIterator).map[shift].max»);
 		___partition = new CartesianPartition2D<«OMPTaskMaxNumber», «OMPSideTaskNumber»>(meshFactory.nbXQuads, meshFactory.nbYQuads, mesh);
 	'''
 	
