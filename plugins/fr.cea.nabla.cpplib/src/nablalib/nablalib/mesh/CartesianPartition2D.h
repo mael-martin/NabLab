@@ -13,7 +13,7 @@
 #include <utility>
 #include <cstdint>
 #include <cmath>
-#include <cassert>
+#include <cstdlib>
 #include "nablalib/types/Types.h"
 #include "nablalib/mesh/MeshGeometry.h"
 #include "nablalib/mesh/CartesianMesh2D.h"
@@ -74,7 +74,8 @@ public:
     {
         static_assert(SideTaskNumber * SideTaskNumber + 1 == TaskNumber, "TaskNumber must be of the form SideTaskNumber^2+1");
         static_assert(SideTaskNumber >= 3, "At lest need 3 tasks for the sides, e.g. at least 10 tasks");
-        assert(math::min<uint64_t>(problem_x, problem_x) % SideTaskNumber > MAX_SHIFT);
+        if (math::min<uint64_t>(problem_x, problem_x) % SideTaskNumber <= MAX_SHIFT)
+            abort();
 
 #define __PUSH_FROM(what, from) for (const auto &id : mesh->get##from()) { m_outer_##what.push_back(id); }
         /* Outer nodes */
