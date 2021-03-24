@@ -26,7 +26,9 @@ import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.BaseType
+import fr.cea.nabla.ir.ir.Loop
 import java.util.stream.IntStream
+import java.util.regex.Pattern
 
 class CppGeneratorUtils
 {
@@ -36,7 +38,7 @@ class CppGeneratorUtils
 	static def getOMPTaskMaxNumber() { return 10; /* FIXME: Need to be given from the NGEN file */ }
 	static def getOMPSideTaskNumber() { return Math::floor(Math::sqrt(OMPTaskMaxNumber)).intValue(); }
 	
-	static public boolean OMPTraces = false
+	static public boolean OMPTraces = false /* FIXME: Need to be given from the NGEN file */
 
 	static def dispatch getCodeName(ExternFunction it)
 	{
@@ -61,32 +63,31 @@ class CppGeneratorUtils
 			val range = IntStream.range(fromTask, taskLimit).toArray
 			''' depend(«inout»: «
 			FOR v : deps SEPARATOR ', '»«
-				IF v.isVariableRange»«FOR i : range SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, i.toString, taskLimit.toString)»«ENDFOR»«
+				IF v.isVariableRange»«FOR i : range SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, i.toString)»«ENDFOR»«
 				ELSE»«getVariableName(v)»«
 				ENDIF»«
 			ENDFOR»)'''
 		}
 		else ''''''
 	}
-	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskCurrent, CharSequence taskLimit)
+	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskCurrent)
 	{
 		if (deps.length != 0)
 			''' depend(«inout»: «FOR v : deps SEPARATOR ', '»«
-				getVariableName(v)»«getVariableRange(v, taskCurrent, taskLimit)
+				getVariableName(v)»«getVariableRange(v, taskCurrent)
 			»«ENDFOR»)'''
 		else ''''''
 	}
-
-	static def getVariableRange(Variable it, CharSequence taskCurrent, CharSequence taskLimit)
+	
+	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''___partition->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
+	
+	static def getVariableRange(Variable it, CharSequence taskCurrent)
 	{
 		val type = (it as ArgOrVar).type;
 		switch (type) {
 			ConnectivityType: {
-				val connectivites = (type as ConnectivityType).connectivities.map[name];
-				val cppname       = getVariableName;
-				val depInferior   = '''«cppname».size()*(«taskCurrent»)/(«taskLimit»)'''
-				// val depSuperior   = '''«cppname».size()*(«taskCurrent»+1)/(«taskLimit»)'''
-				return '''[«depInferior»]/*«connectivites»*/'''
+				val connectivites = (type as ConnectivityType).connectivities.map[name].head;
+				return '''[___partition->PIN_«connectivites»FromPartition(«taskCurrent»)]'''
 			}
 			LinearAlgebraType: return '''''' /* This is an opaque type, don't know what to do with it */
 			BaseType: return '''''' /* An integer, etc => the name is the dependency */

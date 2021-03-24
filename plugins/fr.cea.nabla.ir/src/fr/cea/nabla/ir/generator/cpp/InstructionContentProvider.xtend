@@ -418,6 +418,56 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		dataShift.put(itemName, shifts);
 		dataConnectivity.put(itemName, value.iterator.container.connectivityCall.connectivity.name)
 	}
+
+	private def getConnectivityType(Loop it)
+	{
+		val String itemname = iterationBlock.indexName.toString
+		if (Pattern.matches(".*Cells", itemname) || Pattern.matches(".*cells", itemname)) {
+			return "cells"
+		} else if (Pattern.matches(".*Nodes", itemname) || Pattern.matches(".*nodes", itemname)) {
+			return "nodes"
+		} else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
+	}
+
+
+	protected def takeOMPTraces(Set<Variable> ins, Set<Variable> outs, Set<Variable> inouts)
+	'''
+		«IF OMPTraces»
+		#pragma omp atomic
+		this->task_id++;
+		// (UNIQ_task_id, ['in', 'in', ...], ['out', 'out', ...], start, duration) // with DAG-dot
+		fprintf(stderr, "('task_%ld', [«
+			FOR v : ins SEPARATOR ', '»'«v.name»'«ENDFOR»«FOR v : inouts SEPARATOR ', '»'«v.name»'«ENDFOR»], [«
+			FOR v : outs SEPARATOR ', '»'«v.name»'«ENDFOR»«FOR v : inouts SEPARATOR ', '»'«v.name»'«ENDFOR»], 0, 0)\n", task_id);
+		«ENDIF»
+	'''
+	
+	protected def launchSingleTaskForPartition(Loop it, /* The CORE loop */
+		CharSequence partitionId, Set<Variable> ins, Set<Variable> outs, Set<Variable> inouts /* The variables dependencies (DataFlow) */
+		/* NOTE: No need for baseIndex and taskNbElems for that version of the
+		* function because all will be retrieved at run time with the RANGE
+		* functions from the partition. */
+	) {
+	'''
+		{
+		// Launch task for partition «partitionId»
+		#pragma omp task«
+			getDependencies('in',    ins,    partitionId.toString) /* Consumed by the task */»«
+			getDependencies('out',   outs,   partitionId.toString) /* Produced by the task */»«
+			getDependencies('inout', inouts, partitionId.toString) /* Consumed and produced by the task */»
+		{
+			«takeOMPTraces(ins, outs, inouts)»
+			for (pair<Id, Id> &range : «getLoopRange(it.connectivityType, partitionId.toString)»)
+			{
+				for (size_t «iterationBlock.indexName» = range.first; «iterationBlock.indexName»<range.second; ++«iterationBlock.indexName»)
+				{
+					«body.innerContent»
+				}
+			}
+		}
+		}
+	'''
+	}
 	
 	protected def launchSingleTask(Loop it, /* The CORE loop */
 		CharSequence taskNum, CharSequence taskLimit,
@@ -433,18 +483,11 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			const size_t baseIndex = «baseIndex»;
 			const size_t taskNbElems = «taskNbElems»;
 			#pragma omp task firstprivate(baseIndex, taskNbElems)«
-				getDependencies('in',    ins,    taskNum, taskLimit) /* Consumed by the task */»«
-				getDependencies('out',   outs,   taskNum, taskLimit) /* Produced by the task */»«
-				getDependencies('inout', inouts, taskNum, taskLimit) /* Consumed AND produced by the task */»
+				getDependencies('in',    ins,    taskNum) /* Consumed by the task */»«
+				getDependencies('out',   outs,   taskNum) /* Produced by the task */»«
+				getDependencies('inout', inouts, taskNum) /* Consumed AND produced by the task */»
 			{
-			«IF OMPTraces»
-			#pragma omp atomic
-			this->task_id++;
-			// (UNIQ_task_id, ['in', 'in', ...], ['out', 'out', ...], start, duration) // with DAG-dot
-			fprintf(stderr, "('task_%ld', [«
-				FOR v : ins SEPARATOR ', '»'«v.name»'«ENDFOR»«FOR v : inouts SEPARATOR ', '»'«v.name»'«ENDFOR»], [«
-				FOR v : outs SEPARATOR ', '»'«v.name»'«ENDFOR»«FOR v : inouts SEPARATOR ', '»'«v.name»'«ENDFOR»], 0, 0)\n", task_id);
-			«ENDIF»
+			«takeOMPTraces(ins, outs, inouts)»
 			for (size_t «iterationBlock.indexName» = baseIndex; «iterationBlock.indexName»<(baseIndex+taskNbElems); «iterationBlock.indexName»++)
 			{
 				«body.innerContent»
@@ -464,9 +507,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		outs.removeAll(inouts)
 
 		/* The code */
-		val nbElems = iterationBlock.nbElems
-		val itemidcount = eAllContents.filter(ItemIdDefinition).size
-		if (itemidcount == 0)
+		if (eAllContents.filter(ItemIdDefinition).size == 0)
 		{
 			val String itemname = iterationBlock.indexName.toString
 			if (Pattern.matches(".*Cells", itemname) || Pattern.matches(".*cells", itemname)) {
@@ -478,12 +519,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			} else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
 		}
 		'''
-			for (size_t task = 0; task < («taskN»-1); ++task)
-			«launchSingleTask('''task''', '''«taskN»''', '''(«nbElems» / «taskN») * task''', '''(«nbElems» / «taskN»)''', ins, outs, inouts)»
-			/* TASKLOOP REMAIN */
-			«val remaining = '''(«nbElems» % «taskN»)'''»
-			«val taskNbElems = '''(«nbElems» / «taskN»)'''»
-			«launchSingleTask('''(«taskN» - 1)''', '''«taskN»''', '''(«nbElems»-«remaining»-«taskNbElems»)''', '''(«taskNbElems» + «remaining»)''', ins, outs, inouts)»
+			for (size_t task = 0; task < («taskN»); ++task)
+			«launchSingleTaskForPartition(it, '''task''', ins, outs, inouts)»
 		'''
 	}
 }
