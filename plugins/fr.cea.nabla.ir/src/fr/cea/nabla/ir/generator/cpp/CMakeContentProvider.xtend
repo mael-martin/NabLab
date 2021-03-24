@@ -49,8 +49,8 @@ class CMakeContentProvider
 
 		«CMakeUtils.checkVariables(neededVariables)»
 
-		# PROJECT
-		project(«name»Project CXX)
+		# PROJECT, don't specify language to set CXX and C
+		project(«name»Project)
 
 		«CMakeUtils.checkCompiler»
 		«IF !(levelDBPath.nullOrEmpty && findPackageContent.length == 0)»

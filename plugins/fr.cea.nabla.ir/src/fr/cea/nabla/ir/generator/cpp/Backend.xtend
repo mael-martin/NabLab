@@ -132,7 +132,7 @@ class OpenMpBackend extends Backend
 	}
 }
 
-/** Expected variables: N_CXX_COMPILER */
+/** Expected variables: N_CXX_COMPILER, N_C_COMPILER */
 class OpenMpTaskBackend extends Backend
 {
 	new()

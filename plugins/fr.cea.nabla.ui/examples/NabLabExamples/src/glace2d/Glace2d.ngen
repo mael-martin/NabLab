@@ -59,6 +59,7 @@ OpenMPTask
 {
 	outputPath = "/NablaExamples/src-gen-cpp/openmptask";
 	N_CXX_COMPILER = "/usr/bin/g++";
+	N_C_COMPILER = "/usr/bin/gcc";
 }
 
 CppSequential
