@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <cmath>
 #include <cstdlib>
+#include <algorithm>
 #include "nablalib/types/Types.h"
 #include "nablalib/mesh/MeshGeometry.h"
 #include "nablalib/mesh/CartesianMesh2D.h"
@@ -43,16 +44,10 @@ namespace nablalib::mesh
  *   | 0  | 1  | 2  | 3  |          1    3    5    7    8
  *   0----1----2----3----4          |-0--|-2--|-4--|-6--|
  *
- * Note: the partition is as follows
- *   +-------------------+      CartesianPartition2D<5, 2>
- *   | 4               4 |                           |  |
- *   |    +----+----+    |                  TaskNumber  |
- *   |    | 2  |  3 |    |                 SideTaskNumber
- *   |    +----+----+    |
- *   |    | 0  | 1  |    |
- *   |    +----+----+    |
- *   | 4               4 |
- *   +-------------------+
+ * CartesianPartition2D<5, 2>
+ *                      |  |
+ *                      |  SideTaskNumber -> number of partitions
+ *                      TaskNumber        -> number of tasks
  */
 
 template <size_t TaskNumber, size_t SideTaskNumber>
@@ -66,35 +61,96 @@ public:
     static constexpr int MaxNbFacesOfCell    = CartesianMesh2D::MaxNbFacesOfCell;
     static constexpr int MaxNbNeighbourCells = CartesianMesh2D::MaxNbNeighbourCells;
 
-    /* One partition for all the outer things */
-    const size_t OuterPartitionId = SideTaskNumber * SideTaskNumber;
+    /* Create CSR matrix from a 2D cartesian mesh */
+    struct CSR_Matrix
+    {
+        Id *xadj;
+        Id *adjncy;
+        size_t xadj_len;
+        size_t adjncy_len;
+
+        static CSR_Matrix
+        createFrom2DCartesianMesh(size_t X, size_t Y) noexcept
+        {
+            /* Will std::terminate on out of memory */
+            CSR_Matrix ret;
+            ret.xadj_len   = (X * Y) + 1;
+            ret.adjncy_len = (4 * 2)                                // Corners
+                           + (2 * (X - 2) * 3) + (2 * (Y - 2) * 3)  // Border
+                           + (4 * (X - 2) * (Y - 2));               // Inner
+            ret.xadj       = new Id[ret.xadj_len]();
+            ret.adjncy     = new Id[ret.adjncy_len]();
+
+#define __ADD_NEIGHBOR(dir)                                                 \
+    pair<Id, Id> neighbor_##dir{};                                          \
+    if (getNeighbor(X, Y, x, y, CSR_2D_Direction::dir, neighbor_##dir)) {   \
+        ret.adjncy[adjncy_index] = neighbor_##dir.first         /* x */     \
+                                 + neighbor_##dir.second * X;   /* y */     \
+        adjncy_index++;                                                     \
+    }
+
+            size_t xadj_index = 0;
+            size_t adjncy_index = 0;
+            for (size_t x = 0; x < X; ++x) {
+                for (size_t y = 0; y < Y; ++y) {
+                    __ADD_NEIGHBOR(SOUTH);
+                    __ADD_NEIGHBOR(WEST);
+                    __ADD_NEIGHBOR(EAST);
+                    __ADD_NEIGHBOR(NORTH);
+                    xadj_index++; /* Because there is at least one neighbor */
+                }
+            }
+
+#undef __ADD_NEIGHBOR
+
+            return ret;
+        }
+
+        static void
+        free(CSR_Matrix &matrix) noexcept
+        {
+            if (matrix.xadj)   { delete[] matrix.xadj;   }
+            if (matrix.adjncy) { delete[] matrix.adjncy; }
+            matrix.xadj       = nullptr;
+            matrix.adjncy     = nullptr;
+            matrix.xadj_len   = 0;
+            matrix.adjncy_len = 0;
+        }
+
+    private:
+        enum CSR_2D_Direction {
+            SOUTH = (1 << 1),
+            WEST  = (1 << 2),
+            EAST  = (1 << 3),
+            NORTH = (1 << 4)
+        };
+
+        static inline bool
+        getNeighbor(const size_t X, const size_t Y, const size_t x, const size_t y, CSR_2D_Direction dir, pair<Id, Id> &ret) noexcept
+        {
+            /* Check border conditions */
+            if (((x == 0)     && (dir & CSR_2D_Direction::EAST))  ||
+                ((x == X - 1) && (dir & CSR_2D_Direction::WEST))  ||
+                ((y == 0)     && (dir & CSR_2D_Direction::SOUTH)) ||
+                ((y == Y - 1) && (dir & CSR_2D_Direction::NORTH))) {
+                return false;
+            }
+
+            const size_t delta_x = ((dir & CSR_2D_Direction::EAST)  >> 3) - ((dir & CSR_2D_Direction::WEST)  >> 2);
+            const size_t delta_y = ((dir & CSR_2D_Direction::NORTH) >> 4) - ((dir & CSR_2D_Direction::SOUTH) >> 1);
+
+            ret.first = x + delta_x;
+            ret.first = y + delta_y;
+            return true;
+        }
+    };
 
     CartesianPartition2D(const uint64_t problem_x, const uint64_t problem_y, CartesianMesh2D *mesh)
-        : m_problem_x(problem_x), m_problem_y(problem_y),
-        m_cells_per_partition_x(problem_x / SideTaskNumber), m_cells_per_partition_y(problem_y / SideTaskNumber),
-        m_geometry(mesh->getGeometry())
+        : m_problem_x(problem_x), m_problem_y(problem_y), m_geometry(mesh->getGeometry())
     {
-        static_assert(SideTaskNumber * SideTaskNumber + 1 == TaskNumber, "TaskNumber must be of the form SideTaskNumber^2+1");
-        static_assert(SideTaskNumber >= 3, "At lest need 3 tasks for the sides, e.g. at least 10 tasks");
+        static_assert(SideTaskNumber == TaskNumber, "Only one partition per task is supported");
         if ((math::min<uint64_t>(problem_x, problem_x) / SideTaskNumber) <= MAX_SHIFT)
             abort();
-
-#define __PUSH_FROM(what, from) for (const auto &id : mesh->get##from()) { m_outer_##what.push_back(id); }
-        /* Outer nodes */
-        __PUSH_FROM(nodes, TopNodes)
-        __PUSH_FROM(nodes, BottomNodes)
-        __PUSH_FROM(nodes, RightNodes)
-        __PUSH_FROM(nodes, LeftNodes)
-
-        /* Outer cells */
-        __PUSH_FROM(cells, OuterCells)
-
-        /* Outer faces */
-        __PUSH_FROM(faces, TopFaces)
-        __PUSH_FROM(faces, BottomFaces)
-        __PUSH_FROM(faces, RightFaces)
-        __PUSH_FROM(faces, LeftFaces)
-#undef __PUSH_FROM
     }
 
     ~CartesianPartition2D() = default;
@@ -102,20 +158,21 @@ public:
     inline size_t getTaskNumber()     const noexcept { return TaskNumber;     }
     inline size_t getSideTaskNumber() const noexcept { return SideTaskNumber; }
 
+    /* XXX: See how to get neighbors with metis */
+#if 0
     inline constexpr array<size_t, 4>
     getNeighbor(const size_t partition) const noexcept
     {
         const size_t partition_X = partition % SideTaskNumber;
         const size_t partition_Y = partition / SideTaskNumber;
         array<size_t, 4> ret;
-
         ret[0] = (partition_X == 0)              ? OuterPartitionId : (partition_X - 1) + (partition_Y * SideTaskNumber); /* On the left side?   */
         ret[1] = (partition_X == SideTaskNumber) ? OuterPartitionId : (partition_X + 1) + (partition_Y * SideTaskNumber); /* On the right side?  */
         ret[2] = (partition_Y == 0)              ? OuterPartitionId : partition_X + (partition_Y - 1) * SideTaskNumber;   /* On the bottom side? */
         ret[3] = (partition_Y == SideTaskNumber) ? OuterPartitionId : partition_X + (partition_Y + 1) * SideTaskNumber;   /* On the top side?    */
-
         return ret;
     }
+#endif
 
     static void setMaxDataShift(uint32_t max_shift) noexcept { MAX_SHIFT = max_shift; }
 
@@ -125,17 +182,7 @@ public:
     inline Id
     PIN_cellsFromPartition(const size_t partition) const noexcept
     {
-        /* Outer partition? */
-        if (partition == OuterPartitionId) {
-            return m_outer_cells[0];
-        }
-
-        /* Inner partition, get the bl cell. See RANGE_cellsFromPartition. */
-        const size_t partition_x = partition % SideTaskNumber;
-        const size_t partition_y = partition / SideTaskNumber;
-        const size_t cell_bl_x   = (partition_x * m_cells_per_partition_x) + (partition_x == 0);
-        const size_t cell_bl_y   = (partition_y * m_cells_per_partition_y) + (partition_y == 0);
-        return cellIdFromPosition(cell_bl_x, cell_bl_y);
+        return 0;
     }
 
     inline Id
@@ -150,47 +197,7 @@ public:
     inline vector<pair<Id, Id>>
     RANGE_cellsFromPartition(const size_t partition) const noexcept
     {
-        vector<pair<Id, Id>> ret;
-
-        /* Outer partition? */
-        if (partition == OuterPartitionId) {
-            /* Ugly and will be horrible at run time (XXX) */
-            for (const Id id : m_outer_cells)
-                ret.emplace_back(make_pair(id, id));
-        }
-
-        /* This is an inner partition */
-        else {
-            /* Get the coordinates of the bottom left and top right cells */
-            const size_t partition_x         = partition % SideTaskNumber;
-            const size_t partition_y         = partition / SideTaskNumber;
-            const size_t max_partition_coord = SideTaskNumber - 1;
-
-            /* Bottom left cell, apply corrections if the partition is on the
-             * left or at the bottom of the mesh */
-            const size_t cell_bl_x = (partition_x * m_cells_per_partition_x) + (partition_x == 0);
-            const size_t cell_bl_y = (partition_y * m_cells_per_partition_y) + (partition_y == 0);
-
-            /* Top right cell, apply corrections if the partition is on the
-             * right or at the top of the mesh */
-            const size_t cell_tr_x = ((partition_x + 1) * m_cells_per_partition_x - 1)                              /* Regular part */
-                                   + ((partition_x == max_partition_coord) * ((partition_x % SideTaskNumber) - 1)); /* On the right */
-            const size_t cell_tr_y = ((partition_y + 1) * m_cells_per_partition_y - 1)                              /* Regular part */
-                                   + ((partition_y == max_partition_coord) * ((partition_x % SideTaskNumber) - 1)); /* On the top   */
-
-            /* Now we have:
-             * +-------------cell_tr
-             * |             |      <- line (a pair) from Id to Id
-             * |  Partition  |      <- line (a pair) from Id to Id
-             * |             |      <- line (a pair) from Id to Id
-             * cell_bl-------+
-             */
-
-            for (size_t y = cell_bl_y; y <= cell_tr_y; ++y) {
-                ret.emplace_back(make_pair(cellIdFromPosition(cell_bl_x, y), cellIdFromPosition(cell_tr_x, y)));
-            }
-        }
-
+        vector<pair<Id, Id>> ret{};
         return ret;
     }
 
@@ -198,16 +205,11 @@ public:
     inline vector<pair<Id, Id>>
     RANGE_nodesFromPartition(const size_t partition) const noexcept
     {
-        vector<pair<Id, Id>> ret;
-        const vector<pair<Id, Id>> cells_in_partition = RANGE_cellsFromPartition(partition);
-        for (const auto &cell_range : cells_in_partition) {
-            auto[bottom_range, upper_range] = RANGE_nodesFromCells(cell_range);
-            ret.emplace_back(upper_range);
-            ret.emplace_back(bottom_range);
-        }
+        vector<pair<Id, Id>> ret{};
         return ret;
     }
 
+    /* Internal methods */
 private:
     /* Don"t move it around */
     CartesianPartition2D(const CartesianPartition2D &)      = delete;
@@ -216,23 +218,6 @@ private:
 
     /* Helpers */
     inline Id cellIdFromPosition(const size_t x, const size_t y) const noexcept { return y * SideTaskNumber + x; }
-
-    inline size_t
-    partitionFromCellId(const Id cell) const noexcept
-    {
-        const size_t mesh_x = cell % m_problem_x;
-        const size_t mesh_y = cell / m_problem_x;
-
-        /* Check outers */
-        if (mesh_x == 0 || mesh_x == m_problem_x - 1 || mesh_y == 0 || mesh_y == m_problem_y - 1)
-            return OuterPartitionId;
-
-        /* Inner partition */
-        const size_t partition_x = math::min<size_t>(mesh_x / SideTaskNumber, SideTaskNumber - 1);
-        const size_t partition_y = math::min<size_t>(mesh_y / SideTaskNumber, SideTaskNumber - 1);
-
-        return partition_y * SideTaskNumber + partition_x;
-    }
 
     inline pair<pair<Id, Id>, pair<Id, Id>>
     RANGE_nodesFromCells(pair<Id, Id> RANGE_cell) const noexcept
@@ -245,10 +230,18 @@ private:
          * For Upper nodes, get the nodes of the next line. With that we can
          * have the ~~magic~~ simple equations that are used in this function.
          */
+
+        /* Lower cells, cells from the current line */
         auto[first_cell, last_cell] = RANGE_cell;
-        const size_t line           = first_cell / SideTaskNumber;
+        size_t line                 = first_cell / SideTaskNumber;
         pair<Id, Id> RANGE_lower    = make_pair(first_cell + line, last_cell + line + 1);
-        pair<Id, Id> RANGE_upper    = make_pair(first_cell + line + 1 + m_problem_x, last_cell + line + 1 + 1 + m_problem_x);
+
+        /* Lower cells from next line are the upper cells from the current line */
+        first_cell              += m_problem_x;
+        last_cell               += m_problem_x;
+        line                    += 1;
+        pair<Id, Id> RANGE_upper = make_pair(first_cell + line, last_cell + line + 1);
+
         return make_pair(RANGE_lower, RANGE_upper);
     }
 
@@ -261,16 +254,11 @@ private:
     }
 
     /* Attributes */
+private:
     static inline uint32_t MAX_SHIFT = 0; /* Detected at generation time */
 
     const uint64_t m_problem_x;
     const uint64_t m_problem_y;
-    const size_t m_cells_per_partition_x;
-    const size_t m_cells_per_partition_y;
-
-    vector<Id> m_outer_nodes;
-    vector<Id> m_outer_cells;
-    vector<Id> m_outer_faces;
 
     MeshGeometry<2> *m_geometry;
 };

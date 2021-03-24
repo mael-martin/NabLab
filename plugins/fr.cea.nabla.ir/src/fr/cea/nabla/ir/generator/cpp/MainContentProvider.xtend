@@ -115,8 +115,8 @@ class OpenMpTaskMainContentProvider extends MainContentProvider
 	override protected getPartitionCreation(IrModule it)
 	'''
 		/* Global variable for the partitions */
-		CartesianPartition2D<«OMPTaskMaxNumber», «OMPSideTaskNumber»>::setMaxDataShift(«eAllContents.filter(ItemIdValueIterator).map[shift].max»);
-		___partition = new CartesianPartition2D<«OMPTaskMaxNumber», «OMPSideTaskNumber»>(meshFactory.nbXQuads, meshFactory.nbYQuads, mesh);
+		CartesianPartition2D<«OMPTaskMaxNumber», «OMPTaskMaxNumber»>::setMaxDataShift(«eAllContents.filter(ItemIdValueIterator).map[shift].max»);
+		___partition = new CartesianPartition2D<«OMPTaskMaxNumber», «OMPTaskMaxNumber»>(meshFactory.nbXQuads, meshFactory.nbYQuads, mesh);
 	'''
 	
 	override protected getPartitionDestruction(IrModule it)

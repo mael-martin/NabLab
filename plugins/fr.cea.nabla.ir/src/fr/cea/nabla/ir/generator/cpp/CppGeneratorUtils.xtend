@@ -26,9 +26,7 @@ import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.BaseType
-import fr.cea.nabla.ir.ir.Loop
 import java.util.stream.IntStream
-import java.util.regex.Pattern
 
 class CppGeneratorUtils
 {
