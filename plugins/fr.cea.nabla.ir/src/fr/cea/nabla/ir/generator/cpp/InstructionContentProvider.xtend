@@ -457,9 +457,12 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			getDependencies('inout', inouts, partitionId.toString) /* Consumed and produced by the task */»
 		{
 			«takeOMPTraces(ins, outs, inouts)»
-			for (pair<Id, Id> &range : «getLoopRange(it.connectivityType, partitionId.toString)»)
+			«val RANGE    = '''«it.connectivityType»RangeFor_«iterationBlock.indexName»'''»
+			«val RANGE_it = '''«iterationBlock.indexName»__'''»
+			const auto & «RANGE» = «getLoopRange(it.connectivityType, partitionId.toString)»;
+			for (size_t «RANGE_it» = 0; «RANGE_it» < «RANGE».size(); ++«RANGE_it»)
 			{
-				for (size_t «iterationBlock.indexName» = range.first; «iterationBlock.indexName»<range.second; ++«iterationBlock.indexName»)
+				for (size_t «iterationBlock.indexName» = «RANGE»[«RANGE_it»].first; «iterationBlock.indexName»<«RANGE»[«RANGE_it»].second; ++«iterationBlock.indexName»)
 				{
 					«body.innerContent»
 				}
