@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <cmath>
 #include <cstdlib>
-#include <algorithm>
+#include <metis.h>
 #include "nablalib/types/Types.h"
 #include "nablalib/mesh/MeshGeometry.h"
 #include "nablalib/mesh/CartesianMesh2D.h"
@@ -46,11 +46,11 @@ namespace nablalib::mesh
  *
  * CartesianPartition2D<5, 2>
  *                      |  |
- *                      |  SideTaskNumber -> number of partitions
- *                      TaskNumber        -> number of tasks
+ *                      |  PartitionNumber
+ *                      TaskNumber
  */
 
-template <size_t TaskNumber, size_t SideTaskNumber>
+template <size_t TaskNumber, size_t PartitionNumber>
 class CartesianPartition2D final
 {
 public:
@@ -64,8 +64,8 @@ public:
     /* Create CSR matrix from a 2D cartesian mesh */
     struct CSR_Matrix
     {
-        Id *xadj;
-        Id *adjncy;
+        idx_t *xadj;
+        idx_t *adjncy;
         size_t xadj_len;
         size_t adjncy_len;
 
@@ -74,12 +74,12 @@ public:
         {
             /* Will std::terminate on out of memory */
             CSR_Matrix ret;
-            ret.xadj_len   = (X * Y) + 1;
+            ret.xadj_len   = (X * Y);
             ret.adjncy_len = (4 * 2)                                // Corners
                            + (2 * (X - 2) * 3) + (2 * (Y - 2) * 3)  // Border
                            + (4 * (X - 2) * (Y - 2));               // Inner
-            ret.xadj       = new Id[ret.xadj_len]();
-            ret.adjncy     = new Id[ret.adjncy_len]();
+            ret.xadj       = new idx_t[ret.xadj_len + 1]();
+            ret.adjncy     = new idx_t[ret.adjncy_len]();
 
 #define __ADD_NEIGHBOR(dir)                                                 \
     pair<Id, Id> neighbor_##dir{};                                          \
@@ -103,6 +103,7 @@ public:
 
 #undef __ADD_NEIGHBOR
 
+            ret.xadj[ret.xadj_len] = ret.adjncy_len; // For metis
             return ret;
         }
 
@@ -148,9 +149,28 @@ public:
     CartesianPartition2D(const uint64_t problem_x, const uint64_t problem_y, CartesianMesh2D *mesh)
         : m_problem_x(problem_x), m_problem_y(problem_y), m_geometry(mesh->getGeometry())
     {
-        static_assert(SideTaskNumber == TaskNumber, "Only one partition per task is supported");
+        static_assert(PartitionNumber == TaskNumber, "Only one partition per task is supported");
         if ((math::min<uint64_t>(problem_x, problem_x) / SideTaskNumber) <= MAX_SHIFT)
             abort();
+
+        CSR_Matrix matrix     = CSR_Matrix::createFrom2DCartesianMesh(problem_x, problem_y);
+        idx_t num_partition   = PartitionNumber;
+        idx_t num_constraints = 1; // Number of balancing constraints, which must be at least 1.
+        idx_t objval; // On return, the edge cut volume of the partitioning solution.
+        idx_t *ret_partition_cell = new idx_t[matrix.xadj_len]();
+
+        int ret = METIS_PartGraphRecursive(&matrix.xadj_len, &num_constraints,
+                                           matrix.xadj, matrix.adjncy,
+                                           NULL, NULL, NULL,
+                                           &num_partition,
+                                           NULL, NULL, NULL,
+                                           &objval, ret_partition_cell);
+
+        for (size_t i = 0; i < matrix.xadj_len; ++i) {
+            std::cout << "Cell Id " << i << " from partition " << ret_partition_cell[i] << "\n";
+        }
+        delete[] ret_partition_cell;
+        CSR_Matrix::free(matrix);
     }
 
     ~CartesianPartition2D() = default;
