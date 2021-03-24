@@ -139,14 +139,6 @@ public:
     }
 
     inline Id
-    PIN_nodesFromCells(const Id cell) const noexcept
-    {
-        /* See RANGE_nodesFromCells. Here we pin the first node from a cell. */
-        const size_t line = cell / SideTaskNumber;
-        return cell + line;
-    }
-
-    inline Id
     PIN_nodesFromPartition(const size_t partition) const noexcept
     {
         /* Pin the first node from a partition */
@@ -202,24 +194,6 @@ public:
         return ret;
     }
 
-    /* All the cells must be on the same line. With the same mesh:
-     * Lower nodes:
-     * 0: 0,1 | 1: 1,2 | 2: 2,3 | 3: 3,4 <- line 0, 0 -> 4
-     * 4: 5,6 | ... ... ... ... | 7: 8,9 <- line 1, 5 -> 9
-     * ...
-     * For Upper nodes, get the nodes of the next line. With that we can have
-     * the ~~magic~~ simple equations that are used in this function.
-     */
-    inline pair<pair<Id, Id>, pair<Id, Id>>
-    RANGE_nodesFromCells(pair<Id, Id> RANGE_cell) const noexcept
-    {
-        auto[first_cell, last_cell] = RANGE_cell;
-        const size_t line           = first_cell / SideTaskNumber;
-        pair<Id, Id> RANGE_lower    = make_pair(first_cell + line, last_cell + line + 1);
-        pair<Id, Id> RANGE_upper    = make_pair(first_cell + line + 1 + m_problem_x, last_cell + line + 1 + 1 + m_problem_x);
-        return make_pair(RANGE_lower, RANGE_upper);
-    }
-
     /* Get all nodes from a partition */
     inline vector<pair<Id, Id>>
     RANGE_nodesFromPartition(const size_t partition) const noexcept
@@ -257,6 +231,32 @@ private:
         const size_t partition_y = math::min<size_t>(mesh_y / SideTaskNumber, SideTaskNumber - 1);
 
         return partition_y * SideTaskNumber + partition_x;
+    }
+
+    inline pair<pair<Id, Id>, pair<Id, Id>>
+    RANGE_nodesFromCells(pair<Id, Id> RANGE_cell) const noexcept
+    {
+        /* All the cells must be on the same line. With the same mesh:
+         * Lower nodes:
+         * 0: 0,1 | 1: 1,2 | 2: 2,3 | 3: 3,4 <- line 0, 0 -> 4
+         * 4: 5,6 | ... ... ... ... | 7: 8,9 <- line 1, 5 -> 9
+         * ...
+         * For Upper nodes, get the nodes of the next line. With that we can
+         * have the ~~magic~~ simple equations that are used in this function.
+         */
+        auto[first_cell, last_cell] = RANGE_cell;
+        const size_t line           = first_cell / SideTaskNumber;
+        pair<Id, Id> RANGE_lower    = make_pair(first_cell + line, last_cell + line + 1);
+        pair<Id, Id> RANGE_upper    = make_pair(first_cell + line + 1 + m_problem_x, last_cell + line + 1 + 1 + m_problem_x);
+        return make_pair(RANGE_lower, RANGE_upper);
+    }
+
+    inline Id
+    PIN_nodesFromCells(const Id cell) const noexcept
+    {
+        /* See RANGE_nodesFromCells. Here we pin the first node from a cell. */
+        const size_t line = cell / SideTaskNumber;
+        return cell + line;
     }
 
     /* Attributes */
