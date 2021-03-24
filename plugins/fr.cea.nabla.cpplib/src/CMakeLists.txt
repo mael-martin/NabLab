@@ -1,6 +1,6 @@
 ###############################################################################
 # Copyright (c) 2020 CEA
-# This program and the accompanying materials are made available under the 
+# This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
 # http://www.eclipse.org/legal/epl-2.0.
 #
@@ -16,7 +16,7 @@ set(N_WS_PATH ${CMAKE_SOURCE_DIR})
 set(N_KOKKOS_PATH $ENV{HOME}/kokkos/kokkos-install)
 
 # PROJECT
-project(fr_cea_nabla_cpplib CXX)
+project(fr_cea_nabla_cpplib)
 
 # CHECK CXX VERSION: must be done after the project() (CMAKE_CXX_COMPILER_ID not defined before)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

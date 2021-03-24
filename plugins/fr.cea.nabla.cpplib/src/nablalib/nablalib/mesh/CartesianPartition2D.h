@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <cmath>
 #include <cstdlib>
-#include <metis.h>
+#include "metis-5.1.0/include/metis.h"
 #include "nablalib/types/Types.h"
 #include "nablalib/mesh/MeshGeometry.h"
 #include "nablalib/mesh/CartesianMesh2D.h"
@@ -66,8 +66,8 @@ public:
     {
         idx_t *xadj;
         idx_t *adjncy;
-        size_t xadj_len;
-        size_t adjncy_len;
+        idx_t xadj_len;
+        idx_t adjncy_len;
 
         static CSR_Matrix
         createFrom2DCartesianMesh(size_t X, size_t Y) noexcept
@@ -150,7 +150,7 @@ public:
         : m_problem_x(problem_x), m_problem_y(problem_y), m_geometry(mesh->getGeometry())
     {
         static_assert(PartitionNumber == TaskNumber, "Only one partition per task is supported");
-        if ((math::min<uint64_t>(problem_x, problem_x) / SideTaskNumber) <= MAX_SHIFT)
+        if ((math::min<uint64_t>(problem_x, problem_x) / PartitionNumber) <= MAX_SHIFT)
             abort();
 
         CSR_Matrix matrix     = CSR_Matrix::createFrom2DCartesianMesh(problem_x, problem_y);
@@ -175,8 +175,8 @@ public:
 
     ~CartesianPartition2D() = default;
 
-    inline size_t getTaskNumber()     const noexcept { return TaskNumber;     }
-    inline size_t getSideTaskNumber() const noexcept { return SideTaskNumber; }
+    inline size_t getTaskNumber()      const noexcept { return TaskNumber;      }
+    inline size_t getPartitionNumber() const noexcept { return PartitionNumber; }
 
     /* XXX: See how to get neighbors with metis */
 #if 0
@@ -237,7 +237,7 @@ private:
     CartesianPartition2D& operator=(CartesianPartition2D &) = delete;
 
     /* Helpers */
-    inline Id cellIdFromPosition(const size_t x, const size_t y) const noexcept { return y * SideTaskNumber + x; }
+    inline Id cellIdFromPosition(const size_t x, const size_t y) const noexcept { return y * PartitionNumber + x; }
 
     inline pair<pair<Id, Id>, pair<Id, Id>>
     RANGE_nodesFromCells(pair<Id, Id> RANGE_cell) const noexcept
@@ -253,7 +253,7 @@ private:
 
         /* Lower cells, cells from the current line */
         auto[first_cell, last_cell] = RANGE_cell;
-        size_t line                 = first_cell / SideTaskNumber;
+        size_t line                 = first_cell / PartitionNumber;
         pair<Id, Id> RANGE_lower    = make_pair(first_cell + line, last_cell + line + 1);
 
         /* Lower cells from next line are the upper cells from the current line */
@@ -269,7 +269,7 @@ private:
     PIN_nodesFromCells(const Id cell) const noexcept
     {
         /* See RANGE_nodesFromCells. Here we pin the first node from a cell. */
-        const size_t line = cell / SideTaskNumber;
+        const size_t line = cell / PartitionNumber;
         return cell + line;
     }
 

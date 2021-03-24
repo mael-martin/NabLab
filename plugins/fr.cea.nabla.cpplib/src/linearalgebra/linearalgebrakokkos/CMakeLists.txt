@@ -1,6 +1,6 @@
 ###############################################################################
 # Copyright (c) 2020 CEA
-# This program and the accompanying materials are made available under the 
+# This program and the accompanying materials are made available under the
 # terms of the Eclipse Public License 2.0 which is available at
 # http://www.eclipse.org/legal/epl-2.0.
 #
@@ -8,7 +8,7 @@
 # Contributors: see AUTHORS file
 ###############################################################################
 
-# This file is in a cmake sub_directory and is called by a root CMakeLists.txt 
+# This file is in a cmake sub_directory and is called by a root CMakeLists.txt
 
 # CHECK VARIABLES
 if (NOT DEFINED N_WS_PATH)
