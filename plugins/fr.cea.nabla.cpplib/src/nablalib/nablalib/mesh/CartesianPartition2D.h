@@ -13,6 +13,7 @@
 #include <utility>
 #include <cstdint>
 #include <cmath>
+#include <algorithm>
 #include <cstdlib>
 #include "metis-5.1.0/include/metis.h"
 #include "nablalib/types/Types.h"
@@ -180,7 +181,17 @@ public:
 
         for (size_t i = 0; i < num_partition; ++i)
         {
+            std::sort(m_partitions_nodes[i].begin(), m_partitions_nodes[i].end());
+            m_partitions_nodes[i].erase(std::unique(m_partitions_nodes[i].begin(), m_partitions_nodes[i].end()), m_partitions_nodes[i].end());
             std::cout << "Partition " << i << ": " << m_partitions[i].size() << " cells | " << m_partitions_nodes[i].size() << " nodes\n";
+        }
+
+        for (size_t i = 0; i < num_partition; ++i) {
+            std::cout << "Partition " << i << ":\n";
+            for (const auto &node: m_partitions_nodes[i]) {
+                std::cout << "\t" << node;
+            }
+            std::cout << "\n";
         }
 
         delete[] ret_partition_cell;
@@ -241,7 +252,7 @@ private:
     CartesianPartition2D& operator=(CartesianPartition2D &) = delete;
 
     /* Helpers */
-    inline Id cellIdFromPosition(const size_t x, const size_t y) const noexcept { return y * PartitionNumber + x; }
+    inline Id cellIdFromPosition(const size_t x, const size_t y) const noexcept { return y * m_problem_x + x; }
 
     inline Id
     PIN_nodesFromCells(const Id cell) const noexcept
