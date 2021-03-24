@@ -202,7 +202,8 @@ public:
         const vector<pair<Id, Id>> cells_in_partition = RANGE_cellsFromPartition(partition);
         for (const auto &cell_range : cells_in_partition) {
             auto[bottom_range, upper_range] = RANGE_nodesFromCells(cell_range);
-            ret.emplace_back(bottom_range, upper_range);
+            ret.emplace_back(upper_range);
+            ret.emplace_back(bottom_range);
         }
         return ret;
     }
