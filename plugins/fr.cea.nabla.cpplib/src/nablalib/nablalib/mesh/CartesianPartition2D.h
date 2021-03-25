@@ -62,8 +62,7 @@ struct CSR_Matrix
                                  + neighbor_##dir.second * X;   /* y */     \
         adjncy_index++;                                                     \
     }
-
-        size_t xadj_index = 0;
+        size_t xadj_index   = 0;
         size_t adjncy_index = 0;
         for (size_t x = 0; x < X; ++x) {
             for (size_t y = 0; y < Y; ++y) {
@@ -74,7 +73,6 @@ struct CSR_Matrix
                 xadj_index++; /* Because there is at least one neighbor */
             }
         }
-
 #undef __ADD_NEIGHBOR
 
         ret.xadj[ret.xadj_len] = ret.adjncy_len; // For metis
@@ -110,12 +108,8 @@ private:
             ((y == Y - 1) && (dir & CSR_2D_Direction::NORTH))) {
             return false;
         }
-
-        const size_t delta_x = ((dir & CSR_2D_Direction::EAST)  >> 3) - ((dir & CSR_2D_Direction::WEST)  >> 2);
-        const size_t delta_y = ((dir & CSR_2D_Direction::NORTH) >> 4) - ((dir & CSR_2D_Direction::SOUTH) >> 1);
-
-        ret.first = x + delta_x;
-        ret.first = y + delta_y;
+        ret.first  = x + ((dir & CSR_2D_Direction::EAST)  >> 3) - ((dir & CSR_2D_Direction::WEST)  >> 2);
+        ret.second = y + ((dir & CSR_2D_Direction::NORTH) >> 4) - ((dir & CSR_2D_Direction::SOUTH) >> 1);
         return true;
     }
 };
