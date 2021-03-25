@@ -162,9 +162,10 @@ public:
             std::cerr << "Could not set default options with metis\n";
             abort();
         }
-        metis_options[METIS_OPTION_OBJTYPE] = METIS_OBJTYPE_CUT; /* Edge cut */
-        metis_options[METIS_OPTION_MINCONN] = true; /* Minimize connections  */
-        metis_options[METIS_OPTION_CONTIG]  = true; /* Contiguous partitions */
+        metis_options[METIS_OPTION_OBJTYPE] = METIS_OBJTYPE_CUT; /* Edge cut    */
+        metis_options[METIS_OPTION_MINCONN] = true; /* Minimize connections     */
+        metis_options[METIS_OPTION_CONTIG]  = true; /* Contiguous partitions    */
+        metis_options[METIS_OPTION_NCUTS]   = 5; /* 5 generation, take the best */
 
         /* It is used to partition a graph into k equal-size parts using
          * multilevel recursive bisection. It provides the functionality of
