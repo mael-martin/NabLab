@@ -219,7 +219,14 @@ public:
             __POPULATE_NODE_PARTITIONS(bottom, Bottom);
 
             /* Some beautifull printing */
-            std::cout << "Partition " << i << ": " << m_partitions[i].size() << " cells | " << m_partitions_nodes[i].size() << " nodes\n";
+            std::cout << "Partition " << i << ": " << m_partitions[i].size() << " cells "
+                      << "| " << m_partitions_nodes[i].size() << " nodes"
+                      << " (top: "    << m_partitions_top_nodes[i].size()
+                      << ", bottom: " << m_partitions_bottom_nodes[i].size()
+                      << ", right: "  << m_partitions_right_nodes[i].size()
+                      << ", left: "   << m_partitions_left_nodes[i].size()
+                      << ", inner: "  << m_partitions_inner_nodes[i].size()
+                      << ")\n";
         }
 
         delete[] ret_partition_cell;
