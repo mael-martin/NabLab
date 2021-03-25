@@ -60,17 +60,20 @@ struct CSR_Matrix
     if (getNeighbor(X, Y, x, y, CSR_2D_Direction::dir, neighbor_##dir)) {   \
         ret.adjncy[adjncy_index] = neighbor_##dir.first         /* x */     \
                                  + neighbor_##dir.second * X;   /* y */     \
+        std::cout << "\t" << ret.adjncy[adjncy_index];                      \
         adjncy_index++;                                                     \
-    }
+    } // else { std::cerr << "No " #dir " neighbor for (x: " << x << ", y:" << y << ")\n"; }
         size_t xadj_index   = 0;
         size_t adjncy_index = 0;
-        for (size_t x = 0; x < X; ++x) {
-            for (size_t y = 0; y < Y; ++y) {
+        for (size_t y = 0; y < Y; ++y) {
+            for (size_t x = 0; x < X; ++x) {
+                std::cout << "xadj_index: " << xadj_index << " => ";
                 __ADD_NEIGHBOR(SOUTH);
                 __ADD_NEIGHBOR(WEST);
                 __ADD_NEIGHBOR(EAST);
                 __ADD_NEIGHBOR(NORTH);
                 xadj_index++; /* Because there is at least one neighbor */
+                std::cout << "\n";
             }
         }
 #undef __ADD_NEIGHBOR
@@ -102,8 +105,8 @@ private:
     getNeighbor(const size_t X, const size_t Y, const size_t x, const size_t y, CSR_2D_Direction dir, pair<Id, Id> &ret) noexcept
     {
         /* Check border conditions */
-        if (((x == 0)     && (dir & CSR_2D_Direction::EAST))  ||
-            ((x == X - 1) && (dir & CSR_2D_Direction::WEST))  ||
+        if (((x == 0)     && (dir & CSR_2D_Direction::WEST))  ||
+            ((x == X - 1) && (dir & CSR_2D_Direction::EAST))  ||
             ((y == 0)     && (dir & CSR_2D_Direction::SOUTH)) ||
             ((y == Y - 1) && (dir & CSR_2D_Direction::NORTH))) {
             return false;
