@@ -153,13 +153,32 @@ public:
         idx_t num_constraints = 1; // Number of balancing constraints, which must be at least 1.
         idx_t objval; // On return, the edge cut volume of the partitioning solution.
         idx_t *ret_partition_cell = new idx_t[matrix.xadj_len]();
+        idx_t metis_options[METIS_NOPTIONS];
+        int ret;
 
-        int ret = METIS_PartGraphRecursive(&matrix.xadj_len, &num_constraints,
-                                           matrix.xadj, matrix.adjncy,
-                                           NULL, NULL, NULL,
-                                           &num_partition,
-                                           NULL, NULL, NULL,
-                                           &objval, ret_partition_cell);
+        ret = METIS_SetDefaultOptions(metis_options);
+        if (METIS_OK != ret) {
+            std::cerr << "Could not set default options with metis\n";
+            abort();
+        }
+        metis_options[METIS_OPTION_OBJTYPE] = METIS_OBJTYPE_CUT; /* Edge cut */
+        metis_options[METIS_OPTION_MINCONN] = true; /* Minimize connections  */
+        metis_options[METIS_OPTION_CONTIG]  = true; /* Contiguous partitions */
+
+        /* It is used to partition a graph into k equal-size parts using
+         * multilevel recursive bisection. It provides the functionality of
+         * the pmetis program. The objective of the partitioning is to minimize
+         * the edgecut. Here, objval is the edgecut.
+         */
+        ret = METIS_PartGraphKway(&matrix.xadj_len, &num_constraints, matrix.xadj, matrix.adjncy,
+                                  NULL, NULL, NULL, &num_partition, NULL, NULL,
+                                  metis_options, &objval, ret_partition_cell);
+        if (METIS_OK != ret) {
+            std::cerr << "Invalid return from metis\n";
+            abort();
+        }
+
+        std::cout << "Edge cut is: " << objval << "\n";
 
         /* Populate the partitions:
          * - partition -> cell relations
