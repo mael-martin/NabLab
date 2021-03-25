@@ -204,18 +204,14 @@ public:
     inline size_t getPartitionNumber() const noexcept { return PartitionNumber; }
 
     /* XXX: See how to get neighbors with metis */
-#if 0
-    inline auto
-    getNeighbor(const size_t partition) const noexcept
-    {
-    }
-#endif
+    // inline auto getNeighbor(const size_t partition) const noexcept { }
 
     static void setMaxDataShift(uint32_t max_shift) noexcept { MAX_SHIFT = max_shift; }
 
+public:
     /* Pin functions, from a partition get always the same id for the
-     * node/cell/face to mark it as a dependency with OpenMP. Don't have faces
-     * pins for the moment. */
+     * node/cell/face to mark it as a dependency with OpenMP. FIXME: Don't have
+     * faces pins for the moment. */
     inline Id
     PIN_cellsFromPartition(const size_t partition) const noexcept
     {
@@ -229,6 +225,7 @@ public:
         return PIN_nodesFromCells(PIN_cellsFromPartition(partition));
     }
 
+public:
     /* Range functions, from a partition get a way to iterate through all the
      * nodes/cells/faces. Don't have faces ranges for the moment (FIXME). */
     inline const vector<Id>&
@@ -243,6 +240,18 @@ public:
     {
         return m_partitions_nodes.at(partition);
     }
+
+#define __DEFINE_RANGE_FOR_SIDE_NODE(what)                                  \
+    inline const vector<Id>&                                                \
+    RANGE_##what##NodesFromPartition(const size_t partition) const noexcept \
+    { return m_partitions_##what##_nodes.at(partition); }
+    __DEFINE_RANGE_FOR_SIDE_NODE(top)
+    __DEFINE_RANGE_FOR_SIDE_NODE(bottom)
+    __DEFINE_RANGE_FOR_SIDE_NODE(left)
+    __DEFINE_RANGE_FOR_SIDE_NODE(right)
+    __DEFINE_RANGE_FOR_SIDE_NODE(inner)
+    __DEFINE_RANGE_FOR_SIDE_NODE(outer)
+#undef __DEFINE_RANGE_FOR_SIDE_NODE
 
     /* Internal methods */
 private:
@@ -291,8 +300,17 @@ private:
 
     MeshGeometry<2> *m_geometry;
 
+    /* Cells partition */
     map<Id, vector<Id>> m_partitions;
+
+    /* Nodes partitions */
     map<Id, vector<Id>> m_partitions_nodes;
+    map<Id, vector<Id>> m_partitions_right_nodes;
+    map<Id, vector<Id>> m_partitions_left_nodes;
+    map<Id, vector<Id>> m_partitions_top_nodes;
+    map<Id, vector<Id>> m_partitions_bottom_nodes;
+    map<Id, vector<Id>> m_partitions_inner_nodes;
+    map<Id, vector<Id>> m_partitions_outer_nodes;
 };
 }
 

@@ -34,7 +34,6 @@ import fr.cea.nabla.ir.ir.SetDefinition
 import fr.cea.nabla.ir.ir.VariableDeclaration
 import fr.cea.nabla.ir.ir.While
 import fr.cea.nabla.ir.ir.Variable
-import fr.cea.nabla.ir.ir.ItemIndex
 import fr.cea.nabla.ir.ir.ItemIdValueIterator
 import fr.cea.nabla.ir.ir.Job
 
@@ -352,9 +351,9 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			val ins = parentJob.inVars
 			val outs = parentJob.outVars
 			'''
-				/* ONLY_AFFECTATION */
+				/* ONLY_AFFECTATION, still need to launch a task for that */
 				#pragma omp task«
-					getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)»«
+					getDependenciesAll('in', ins, 0,   OMPTaskMaxNumber)»«
 					getDependenciesAll('out', outs, 0, OMPTaskMaxNumber)»
 				«left.content» = «right.content»;
 			'''
@@ -369,10 +368,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ins = parentJob.getInVars       /* Need to be computed before, consumed */
 		val out = parentJob.getOutVars.head /* Produced, unlock jobs that need them */
 		'''
-			/* REDUCTION BEGIN for job «parentJob.name»@«parentJob.at»
-			 * IN:    «ins.map[name]»
-			 * OUT:   «out.name»
-			 */
+			/* REDUCTION BEGIN for «parentJob.name»@«parentJob.at» */
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)«getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)» depend(out: «out.name»)
 			{
@@ -422,11 +418,22 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	private def getConnectivityType(Loop it)
 	{
 		val String itemname = iterationBlock.indexName.toString
-		if (Pattern.matches(".*Cells", itemname) || Pattern.matches(".*cells", itemname)) {
-			return "cells"
-		} else if (Pattern.matches(".*Nodes", itemname) || Pattern.matches(".*nodes", itemname)) {
-			return "nodes"
-		} else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
+		println("Check connectivity for " + itemname);
+		
+		/* Check for node connectivities */
+		if      (Pattern.matches(".*BottomNodes", itemname)) { return "bottomNodes" }
+		else if (Pattern.matches(".*TopNodes",    itemname)) { return "topNodes"    }
+		else if (Pattern.matches(".*RightNodes",  itemname)) { return "rightNodes"  }
+		else if (Pattern.matches(".*LeftNodes",   itemname)) { return "leftNodes"   }
+		else if (Pattern.matches(".*InnerNodes",  itemname)) { return "innerNodes"  }
+		else if (Pattern.matches(".*OuterNodes",  itemname)) { return "outerNodes"  }
+		else if (Pattern.matches(".*Nodes",       itemname)) { return "nodes"       }
+
+		/* Check for cell connectivities */
+		else if (Pattern.matches(".*Cells", itemname)) { return "cells" }
+		
+		/* Ooops, or not implemented */
+		else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
 	}
 
 
@@ -462,34 +469,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				«body.innerContent»
 			}
 		}
-		}
-	'''
-	}
-	
-	protected def launchSingleTask(Loop it, /* The CORE loop */
-		CharSequence taskNum, CharSequence taskLimit,
-		CharSequence baseIndex, CharSequence taskNbElems, /* The limits */
-		Set<Variable> ins, Set<Variable> outs, Set<Variable> inouts /* The variables dependencies (DataFlow) */
-	) {
-	'''
-		{
-			// Launch task `«taskNum»` out of `«taskLimit»`
-			«FOR itemindex : iterationBlock.eAllContents.filter(ItemIndex).toIterable»
-				 // [«itemindex.itemName» => «dataShift.get(itemindex.itemName.toString)» | «dataConnectivity.get(itemindex.itemName.toString)»]
-			«ENDFOR»
-			const size_t baseIndex = «baseIndex»;
-			const size_t taskNbElems = «taskNbElems»;
-			#pragma omp task firstprivate(baseIndex, taskNbElems)«
-				getDependencies('in',    ins,    taskNum) /* Consumed by the task */»«
-				getDependencies('out',   outs,   taskNum) /* Produced by the task */»«
-				getDependencies('inout', inouts, taskNum) /* Consumed AND produced by the task */»
-			{
-			«takeOMPTraces(ins, outs, inouts)»
-			for (size_t «iterationBlock.indexName» = baseIndex; «iterationBlock.indexName»<(baseIndex+taskNbElems); «iterationBlock.indexName»++)
-			{
-				«body.innerContent»
-			}
-			}
 		}
 	'''
 	}
