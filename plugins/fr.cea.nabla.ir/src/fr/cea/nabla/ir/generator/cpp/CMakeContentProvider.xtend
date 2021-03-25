@@ -69,6 +69,12 @@ class CMakeContentProvider
 		# EXECUTABLE «execName»
 		add_executable(«execName»«FOR m : modules» «m.className + '.cc'»«ENDFOR»)
 		target_link_libraries(«execName» PUBLIC«FOR l : getTargetLinkLibs(it, (!levelDBPath.nullOrEmpty))» «l»«ENDFOR»)
+		
+		if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+			target_compile_options(«execName» PRIVATE -fdiagnostics-color=always)
+		elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+			target_compile_options(«execName» PRIVATE -fcolor-diagnostics)
+		endif()
 
 		«CMakeUtils.fileFooter»
 	'''
