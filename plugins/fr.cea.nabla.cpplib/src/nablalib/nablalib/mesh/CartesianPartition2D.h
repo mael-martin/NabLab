@@ -241,25 +241,45 @@ public:
             __POPULATE_PARTITIONS(top_cells,    TopCells   );
             __POPULATE_PARTITIONS(bottom_cells, BottomCells);
 
+            /* Same for faces */
+            __POPULATE_PARTITIONS(inner_faces,           InnerFaces          );
+            __POPULATE_PARTITIONS(outer_faces,           InnerFaces          );
+            __POPULATE_PARTITIONS(right_faces,           RightFaces          );
+            __POPULATE_PARTITIONS(left_faces,            LeftFaces           );
+            __POPULATE_PARTITIONS(top_faces,             TopFaces            );
+            __POPULATE_PARTITIONS(bottom_faces,          BottomFaces         );
+            __POPULATE_PARTITIONS(innerVertical_faces,   InnerVerticalFaces  );
+            __POPULATE_PARTITIONS(innerHorizontal_faces, InnerHorizontalFaces);
+
             /* Some beautifull printing */
             std::cout << "Partition " << i << ": "
                       /* CELLS */
                       << m_partitions_cells[i].size() << " cells"
-                      << " (top: "    << m_partitions_top_cells[i].size()
-                      << ", bottom: " << m_partitions_bottom_cells[i].size()
-                      << ", right: "  << m_partitions_right_cells[i].size()
-                      << ", left: "   << m_partitions_left_cells[i].size()
-                      << ", inner: "  << m_partitions_inner_cells[i].size()
-                      << ", outer: "  << m_partitions_outer_cells[i].size()
+                      << " (t "   << m_partitions_top_cells[i].size()
+                      << ", b "   << m_partitions_bottom_cells[i].size()
+                      << ", r "   << m_partitions_right_cells[i].size()
+                      << ", l "   << m_partitions_left_cells[i].size()
+                      << ", in "  << m_partitions_inner_cells[i].size()
+                      << ", out " << m_partitions_outer_cells[i].size()
                       /* NODES */
-                      << ") | \t" << m_partitions_nodes[i].size() << " nodes"
-                      << " (top: "    << m_partitions_top_nodes[i].size()
-                      << ", bottom: " << m_partitions_bottom_nodes[i].size()
-                      << ", right: "  << m_partitions_right_nodes[i].size()
-                      << ", left: "   << m_partitions_left_nodes[i].size()
-                      << ", inner: "  << m_partitions_inner_nodes[i].size()
+                      << ") | " << m_partitions_nodes[i].size() << " nodes"
+                      << " (t "   << m_partitions_top_nodes[i].size()
+                      << ", b "   << m_partitions_bottom_nodes[i].size()
+                      << ", r "   << m_partitions_right_nodes[i].size()
+                      << ", l "   << m_partitions_left_nodes[i].size()
+                      << ", in "  << m_partitions_inner_nodes[i].size()
+                      /* FACES */
+                      << ") | " << m_partitions_faces[i].size() << " faces"
+                      << " (t "   << m_partitions_top_faces[i].size()
+                      << ", b "   << m_partitions_bottom_faces[i].size()
+                      << ", r "   << m_partitions_right_faces[i].size()
+                      << ", l "   << m_partitions_left_faces[i].size()
+                      << ", in "  << m_partitions_inner_faces[i].size()
+                      << ", inV " << m_partitions_innerVertical_faces[i].size()
+                      << ", inH " << m_partitions_innerHorizontal_faces[i].size()
                       << ")\n";
         }
+        std::cout << "/!\\ DON'T TRUST THE FACES NUMBERS FOR THE MOMENT /!\\\n";
 
         delete[] ret_partition_cell;
         CSR_Matrix::free(matrix);
@@ -283,12 +303,14 @@ public:
      * Pin the first node from a partition. */
     inline Id PIN_cellsFromPartition(const size_t partition) const noexcept { return m_partitions_cells.at(partition)[0]; }
     inline Id PIN_nodesFromPartition(const size_t partition) const noexcept { return PIN_nodesFromCells(PIN_cellsFromPartition(partition)); }
+    inline Id PIN_facesFromPartition(const size_t partition) const noexcept { return PIN_facesFromCells(PIN_cellsFromPartition(partition)); }
 
 public:
     /* Range functions, from a partition get a way to iterate through all the
      * nodes/cells/faces. Don't have faces ranges for the moment (FIXME). */
     inline auto RANGE_cellsFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_cells.at(partition); }
     inline auto RANGE_nodesFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_nodes.at(partition); }
+    inline auto RANGE_facesFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_faces.at(partition); }
 
 #define __DEFINE_RANGE_FOR_SIDE_NODE(what)                                  \
     inline const vector<Id>&                                                \
@@ -313,6 +335,20 @@ public:
     __DEFINE_RANGE_FOR_SIDE_CELL(outer)
 #undef __DEFINE_RANGE_FOR_SIDE_CELL
 
+#define __DEFINE_RANGE_FOR_SIDE_FACE(what)                                  \
+    inline const vector<Id>&                                                \
+    RANGE_##what##FaceFromPartition(const size_t partition) const noexcept  \
+    { return m_partitions_##what##_faces.at(partition); }
+    __DEFINE_RANGE_FOR_SIDE_FACE(top)
+    __DEFINE_RANGE_FOR_SIDE_FACE(bottom)
+    __DEFINE_RANGE_FOR_SIDE_FACE(left)
+    __DEFINE_RANGE_FOR_SIDE_FACE(right)
+    __DEFINE_RANGE_FOR_SIDE_FACE(inner)
+    __DEFINE_RANGE_FOR_SIDE_FACE(outer)
+    __DEFINE_RANGE_FOR_SIDE_FACE(innerVertical)
+    __DEFINE_RANGE_FOR_SIDE_FACE(innerHorizontal)
+#undef __DEFINE_RANGE_FOR_SIDE_FACE
+
     /* Internal methods */
 private:
     /* Don"t move it around */
@@ -321,12 +357,14 @@ private:
     CartesianPartition2D& operator=(CartesianPartition2D &) = delete;
 
     /* Helpers */
-    inline Id cellIdFromPosition(const size_t x, const size_t y) const noexcept { return y * m_problem_x + x; }
+    inline Id PIN_nodesFromCells(const Id cell) const noexcept { return RANGE_nodesFromCells(cell)[0]; }
+    inline Id PIN_facesFromCells(const Id cell) const noexcept { return RANGE_facesFromCells(cell)[0]; }
 
-    inline Id
-    PIN_nodesFromCells(const Id cell) const noexcept
+    inline const array<Id, 4>
+    RANGE_facesFromCells(const Id cell) const noexcept
     {
-        return RANGE_nodesFromCells(cell)[0];
+        /* TODO: This is a tricky one */
+        return array <Id, 4>{};
     }
 
     inline const array<Id, 4>
@@ -340,15 +378,15 @@ private:
          * For Upper nodes, get the nodes of the next line. With that we can
          * have the ~~magic~~ simple equations that are used in this function.
          */
-        array<Id, 4> ret;
         const size_t current_line = cell / m_problem_x;
         const size_t next_line    = current_line + 1;
         const Id next_cell        = cell + m_problem_x;
-        ret[0] = cell + current_line;
-        ret[1] = cell + current_line + 1;
-        ret[2] = next_cell + next_line;
-        ret[3] = next_cell + next_line + 1;
-        return ret;
+        return array<Id, 4>{
+            cell + current_line,
+            cell + current_line + 1,
+            next_cell + next_line,
+            next_cell + next_line + 1,
+        };
     }
 
     /* Attributes */
@@ -377,6 +415,45 @@ private:
     map<Id, vector<Id>> m_partitions_top_nodes;
     map<Id, vector<Id>> m_partitions_bottom_nodes;
     map<Id, vector<Id>> m_partitions_inner_nodes;
+
+    /* Faces partitions */
+    map<Id, vector<Id>> m_partitions_faces;
+    map<Id, vector<Id>> m_partitions_right_faces;
+    map<Id, vector<Id>> m_partitions_left_faces;
+    map<Id, vector<Id>> m_partitions_top_faces;
+    map<Id, vector<Id>> m_partitions_bottom_faces;
+    map<Id, vector<Id>> m_partitions_inner_faces;
+    map<Id, vector<Id>> m_partitions_outer_faces;
+    map<Id, vector<Id>> m_partitions_innerVertical_faces;
+    map<Id, vector<Id>> m_partitions_innerHorizontal_faces;
+
+    /* TODO List:
+     * - Find a `cell -> face` relation
+     * - Find a `node -> cell` relation
+     * - Find a `face -> cell` relation
+     *
+     * TODO Return vector<Id>
+     * - [D] getCellsOfNode
+     * - [D] getCellsOfFaces
+     * - [D] getNeighborCells
+     * - [F](Once I have the relation cell->face) getFaces getTopFaces getBottomFaces getLeftFaces getRightFaces getOuterFaces getInnerFaces getInnerHorizontalFaces getInnerVerticalFaces
+     *
+     * TODO Return Id
+     * - [D] getBackCell getFrontCell
+     * - [D] getTopCell getBottomCell getLeftCell getRightCell
+     * - [D] getBottomFaceNeighbour getBottomLeftFaceNeighbour getBottomRightFaceNeighbour
+     * - [D] getTopFaceNeighbour getTopLeftFaceNeighbour getTopRightFaceNeighbour
+     * - [D] getRightFaceNeighbour getLeftFaceNeighbour
+     * - [D] getTopLeftNode getTopRightNode getBottomLeftNode getBottomRightNode
+     *
+     * NOTE: What we happily ignore -> no exit from partition
+     * - getFacesOfCell
+     * - getNodesOfCell
+     * - getNodesOfFace
+     * - getFirstNodeOfFace getSecondNodeOfFace
+     * - getCommonFace
+     * - getTopFaceOfCell getBottomFaceOfCell getLeftFaceOfCell getRightFaceOfCell
+     */
 };
 }
 

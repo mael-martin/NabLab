@@ -430,7 +430,24 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		else if (Pattern.matches(".*Nodes",       itemname)) { return "nodes"       }
 
 		/* Check for cell connectivities */
-		else if (Pattern.matches(".*Cells", itemname)) { return "cells" }
+		else if (Pattern.matches(".*BottomCells", itemname)) { return "bottomCells" }
+		else if (Pattern.matches(".*TopCells",    itemname)) { return "topCells"    }
+		else if (Pattern.matches(".*RightCells",  itemname)) { return "rightCells"  }
+		else if (Pattern.matches(".*LeftCells",   itemname)) { return "leftCells"   }
+		else if (Pattern.matches(".*InnerCells",  itemname)) { return "innerCells"  }
+		else if (Pattern.matches(".*OuterCells",  itemname)) { return "outerCells"  }
+		else if (Pattern.matches(".*Cells",       itemname)) { return "cells"       }
+		
+		/* Check for face connectivities */
+		else if (Pattern.matches(".*InnerHorizontalFaces", itemname)) { return "innerHorizontalFaces"; }
+		else if (Pattern.matches(".*InnerVerticalFaces",   itemname)) { return "innerVerticalFaces";   }
+		else if (Pattern.matches(".*BottomFaces", itemname)) { return "bottomFaces" }
+		else if (Pattern.matches(".*TopFaces",    itemname)) { return "topFaces"    }
+		else if (Pattern.matches(".*RightFaces",  itemname)) { return "rightFaces"  }
+		else if (Pattern.matches(".*LeftFaces",   itemname)) { return "leftFaces"   }
+		else if (Pattern.matches(".*InnerFaces",  itemname)) { return "innerFaces"  }
+		else if (Pattern.matches(".*OuterFaces",  itemname)) { return "outerFaces"  }
+		else if (Pattern.matches(".*Faces",       itemname)) { return "cells"       }
 		
 		/* Ooops, or not implemented */
 		else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
