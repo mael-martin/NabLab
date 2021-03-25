@@ -188,7 +188,7 @@ public:
          */
         for (size_t i = 0; i < matrix.xadj_len; ++i)
         {
-            m_partitions[ret_partition_cell[i]].emplace_back(i);
+            m_partitions_cells[ret_partition_cell[i]].emplace_back(i);
             const array<Id, 4> nodesFromCell = RANGE_nodesFromCells(i);
             m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodesFromCell[0]);
             m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodesFromCell[1]);
@@ -196,18 +196,18 @@ public:
             m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodesFromCell[3]);
         }
 
-#define __POPULATE_NODE_PARTITIONS(what, from) {                                    \
-        const std::vector<Id> &mesh_vector = m_mesh->get##from##Nodes();            \
+#define __POPULATE_PARTITIONS(what, from) {                                         \
+        const std::vector<Id> &mesh_vector = m_mesh->get##from();                   \
         const std::vector<Id> &partition_vector = m_partitions_nodes[i];            \
         /* Get the number of edge nodes that are in the partition */                \
         std::set_intersection(mesh_vector.begin(),      mesh_vector.end(),          \
                               partition_vector.begin(), partition_vector.end(),     \
-                              std::back_inserter(m_partitions_##what##_nodes[i]));  \
+                              std::back_inserter(m_partitions_##what[i]));          \
         /* Because the edge RANGE will be used to index the edge vector from
          * the mesh, we need to reindex: replace each elements in the edge
          * partition by its index in the mesh vector */                             \
         /* XXX: This is ugly, find a better way to do it... */                      \
-        std::vector <Id> &partition_edge = m_partitions_##what##_nodes[i];          \
+        std::vector <Id> &partition_edge = m_partitions_##what[i];                  \
         for (size_t index_in_partition = 0;                                         \
              index_in_partition < partition_edge.size();                            \
              ++index_in_partition) {                                                \
@@ -227,15 +227,32 @@ public:
             m_partitions_nodes[i].erase(std::unique(m_partitions_nodes[i].begin(), m_partitions_nodes[i].end()), m_partitions_nodes[i].end());
 
             /* Inner, Left, Right, Top, Bottom nodes relations */
-            __POPULATE_NODE_PARTITIONS(inner,  Inner );
-            __POPULATE_NODE_PARTITIONS(right,  Right );
-            __POPULATE_NODE_PARTITIONS(left,   Left  );
-            __POPULATE_NODE_PARTITIONS(top,    Top   );
-            __POPULATE_NODE_PARTITIONS(bottom, Bottom);
+            __POPULATE_PARTITIONS(inner_nodes,  InnerNodes );
+            __POPULATE_PARTITIONS(right_nodes,  RightNodes );
+            __POPULATE_PARTITIONS(left_nodes,   LeftNodes  );
+            __POPULATE_PARTITIONS(top_nodes,    TopNodes   );
+            __POPULATE_PARTITIONS(bottom_nodes, BottomNodes);
+
+            /* Same for cells */
+            __POPULATE_PARTITIONS(inner_cells,  InnerCells );
+            __POPULATE_PARTITIONS(outer_cells,  InnerCells );
+            __POPULATE_PARTITIONS(right_cells,  RightCells );
+            __POPULATE_PARTITIONS(left_cells,   LeftCells  );
+            __POPULATE_PARTITIONS(top_cells,    TopCells   );
+            __POPULATE_PARTITIONS(bottom_cells, BottomCells);
 
             /* Some beautifull printing */
-            std::cout << "Partition " << i << ": " << m_partitions[i].size() << " cells "
-                      << "| " << m_partitions_nodes[i].size() << " nodes"
+            std::cout << "Partition " << i << ": "
+                      /* CELLS */
+                      << m_partitions_cells[i].size() << " cells"
+                      << " (top: "    << m_partitions_top_cells[i].size()
+                      << ", bottom: " << m_partitions_bottom_cells[i].size()
+                      << ", right: "  << m_partitions_right_cells[i].size()
+                      << ", left: "   << m_partitions_left_cells[i].size()
+                      << ", inner: "  << m_partitions_inner_cells[i].size()
+                      << ", outer: "  << m_partitions_outer_cells[i].size()
+                      /* NODES */
+                      << ") | \t" << m_partitions_nodes[i].size() << " nodes"
                       << " (top: "    << m_partitions_top_nodes[i].size()
                       << ", bottom: " << m_partitions_bottom_nodes[i].size()
                       << ", right: "  << m_partitions_right_nodes[i].size()
@@ -247,7 +264,7 @@ public:
         delete[] ret_partition_cell;
         CSR_Matrix::free(matrix);
     }
-#undef __POPULATE_NODE_PARTITIONS
+#undef __POPULATE_PARTITIONS
 
     ~CartesianPartition2D() = default;
 
@@ -264,13 +281,13 @@ public:
      * node/cell/face to mark it as a dependency with OpenMP. FIXME: Don't have
      * faces pins for the moment.
      * Pin the first node from a partition. */
-    inline Id PIN_cellsFromPartition(const size_t partition) const noexcept { return m_partitions.at(partition)[0]; }
+    inline Id PIN_cellsFromPartition(const size_t partition) const noexcept { return m_partitions_cells.at(partition)[0]; }
     inline Id PIN_nodesFromPartition(const size_t partition) const noexcept { return PIN_nodesFromCells(PIN_cellsFromPartition(partition)); }
 
 public:
     /* Range functions, from a partition get a way to iterate through all the
      * nodes/cells/faces. Don't have faces ranges for the moment (FIXME). */
-    inline auto RANGE_cellsFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions.at(partition); }
+    inline auto RANGE_cellsFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_cells.at(partition); }
     inline auto RANGE_nodesFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_nodes.at(partition); }
 
 #define __DEFINE_RANGE_FOR_SIDE_NODE(what)                                  \
@@ -283,6 +300,18 @@ public:
     __DEFINE_RANGE_FOR_SIDE_NODE(right)
     __DEFINE_RANGE_FOR_SIDE_NODE(inner)
 #undef __DEFINE_RANGE_FOR_SIDE_NODE
+
+#define __DEFINE_RANGE_FOR_SIDE_CELL(what)                                  \
+    inline const vector<Id>&                                                \
+    RANGE_##what##CellsFromPartition(const size_t partition) const noexcept \
+    { return m_partitions_##what##_cells.at(partition); }
+    __DEFINE_RANGE_FOR_SIDE_CELL(top)
+    __DEFINE_RANGE_FOR_SIDE_CELL(bottom)
+    __DEFINE_RANGE_FOR_SIDE_CELL(left)
+    __DEFINE_RANGE_FOR_SIDE_CELL(right)
+    __DEFINE_RANGE_FOR_SIDE_CELL(inner)
+    __DEFINE_RANGE_FOR_SIDE_CELL(outer)
+#undef __DEFINE_RANGE_FOR_SIDE_CELL
 
     /* Internal methods */
 private:
@@ -332,7 +361,14 @@ private:
     CartesianMesh2D *m_mesh;
 
     /* Cells partition */
-    map<Id, vector<Id>> m_partitions;
+    map<Id, vector<Id>> m_partitions_cells;
+
+    map<Id, vector<Id>> m_partitions_outer_cells;
+    map<Id, vector<Id>> m_partitions_inner_cells;
+    map<Id, vector<Id>> m_partitions_left_cells;
+    map<Id, vector<Id>> m_partitions_right_cells;
+    map<Id, vector<Id>> m_partitions_top_cells;
+    map<Id, vector<Id>> m_partitions_bottom_cells;
 
     /* Nodes partitions */
     map<Id, vector<Id>> m_partitions_nodes;
