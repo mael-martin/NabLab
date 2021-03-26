@@ -27,9 +27,12 @@ import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.BaseType
 import java.util.stream.IntStream
+import java.util.Iterator
 
 class CppGeneratorUtils
 {
+	def static <T>Iterable<T> iteratorToIterable(Iterator<T> iterator) { [iterator] }
+
 	static def getFreeFunctionNs(IrModule it) { className.toLowerCase + "freefuncs" }
 	static def dispatch getCodeName(InternFunction it) { irModule.freeFunctionNs + '::' + name }
 	static def getHDefineName(String name) { '__' + name.toUpperCase + '_H_' }
