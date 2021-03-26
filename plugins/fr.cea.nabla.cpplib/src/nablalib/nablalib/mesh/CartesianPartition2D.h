@@ -15,6 +15,7 @@
 #include <cmath>
 #include <algorithm>
 #include <cstdlib>
+#include <iomanip>
 #include "metis-5.1.0/include/metis.h"
 #include "nablalib/types/Types.h"
 #include "nablalib/mesh/CartesianMesh2D.h"
@@ -30,6 +31,16 @@ isqrt_impl(std::size_t sq, std::size_t dlt, std::size_t value)
 }
 static inline constexpr std::size_t isqrt(std::size_t value) { return isqrt_impl(1, 3, value); }
 template<typename T> static inline T min(const T a, const T b) { return a < b ? a : b; }
+}
+
+namespace nablalib::utils
+{
+template<typename T> static inline void
+vector_uniq(vector<T> &vec)
+{
+    std::sort(vec.begin(), vec.end());
+    vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
+}
 }
 
 namespace nablalib::mesh
@@ -189,11 +200,18 @@ public:
         for (size_t i = 0; i < matrix.xadj_len; ++i)
         {
             m_partitions_cells[ret_partition_cell[i]].emplace_back(i);
+
             const array<Id, 4> nodesFromCell = RANGE_nodesFromCells(i);
             m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodesFromCell[0]);
             m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodesFromCell[1]);
             m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodesFromCell[2]);
             m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodesFromCell[3]);
+
+            const array<Id, 4> facesFromCell = RANGE_facesFromCells(i);
+            m_partitions_faces[ret_partition_cell[i]].emplace_back(facesFromCell[0]);
+            m_partitions_faces[ret_partition_cell[i]].emplace_back(facesFromCell[1]);
+            m_partitions_faces[ret_partition_cell[i]].emplace_back(facesFromCell[2]);
+            m_partitions_faces[ret_partition_cell[i]].emplace_back(facesFromCell[3]);
         }
 
 #define __POPULATE_PARTITIONS(what, from) {                                         \
@@ -222,9 +240,8 @@ public:
 
         for (size_t i = 0; i < num_partition; ++i)
         {
-            /* Nodes */
-            std::sort(m_partitions_nodes[i].begin(), m_partitions_nodes[i].end());
-            m_partitions_nodes[i].erase(std::unique(m_partitions_nodes[i].begin(), m_partitions_nodes[i].end()), m_partitions_nodes[i].end());
+            utils::vector_uniq(m_partitions_nodes[i]);
+            utils::vector_uniq(m_partitions_faces[i]);
 
             /* Inner, Left, Right, Top, Bottom nodes relations */
             __POPULATE_PARTITIONS(inner_nodes,  InnerNodes );
@@ -251,32 +268,35 @@ public:
             __POPULATE_PARTITIONS(innerVertical_faces,   InnerVerticalFaces  );
             __POPULATE_PARTITIONS(innerHorizontal_faces, InnerHorizontalFaces);
 
+            const size_t max_length = std::to_string(m_partitions_cells[0].size() * 4).size() + 1;
+
             /* Some beautifull printing */
-            std::cout << "Partition " << i << ": "
+            std::cout << "Partition " << std::setw(max_length) << i << ": "
                       /* CELLS */
                       << m_partitions_cells[i].size() << " cells"
-                      << " (t "   << m_partitions_top_cells[i].size()
-                      << ", b "   << m_partitions_bottom_cells[i].size()
-                      << ", r "   << m_partitions_right_cells[i].size()
-                      << ", l "   << m_partitions_left_cells[i].size()
-                      << ", in "  << m_partitions_inner_cells[i].size()
-                      << ", out " << m_partitions_outer_cells[i].size()
+                      << " (t "   << std::setw(max_length) << m_partitions_top_cells[i].size()
+                      << ", b "   << std::setw(max_length) << m_partitions_bottom_cells[i].size()
+                      << ", r "   << std::setw(max_length) << m_partitions_right_cells[i].size()
+                      << ", l "   << std::setw(max_length) << m_partitions_left_cells[i].size()
+                      << ", in "  << std::setw(max_length) << m_partitions_inner_cells[i].size()
+                      << ", out " << std::setw(max_length) << m_partitions_outer_cells[i].size()
                       /* NODES */
-                      << ") | " << m_partitions_nodes[i].size() << " nodes"
-                      << " (t "   << m_partitions_top_nodes[i].size()
-                      << ", b "   << m_partitions_bottom_nodes[i].size()
-                      << ", r "   << m_partitions_right_nodes[i].size()
-                      << ", l "   << m_partitions_left_nodes[i].size()
-                      << ", in "  << m_partitions_inner_nodes[i].size()
+                      << ") | "   << std::setw(max_length) << m_partitions_nodes[i].size() << " nodes"
+                      << " (t "   << std::setw(max_length) << m_partitions_top_nodes[i].size()
+                      << ", b "   << std::setw(max_length) << m_partitions_bottom_nodes[i].size()
+                      << ", r "   << std::setw(max_length) << m_partitions_right_nodes[i].size()
+                      << ", l "   << std::setw(max_length) << m_partitions_left_nodes[i].size()
+                      << ", in "  << std::setw(max_length) << m_partitions_inner_nodes[i].size()
                       /* FACES */
-                      << ") | " << m_partitions_faces[i].size() << " faces"
-                      << " (t "   << m_partitions_top_faces[i].size()
-                      << ", b "   << m_partitions_bottom_faces[i].size()
-                      << ", r "   << m_partitions_right_faces[i].size()
-                      << ", l "   << m_partitions_left_faces[i].size()
-                      << ", in "  << m_partitions_inner_faces[i].size()
-                      << ", inV " << m_partitions_innerVertical_faces[i].size()
-                      << ", inH " << m_partitions_innerHorizontal_faces[i].size()
+                      << ") | "   << std::setw(max_length) << m_partitions_faces[i].size() << " faces"
+                      << " (t "   << std::setw(max_length) << m_partitions_top_faces[i].size()
+                      << ", b "   << std::setw(max_length) << m_partitions_bottom_faces[i].size()
+                      << ", r "   << std::setw(max_length) << m_partitions_right_faces[i].size()
+                      << ", l "   << std::setw(max_length) << m_partitions_left_faces[i].size()
+                      << ", o "   << std::setw(max_length) << m_partitions_outer_faces[i].size()
+                      << ", in "  << std::setw(max_length) << m_partitions_inner_faces[i].size()
+                      << ", inV " << std::setw(max_length) << m_partitions_innerVertical_faces[i].size()
+                      << ", inH " << std::setw(max_length) << m_partitions_innerHorizontal_faces[i].size()
                       << ")\n";
         }
         std::cout << "/!\\ DON'T TRUST THE FACES NUMBERS FOR THE MOMENT /!\\\n";
@@ -363,8 +383,16 @@ private:
     inline const array<Id, 4>
     RANGE_facesFromCells(const Id cell) const noexcept
     {
-        /* TODO: This is a tricky one */
-        return array <Id, 4>{};
+        const size_t line   = cell / m_problem_x;
+        const size_t column = cell % m_problem_x;
+        return array <Id, 4>{
+            /* bottom */ (cell * 2) + line,
+            /* top    */ (line != (m_problem_y - 1))
+                         /* not the last line */ ? (((cell + m_problem_x) * 2) + (line + 1))
+                         /* the last top line */ : ((m_problem_x * m_problem_y - 1) * 2 + (m_problem_y + (cell % m_problem_x))),
+            /* left   */ (cell * 2) + (line + 1),
+            /* right  */ (cell * 2) + (line + 1) + (column != (m_problem_x - 1))
+        };
     }
 
     inline const array<Id, 4>
