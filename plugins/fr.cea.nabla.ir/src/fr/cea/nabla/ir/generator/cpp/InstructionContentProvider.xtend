@@ -446,15 +446,15 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		else if (itemname.contains("Cells"))       { return "cells"       }
 		
 		/* Check for face connectivities */
-		else if (itemname.contains(".*InnerHorizontalFaces")) { return "innerHorizontalFaces" }
-		else if (itemname.contains(".*InnerVerticalFaces"))   { return "innerVerticalFaces"   }
-		else if (itemname.contains(".*BottomFaces"))          { return "bottomFaces"          }
-		else if (itemname.contains(".*TopFaces"))             { return "topFaces"             }
-		else if (itemname.contains(".*RightFaces"))           { return "rightFaces"           }
-		else if (itemname.contains(".*LeftFaces"))            { return "leftFaces"            }
-		else if (itemname.contains(".*InnerFaces"))           { return "innerFaces"           }
-		else if (itemname.contains(".*OuterFaces"))           { return "outerFaces"           }
-		else if (itemname.contains(".*Faces"))                { return "faces"                }
+		else if (itemname.contains("InnerHorizontalFaces")) { return "innerHorizontalFaces" }
+		else if (itemname.contains("InnerVerticalFaces"))   { return "innerVerticalFaces"   }
+		else if (itemname.contains("BottomFaces"))          { return "bottomFaces"          }
+		else if (itemname.contains("TopFaces"))             { return "topFaces"             }
+		else if (itemname.contains("RightFaces"))           { return "rightFaces"           }
+		else if (itemname.contains("LeftFaces"))            { return "leftFaces"            }
+		else if (itemname.contains("InnerFaces"))           { return "innerFaces"           }
+		else if (itemname.contains("OuterFaces"))           { return "outerFaces"           }
+		else if (itemname.contains("Faces"))                { return "faces"                }
 		
 		/* Happily ignored because don't exit from the partition -> no external contributions */
 		else if (itemname.contains("CommonFace")) {
@@ -487,33 +487,33 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			/* Cell => outer Cell */
 			if (name.contains("NeighborCells") || name.contains("NeighbourCells") || // In all directions
 				name.contains("TopCell") || name.contains("BottomCell") || name.contains("RightCell") || name.contains("LeftCell") // Do better with dir
-			) return "Cell => Outer Cell"
+			) return "cell => outer cell"
 
 			/* Node => outer Cell */
 			if (name.contains("CellsOfNode"))
-				return "Node => Outer Cell"
+				return "node => outer cell"
 
 			/* Cell => outer Face */
 			if (name.contains("FaceOfCell") || name.contains("FacesOfCell"))
-				return "Cell => Outer Face"
+				return "cell => outer face"
 
 			/* Face => outer Cell */
 			if (name.contains("CellsOfFaces") || name.contains("BackCell") || name.contains("FrontCell"))
-				return "Face => Outer Cell"
+				return "face => outer cell"
 
 			/* Cell => outer Node */
 			if (name.contains("NodesOfCell"))
-				return "Cell => Outer Node"
+				return "cell => outer node"
 
 			/* Face => outer Node */
 			if (name.contains("NodesOfFace") || name.contains("NodeOfFace"))
-				return "Face => Outer Node"
+				return "face => outer node"
 				
 			/* Face => outer Face */
 			if (name.contains("BottomFaceNeighbour") || name.contains("BottomLeftFaceNeighbour") || name.contains("BottomRightFaceNeighbour") ||
 				name.contains("TopFaceNeighbour")    || name.contains("TopLeftFaceNeighbour")    || name.contains("TopRightFaceNeighbour")    ||
 				name.contains("RightFaceNeighbour")  || name.contains("LeftFaceNeighbour")
-			) return "Face => Outer Face"
+			) return "face => outer face"
 
 			/* Nothing :^) */
 			else return ""
@@ -529,14 +529,19 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	'''
 		{
 		// Launch task for partition «partitionId»
-		// Detected connectivities: «FOR c : detectDependencies(it) SEPARATOR ', '»«c»«ENDFOR»
+		«val detectedDeps = detectDependencies»
+		«val oupsiDeps    = detectedDeps.filter[name | (!name.contains(connectivityType + " =>")) ]»
+		// TODO: Detected connectivities: «FOR c : detectedDeps SEPARATOR ', '»«c»«ENDFOR»
+		«IF oupsiDeps.size >= 1»
+		#pragma error "FIXME: Problematic dependencies for a loop in '«connectivityType»' :«FOR c : oupsiDeps SEPARATOR ', '»«c»«ENDFOR»"
+		«ENDIF»
 		#pragma omp task«
 			getDependencies('in',    ins,    partitionId.toString) /* Consumed by the task */»«
 			getDependencies('out',   outs,   partitionId.toString) /* Produced by the task */»«
 			getDependencies('inout', inouts, partitionId.toString) /* Consumed and produced by the task */»
 		{
 			«takeOMPTraces(ins, outs, inouts)»
-			for (const size_t «iterationBlock.indexName» : «getLoopRange(it.connectivityType, partitionId.toString)»)
+			for (const size_t «iterationBlock.indexName» : «getLoopRange(connectivityType, partitionId.toString)»)
 			{
 				«body.innerContent»
 			}
@@ -558,19 +563,19 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			val String itemname = iterationBlock.indexName.toString
 
 			/* Auto detect cells */
-			if (itemname.contains("Cells") || itemname.contains("cells")) {
+			if (itemname.contains("Cell") || itemname.contains("cell")) {
 				dataShift.put(String::valueOf(itemname.charAt(0)), new Pair<Integer, Integer>(0, 0))
 				dataConnectivity.put(String::valueOf(itemname.charAt(0)), "cells");
 			}
 			
 			/* Auto detect nodes */
-			else if (itemname.contains("Nodes") || itemname.contains("nodes")) {
+			else if (itemname.contains("Node") || itemname.contains("node")) {
 				dataShift.put(String::valueOf(itemname.charAt(0)), new Pair<Integer, Integer>(0, 0))
 				dataConnectivity.put(String::valueOf(itemname.charAt(0)), "nodes");
 			}
 			
 			/* Auto detect faces */
-			else if (itemname.contains("Faces") || itemname.contains("faces")) {
+			else if (itemname.contains("Face") || itemname.contains("face")) {
 				dataShift.put(String::valueOf(itemname.charAt(0)), new Pair<Integer, Integer>(0, 0))
 				dataConnectivity.put(String::valueOf(itemname.charAt(0)), "faces");
 			}
