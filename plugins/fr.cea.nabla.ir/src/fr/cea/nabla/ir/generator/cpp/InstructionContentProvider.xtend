@@ -14,7 +14,6 @@ import org.eclipse.xtend.lib.annotations.Data
 
 import java.util.Set
 import java.util.HashMap
-import java.util.regex.Pattern
 
 import fr.cea.nabla.ir.ir.Affectation
 import fr.cea.nabla.ir.ir.ConnectivityCall
@@ -429,36 +428,36 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		println("Check connectivity for " + itemname);
 		
 		/* Check for node connectivities */
-		if      (Pattern.matches(".*BottomNodes", itemname)) { return "bottomNodes" }
-		else if (Pattern.matches(".*TopNodes",    itemname)) { return "topNodes"    }
-		else if (Pattern.matches(".*RightNodes",  itemname)) { return "rightNodes"  }
-		else if (Pattern.matches(".*LeftNodes",   itemname)) { return "leftNodes"   }
-		else if (Pattern.matches(".*InnerNodes",  itemname)) { return "innerNodes"  }
-		else if (Pattern.matches(".*OuterNodes",  itemname)) { return "outerNodes"  }
-		else if (Pattern.matches(".*Nodes",       itemname)) { return "nodes"       }
+		if      (itemname.contains("BottomNodes")) { return "bottomNodes" }
+		else if (itemname.contains("TopNodes"))    { return "topNodes"    }
+		else if (itemname.contains("RightNodes"))  { return "rightNodes"  }
+		else if (itemname.contains("LeftNodes"))   { return "leftNodes"   }
+		else if (itemname.contains("InnerNodes"))  { return "innerNodes"  }
+		else if (itemname.contains("OuterNodes"))  { return "outerNodes"  }
+		else if (itemname.contains("Nodes"))       { return "nodes"       }
 
 		/* Check for cell connectivities */
-		else if (Pattern.matches(".*BottomCells", itemname)) { return "bottomCells" }
-		else if (Pattern.matches(".*TopCells",    itemname)) { return "topCells"    }
-		else if (Pattern.matches(".*RightCells",  itemname)) { return "rightCells"  }
-		else if (Pattern.matches(".*LeftCells",   itemname)) { return "leftCells"   }
-		else if (Pattern.matches(".*InnerCells",  itemname)) { return "innerCells"  }
-		else if (Pattern.matches(".*OuterCells",  itemname)) { return "outerCells"  }
-		else if (Pattern.matches(".*Cells",       itemname)) { return "cells"       }
+		else if (itemname.contains("BottomCells")) { return "bottomCells" }
+		else if (itemname.contains("TopCells"))    { return "topCells"    }
+		else if (itemname.contains("RightCells"))  { return "rightCells"  }
+		else if (itemname.contains("LeftCells"))   { return "leftCells"   }
+		else if (itemname.contains("InnerCells"))  { return "innerCells"  }
+		else if (itemname.contains("OuterCells"))  { return "outerCells"  }
+		else if (itemname.contains("Cells"))       { return "cells"       }
 		
 		/* Check for face connectivities */
-		else if (Pattern.matches(".*InnerHorizontalFaces", itemname)) { return "innerHorizontalFaces"; }
-		else if (Pattern.matches(".*InnerVerticalFaces",   itemname)) { return "innerVerticalFaces";   }
-		else if (Pattern.matches(".*BottomFaces", itemname)) { return "bottomFaces" }
-		else if (Pattern.matches(".*TopFaces",    itemname)) { return "topFaces"    }
-		else if (Pattern.matches(".*RightFaces",  itemname)) { return "rightFaces"  }
-		else if (Pattern.matches(".*LeftFaces",   itemname)) { return "leftFaces"   }
-		else if (Pattern.matches(".*InnerFaces",  itemname)) { return "innerFaces"  }
-		else if (Pattern.matches(".*OuterFaces",  itemname)) { return "outerFaces"  }
-		else if (Pattern.matches(".*Faces",       itemname)) { return "cells"       }
+		else if (itemname.contains(".*InnerHorizontalFaces")) { return "innerHorizontalFaces" }
+		else if (itemname.contains(".*InnerVerticalFaces"))   { return "innerVerticalFaces"   }
+		else if (itemname.contains(".*BottomFaces"))          { return "bottomFaces"          }
+		else if (itemname.contains(".*TopFaces"))             { return "topFaces"             }
+		else if (itemname.contains(".*RightFaces"))           { return "rightFaces"           }
+		else if (itemname.contains(".*LeftFaces"))            { return "leftFaces"            }
+		else if (itemname.contains(".*InnerFaces"))           { return "innerFaces"           }
+		else if (itemname.contains(".*OuterFaces"))           { return "outerFaces"           }
+		else if (itemname.contains(".*Faces"))                { return "faces"                }
 		
 		/* Happily ignored because don't exit from the partition -> no external contributions */
-		else if (Pattern.matches(".*CommonFace",  itemname)) {
+		else if (itemname.contains("CommonFace")) {
 			println("Ignored " + itemname + " connectivity function in loop");
 		}
 		
@@ -554,18 +553,29 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		inouts.retainAll(outs)
 		ins.removeAll(inouts)
 		outs.removeAll(inouts)
-
-		/* The code */
 		if (eAllContents.filter(ItemIdDefinition).size == 0)
 		{
 			val String itemname = iterationBlock.indexName.toString
-			if (Pattern.matches(".*Cells", itemname) || Pattern.matches(".*cells", itemname)) {
+
+			/* Auto detect cells */
+			if (itemname.contains("Cells") || itemname.contains("cells")) {
 				dataShift.put(String::valueOf(itemname.charAt(0)), new Pair<Integer, Integer>(0, 0))
 				dataConnectivity.put(String::valueOf(itemname.charAt(0)), "cells");
-			} else if (Pattern.matches(".*Nodes", itemname) || Pattern.matches(".*nodes", itemname)) {
+			}
+			
+			/* Auto detect nodes */
+			else if (itemname.contains("Nodes") || itemname.contains("nodes")) {
 				dataShift.put(String::valueOf(itemname.charAt(0)), new Pair<Integer, Integer>(0, 0))
 				dataConnectivity.put(String::valueOf(itemname.charAt(0)), "nodes");
-			} else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
+			}
+			
+			/* Auto detect faces */
+			else if (itemname.contains("Faces") || itemname.contains("faces")) {
+				dataShift.put(String::valueOf(itemname.charAt(0)), new Pair<Integer, Integer>(0, 0))
+				dataConnectivity.put(String::valueOf(itemname.charAt(0)), "faces");
+			}
+			
+			else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
 		}
 		'''
 			for (size_t task = 0; task < («taskN»); ++task)

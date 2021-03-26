@@ -445,14 +445,6 @@ private:
      * - [D] getTopFaceNeighbour getTopLeftFaceNeighbour getTopRightFaceNeighbour
      * - [D] getRightFaceNeighbour getLeftFaceNeighbour
      * - [D] getTopLeftNode getTopRightNode getBottomLeftNode getBottomRightNode
-     *
-     * NOTE: What we happily ignore -> no exit from partition
-     * - getFacesOfCell
-     * - getNodesOfCell
-     * - getNodesOfFace
-     * - getFirstNodeOfFace getSecondNodeOfFace
-     * - getCommonFace
-     * - getTopFaceOfCell getBottomFaceOfCell getLeftFaceOfCell getRightFaceOfCell
      */
 };
 }
