@@ -180,20 +180,6 @@ public:
     static void setMaxDataShift(uint32_t max_shift) noexcept { MAX_SHIFT = max_shift; }
 
 public:
-    /* Neighbor function */
-    inline const size_t
-    NEIGHBOR_partitionFromDirection(const size_t partition, const CSR_2D_Direction dir) const noexcept
-    {
-        const array<Id, 4> &neighbors = m_partitions_neighbors.at(partition);
-        switch (dir) {
-        case CSR_2D_Direction::SOUTH:   return neighbors[CSR_2D_Direction_index::index_SOUTH];
-        case CSR_2D_Direction::WEST:    return neighbors[CSR_2D_Direction_index::index_WEST];
-        case CSR_2D_Direction::EAST:    return neighbors[CSR_2D_Direction_index::index_EAST];
-        case CSR_2D_Direction::NORTH:   return neighbors[CSR_2D_Direction_index::index_NORTH];
-        }
-    }
-
-public:
     /* Pin functions, from a partition get always the same id for the
      * node/cell/face to mark it as a dependency with OpenMP.
      * Pin the first node from a partition. */
@@ -201,9 +187,23 @@ public:
     inline Id PIN_nodesFromPartition(const size_t partition) const noexcept { return PIN_nodesFromCells(PIN_cellsFromPartition(partition)); }
     inline Id PIN_facesFromPartition(const size_t partition) const noexcept { return PIN_facesFromCells(PIN_cellsFromPartition(partition)); }
 
-    inline Id PIN_cellsFromPartition(const size_t partition, const CSR_2D_Direction dir) const noexcept { return m_partitions_cells.at(NEIGHBOR_partitionFromDirection(partition, dir))[0]; }
-    inline Id PIN_nodesFromPartition(const size_t partition, const CSR_2D_Direction dir) const noexcept { return PIN_nodesFromCells(PIN_cellsFromPartition(NEIGHBOR_partitionFromDirection(partition, dir))); }
-    inline Id PIN_facesFromPartition(const size_t partition, const CSR_2D_Direction dir) const noexcept { return PIN_facesFromCells(PIN_cellsFromPartition(NEIGHBOR_partitionFromDirection(partition, dir))); }
+    inline Id PIN_cellsFromPartition(const size_t partition, const size_t neighbor_index) const noexcept { return m_partitions_cells.at(m_partitions_neighbors.at(partition).at(neighbor_index))[0]; }
+    inline Id PIN_nodesFromPartition(const size_t partition, const size_t neighbor_index) const noexcept { return PIN_nodesFromCells(PIN_cellsFromPartition(m_partitions_neighbors.at(partition).at(neighbor_index))); }
+    inline Id PIN_facesFromPartition(const size_t partition, const size_t neighbor_index) const noexcept { return PIN_facesFromCells(PIN_cellsFromPartition(m_partitions_neighbors.at(partition).at(neighbor_index))); }
+
+    /* HowTo:
+     * #pragma omp task \
+     *     depend(in: this->F[___partition->PIN_cellsFromPartition(task)], ...) \
+     *     depend(iterator(neighbor_index=0:___partition->NEIGHBOR_getNumberForPartition(task)), in: this->F[___partition->PIN_cellsFromPartition(task, neighbor_index)]) \
+     *     ... \
+     *     depend(out: this->uj_nplus1[___partition->PIN_cellsFromPartition(task)])
+     * { ... }
+     * */
+    inline size_t
+    NEIGHBOR_getNumberForPartition(const size_t partition) const noexcept
+    {
+        return m_partitions_neighbors.at(partition).size();
+    }
 
 public:
     /* Range functions, from a partition get a way to iterate through all the
@@ -493,7 +493,7 @@ private:
     map<Id, vector<Id>> m_partitions_innerHorizontal_faces;
 
     /* Neighbors for partitions */
-    map <Id, array<Id, 4>> m_partitions_neighbors;
+    map<Id, vector<Id>> m_partitions_neighbors;
 
     /* TODO List:
      * - Find a `cell -> face` relation
