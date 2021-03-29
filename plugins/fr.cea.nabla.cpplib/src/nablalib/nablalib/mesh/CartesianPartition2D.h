@@ -46,6 +46,20 @@ vector_uniq(vector<T> &vec)
 namespace nablalib::mesh
 {
 
+enum CSR_2D_Direction {
+    SOUTH = (1 << 1),
+    WEST  = (1 << 2),
+    EAST  = (1 << 3),
+    NORTH = (1 << 4)
+};
+
+enum CSR_2D_Direction_index {
+    index_SOUTH = 0,
+    index_WEST  = 1,
+    index_EAST  = 2,
+    index_NORTH = 3
+};
+
 /* Create CSR matrix from a 2D cartesian mesh */
 struct CSR_Matrix
 {
@@ -103,13 +117,6 @@ struct CSR_Matrix
     }
 
 private:
-    enum CSR_2D_Direction {
-        SOUTH = (1 << 1),
-        WEST  = (1 << 2),
-        EAST  = (1 << 3),
-        NORTH = (1 << 4)
-    };
-
     static inline bool
     getNeighbor(const size_t X, const size_t Y, const size_t x, const size_t y, CSR_2D_Direction dir, pair<Id, Id> &ret) noexcept
     {
@@ -214,6 +221,11 @@ public:
             m_partitions_faces[ret_partition_cell[i]].emplace_back(facesFromCell[3]);
         }
 
+
+        /* Compute neighbors partitions here */
+        // map <Id, array<Id, 4>> m_partitions_neighbors;
+
+        /* Nodes and faces of partitions */
 #define __POPULATE_PARTITIONS(what, from) {                                         \
         const std::vector<Id> &mesh_vector = m_mesh->get##from();                   \
         const std::vector<Id> &partition_vector = m_partitions_nodes[i];            \
@@ -237,7 +249,6 @@ public:
             }                                                                       \
         }                                                                           \
     }
-
         for (size_t i = 0; i < num_partition; ++i)
         {
             utils::vector_uniq(m_partitions_nodes[i]);
@@ -268,9 +279,8 @@ public:
             __POPULATE_PARTITIONS(innerVertical_faces,   InnerVerticalFaces  );
             __POPULATE_PARTITIONS(innerHorizontal_faces, InnerHorizontalFaces);
 
-            const size_t max_length = std::to_string(m_partitions_cells[0].size() * 4).size() + 1;
-
             /* Some beautifull printing */
+            const size_t max_length = std::to_string(m_partitions_cells[0].size() * 4).size() + 1;
             std::cout << "Partition " << std::setw(max_length) << i << ": "
                       /* CELLS */
                       << m_partitions_cells[i].size() << " cells"
@@ -300,7 +310,6 @@ public:
                       << ")\n";
         }
         std::cout << "/!\\ DON'T TRUST THE FACES NUMBERS FOR THE MOMENT /!\\\n";
-
         delete[] ret_partition_cell;
         CSR_Matrix::free(matrix);
     }
@@ -311,10 +320,21 @@ public:
     inline size_t getTaskNumber()      const noexcept { return TaskNumber;      }
     inline size_t getPartitionNumber() const noexcept { return PartitionNumber; }
 
-    /* XXX: See how to get neighbors with metis */
-    // inline auto getNeighbor(const size_t partition) const noexcept { }
-
     static void setMaxDataShift(uint32_t max_shift) noexcept { MAX_SHIFT = max_shift; }
+
+public:
+    /* Neighbor function */
+    inline const size_t
+    NEIGHBOR_partitionFromDirection(const size_t partition, const CSR_2D_Direction dir) const noexcept
+    {
+        const array<Id, 4> &neighbors = m_partitions_neighbors.at(partition);
+        switch (dir) {
+        case CSR_2D_Direction::SOUTH:   return neighbors[CSR_2D_Direction_index::index_SOUTH];
+        case CSR_2D_Direction::WEST:    return neighbors[CSR_2D_Direction_index::index_WEST];
+        case CSR_2D_Direction::EAST:    return neighbors[CSR_2D_Direction_index::index_EAST];
+        case CSR_2D_Direction::NORTH:   return neighbors[CSR_2D_Direction_index::index_NORTH];
+        }
+    }
 
 public:
     /* Pin functions, from a partition get always the same id for the
@@ -455,6 +475,9 @@ private:
     map<Id, vector<Id>> m_partitions_innerVertical_faces;
     map<Id, vector<Id>> m_partitions_innerHorizontal_faces;
 
+    /* Neighbors for partitions */
+    map <Id, array<Id, 4>> m_partitions_neighbors;
+
     /* TODO List:
      * - Find a `cell -> face` relation
      * - Find a `node -> cell` relation
@@ -475,6 +498,7 @@ private:
      * - [D] getTopLeftNode getTopRightNode getBottomLeftNode getBottomRightNode
      */
 };
+
 }
 
 #endif /* NABLALIB_MESH_CARTESIANPARTITION2D_H_ */
