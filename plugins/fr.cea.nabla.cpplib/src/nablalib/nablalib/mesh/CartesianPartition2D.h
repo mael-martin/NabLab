@@ -371,7 +371,7 @@ public:
 
     /* Internal methods */
 private:
-    /* Don"t move it around */
+    /* Don't move it around */
     CartesianPartition2D(const CartesianPartition2D &)      = delete;
     CartesianPartition2D(CartesianPartition2D &&)           = delete;
     CartesianPartition2D& operator=(CartesianPartition2D &) = delete;
@@ -389,9 +389,9 @@ private:
             /* bottom */ (cell * 2) + line,
             /* top    */ (line != (m_problem_y - 1))
                          /* not the last line */ ? (((cell + m_problem_x) * 2) + (line + 1))
-                         /* the last top line */ : ((m_problem_x * m_problem_y - 1) * 2 + (m_problem_y + (cell % m_problem_x))),
+                         /* the last top line */ : ((m_problem_x * m_problem_y - 1) * 2 + (m_problem_y + 1) + (cell % m_problem_x)),
             /* left   */ (cell * 2) + (line + 1),
-            /* right  */ (cell * 2) + (line + 1) + (column != (m_problem_x - 1))
+            /* right  */ (cell * 2) + (line + 2) + (column != (m_problem_x - 1))
         };
     }
 
