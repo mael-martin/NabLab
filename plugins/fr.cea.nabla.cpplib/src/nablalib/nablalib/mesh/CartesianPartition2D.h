@@ -221,46 +221,48 @@ public:
         // map <Id, array<Id, 4>> m_partitions_neighbors;
 
         /* Nodes and faces of partitions */
-#define __POPULATE_PARTITIONS(type, what, from) {                                       \
-    std::set_intersection(m_mesh->get##from().begin(), m_mesh->get##from().end(),       \
-                          m_partitions_##type[i].begin(), m_partitions_##type[i].end(), \
-                          std::back_inserter(m_partitions_##what##_##type[i]));         \
-    for (size_t index_in_partition = 0;                                                 \
-         index_in_partition < m_partitions_##what##_##type[i].size();                   \
-         ++index_in_partition) {                                                        \
-        for (size_t index = 0; index < m_mesh->get##from().size(); ++index) {           \
-            if (m_mesh->get##from()[index] == m_partitions_##what##_##type[i][index_in_partition]) { \
-                m_partitions_##what##_##type[i][index_in_partition] = index;            \
-                break;                                                                  \
-            }                                                                           \
-        }                                                                               \
-    }}
+#define ___POPULATE_PARTITIONS(type, what, from) {                                               \
+std::set_intersection(m_mesh->get##from().begin(), m_mesh->get##from().end(),                    \
+                      m_partitions_##type[i].begin(), m_partitions_##type[i].end(),              \
+                      std::back_inserter(m_partitions_##what##_##type[i]));                      \
+for (size_t index_in_partition = 0;                                                              \
+     index_in_partition < m_partitions_##what##_##type[i].size();                                \
+     ++index_in_partition) {                                                                     \
+    for (size_t index = 0; index < m_mesh->get##from().size(); ++index) {                        \
+        if (m_mesh->get##from()[index] == m_partitions_##what##_##type[i][index_in_partition]) { \
+            m_partitions_##what##_##type[i][index_in_partition] = index;                         \
+            break;                                                                               \
+        }                                                                                        \
+    }                                                                                            \
+}}
+        /* Quick and dirty parallelisation for independent loop's body */
+        #pragma omp parallel for
         for (size_t i = 0; i < num_partition; ++i) {
             utils::vector_uniq(m_partitions_nodes[i]);
             utils::vector_uniq(m_partitions_faces[i]);
+            ___POPULATE_PARTITIONS(cells, top,    TopCells);
+            ___POPULATE_PARTITIONS(cells, bottom, BottomCells);
+            ___POPULATE_PARTITIONS(cells, left,   LeftCells);
+            ___POPULATE_PARTITIONS(cells, right,  RightCells);
+            ___POPULATE_PARTITIONS(cells, inner,  InnerCells);
+            ___POPULATE_PARTITIONS(cells, outer,  OuterCells);
+            ___POPULATE_PARTITIONS(nodes, top,    TopNodes);
+            ___POPULATE_PARTITIONS(nodes, bottom, BottomNodes);
+            ___POPULATE_PARTITIONS(nodes, left,   LeftNodes);
+            ___POPULATE_PARTITIONS(nodes, right,  RightNodes);
+            ___POPULATE_PARTITIONS(nodes, inner,  InnerNodes);
+            ___POPULATE_PARTITIONS(faces, top,    TopFaces);
+            ___POPULATE_PARTITIONS(faces, bottom, BottomFaces);
+            ___POPULATE_PARTITIONS(faces, left,   LeftFaces);
+            ___POPULATE_PARTITIONS(faces, right,  RightFaces);
+            ___POPULATE_PARTITIONS(faces, inner,  InnerFaces);
+            ___POPULATE_PARTITIONS(faces, outer,  OuterFaces);
+            ___POPULATE_PARTITIONS(faces, innerHorizontal, InnerHorizontalFaces);
+            ___POPULATE_PARTITIONS(faces, innerVertical,   InnerVerticalFaces);
+        }
+#undef ___POPULATE_PARTITIONS
 
-            __POPULATE_PARTITIONS(cells, top,    TopCells);
-            __POPULATE_PARTITIONS(cells, bottom, BottomCells);
-            __POPULATE_PARTITIONS(cells, left,   LeftCells);
-            __POPULATE_PARTITIONS(cells, right,  RightCells);
-            __POPULATE_PARTITIONS(cells, inner,  InnerCells);
-            __POPULATE_PARTITIONS(cells, outer,  OuterCells);
-
-            __POPULATE_PARTITIONS(nodes, top,    TopNodes);
-            __POPULATE_PARTITIONS(nodes, bottom, BottomNodes);
-            __POPULATE_PARTITIONS(nodes, left,   LeftNodes);
-            __POPULATE_PARTITIONS(nodes, right,  RightNodes);
-            __POPULATE_PARTITIONS(nodes, inner,  InnerNodes);
-
-            __POPULATE_PARTITIONS(faces, top,    TopFaces);
-            __POPULATE_PARTITIONS(faces, bottom, BottomFaces);
-            __POPULATE_PARTITIONS(faces, left,   LeftFaces);
-            __POPULATE_PARTITIONS(faces, right,  RightFaces);
-            __POPULATE_PARTITIONS(faces, inner,  InnerFaces);
-            __POPULATE_PARTITIONS(faces, outer,  OuterFaces);
-            __POPULATE_PARTITIONS(faces, innerHorizontal,   InnerHorizontalFaces);
-            __POPULATE_PARTITIONS(faces, innerVertical,     InnerVerticalFaces);
-
+        for (size_t i = 0; i < num_partition; ++i) {
             /* Some beautifull printing */
             const size_t max_length = std::to_string(m_partitions_cells[0].size() * 4).size() + 1;
             std::cout << "Partition " << std::setw(max_length) << i << ": "
@@ -308,7 +310,6 @@ public:
         delete[] ret_partition_cell;
         CSR_Matrix::free(matrix);
     }
-#undef __POPULATE_PARTITIONS
 
     ~CartesianPartition2D() = default;
 
