@@ -52,10 +52,10 @@ class CppGeneratorUtils
 	{
 		switch (dir)
 		{
-			case NORTH: return '''CSR_2D_Direction_index::index_NORTH'''
-			case SOUTH: return '''CSR_2D_Direction_index::index_SOUTH'''
-			case WEST:  return '''CSR_2D_Direction_index::index_WEST'''
-			case EAST:  return '''CSR_2D_Direction_index::index_EAST'''
+			case NORTH: return '''CSR_2D_Direction::NORTH'''
+			case SOUTH: return '''CSR_2D_Direction::SOUTH'''
+			case WEST:  return '''CSR_2D_Direction::WEST'''
+			case EAST:  return '''CSR_2D_Direction::EAST'''
 		}
 	}
 	
@@ -92,33 +92,34 @@ class CppGeneratorUtils
 		}
 		else ''''''
 	}
-	static def getPartitionDependencies(Variable[] vars, List<DIRECTION_2D> directions, CharSequence currentPartition)
+	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition, List<DIRECTION_2D> directions)
 	{
-		var ret = ''''''
-		for (dir : directions)
-		{
-			ret += getDependencies('in', vars, '''___partition->NEIGHBOR_partitionFromDirection(«currentPartition», «DIRECTION_2D_CPPNAME(dir)»)''')
+		if (deps.length != 0) {
+			var ret = getDependencies(inout, deps, taskPartition)
+			for (dir : directions) {
+				ret = '''«ret» depend(«inout»: «FOR v : deps SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, taskPartition, dir)»«ENDFOR»)'''
+			}
+		return ret;
 		}
-		return ret
+		else ''''''
 	}
 	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition)
 	{
-		if (deps.length != 0)
-			''' depend(«inout»: «FOR v : deps SEPARATOR ', '»«
-				getVariableName(v)»«getVariableRange(v, taskPartition)
-			»«ENDFOR»)'''
+		if (deps.length != 0) ''' depend(«inout»: «FOR v : deps SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, taskPartition)»«ENDFOR»)'''
 		else ''''''
 	}
 	
 	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''___partition->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
 	
-	static def getVariableRange(Variable it, CharSequence taskCurrent)
+	static def getVariableRange(Variable it, CharSequence taskCurrent) { getVariableRange(it, taskCurrent, null) }
+	static def getVariableRange(Variable it, CharSequence taskCurrent, DIRECTION_2D dir)
 	{
+		val neighbor = dir === null ? '''''' : ''', «DIRECTION_2D_CPPNAME(dir)»'''
 		val type = (it as ArgOrVar).type;
 		switch (type) {
 			ConnectivityType: {
 				val connectivites = (type as ConnectivityType).connectivities.map[name].head;
-				return '''[___partition->PIN_«connectivites»FromPartition(«taskCurrent»)]'''
+				return '''[___partition->PIN_«connectivites»FromPartition(«taskCurrent»«neighbor»)]'''
 			}
 			LinearAlgebraType: return '''''' /* This is an opaque type, don't know what to do with it */
 			BaseType: return '''''' /* An integer, etc => the name is the dependency */

@@ -353,7 +353,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			val ins = parentJob.inVars
 			val outs = parentJob.outVars
 			'''
-				/* ONLY_AFFECTATION, still need to launch a task for that */
+				/* ONLY_AFFECTATION, still need to launch a task for that
+				 * TODO: Group all affectations in one job */
 				#pragma omp task«
 					getDependenciesAll('in', ins, 0,   OMPTaskMaxNumber)»«
 					getDependenciesAll('out', outs, 0, OMPTaskMaxNumber)»
@@ -370,7 +371,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ins = parentJob.getInVars       /* Need to be computed before, consumed */
 		val out = parentJob.getOutVars.head /* Produced, unlock jobs that need them */
 		'''
-			/* REDUCTION BEGIN for «parentJob.name»@«parentJob.at» */
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)«getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)» depend(out: «out.name»)
 			{
@@ -379,7 +379,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			{
 				«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
 			}''')»
-			/* REDUCTION END */
 		'''
 	}
 
@@ -403,9 +402,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			}
 		]
 		'''
-		/* TASKLOOP BEGIN */
 		«launchTasks(OMPTaskMaxNumber) /* Each loop is 10 tasks. TODO: Add a way for a task to take care of multiple partitions. */»
-		/* TASKLOOP END */
 		'''
 	}
 	
@@ -552,14 +549,11 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		inputs.addAll(inouts)
 	'''
 		{
-		// Launch task for partition «partitionId»
 		«val detectedDeps = detectDependencies»
-		// TODO: Detected connectivities: «FOR c : detectedDeps.key SEPARATOR ', '»«c»«ENDFOR» | «FOR n : detectedDeps.value SEPARATOR ', '»«n»«ENDFOR»
 		#pragma omp task«
-			getDependencies('in',    ins,    partitionId.toString) /* Consumed by the task */»«
+			getDependencies('in',    ins,    partitionId.toString, detectedDeps.value) /* Consumed by the task */»«
 			getDependencies('out',   outs,   partitionId.toString) /* Produced by the task */»«
-			getDependencies('inout', inouts, partitionId.toString) /* Consumed and produced by the task */»«
-			getPartitionDependencies(inputs, detectedDeps.value, partitionId) /* Pins other partitions for consumed variables */»
+			getDependencies('inout', inouts, partitionId.toString) /* Consumed and produced by the task */»
 		{
 			«takeOMPTraces(ins, outs, inouts)»
 			for (const size_t «iterationBlock.indexName» : «getLoopRange(connectivityType, partitionId.toString)»)

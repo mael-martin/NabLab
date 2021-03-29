@@ -338,12 +338,15 @@ public:
 
 public:
     /* Pin functions, from a partition get always the same id for the
-     * node/cell/face to mark it as a dependency with OpenMP. FIXME: Don't have
-     * faces pins for the moment.
+     * node/cell/face to mark it as a dependency with OpenMP.
      * Pin the first node from a partition. */
     inline Id PIN_cellsFromPartition(const size_t partition) const noexcept { return m_partitions_cells.at(partition)[0]; }
     inline Id PIN_nodesFromPartition(const size_t partition) const noexcept { return PIN_nodesFromCells(PIN_cellsFromPartition(partition)); }
     inline Id PIN_facesFromPartition(const size_t partition) const noexcept { return PIN_facesFromCells(PIN_cellsFromPartition(partition)); }
+
+    inline Id PIN_cellsFromPartition(const size_t partition, const CSR_2D_Direction dir) const noexcept { return m_partitions_cells.at(NEIGHBOR_partitionFromDirection(partition, dir))[0]; }
+    inline Id PIN_nodesFromPartition(const size_t partition, const CSR_2D_Direction dir) const noexcept { return PIN_nodesFromCells(PIN_cellsFromPartition(NEIGHBOR_partitionFromDirection(partition, dir))); }
+    inline Id PIN_facesFromPartition(const size_t partition, const CSR_2D_Direction dir) const noexcept { return PIN_facesFromCells(PIN_cellsFromPartition(NEIGHBOR_partitionFromDirection(partition, dir))); }
 
 public:
     /* Range functions, from a partition get a way to iterate through all the
