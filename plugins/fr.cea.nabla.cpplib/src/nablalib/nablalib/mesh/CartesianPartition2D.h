@@ -166,149 +166,10 @@ public:
         static_assert(PartitionNumber == TaskNumber, "Only one partition per task is supported");
         if ((math::min<uint64_t>(problem_x, problem_x) / PartitionNumber) <= MAX_SHIFT)
             abort();
-
-        CSR_Matrix matrix     = CSR_Matrix::createFrom2DCartesianMesh(problem_x, problem_y);
-        idx_t num_partition   = PartitionNumber;
-        idx_t num_constraints = 1; // Number of balancing constraints, which must be at least 1.
-        idx_t objval; // On return, the edge cut volume of the partitioning solution.
-        idx_t *ret_partition_cell = new idx_t[matrix.xadj_len]();
-        idx_t metis_options[METIS_NOPTIONS];
-        int ret;
-
-        ret = METIS_SetDefaultOptions(metis_options);
-        if (METIS_OK != ret) {
-            std::cerr << "Could not set default options with metis\n";
-            abort();
-        }
-        metis_options[METIS_OPTION_OBJTYPE] = METIS_OBJTYPE_CUT; /* Edge cut    */
-        metis_options[METIS_OPTION_MINCONN] = true; /* Minimize connections     */
-        metis_options[METIS_OPTION_CONTIG]  = true; /* Contiguous partitions    */
-        metis_options[METIS_OPTION_NCUTS]   = 5; /* 5 generation, take the best */
-
-        /* It is used to partition a graph into k equal-size parts using
-         * multilevel recursive bisection. It provides the functionality of
-         * the pmetis program. The objective of the partitioning is to minimize
-         * the edgecut. Here, objval is the edgecut.
-         */
-        ret = METIS_PartGraphKway(&matrix.xadj_len, &num_constraints, matrix.xadj, matrix.adjncy,
-                                  NULL, NULL, NULL, &num_partition, NULL, NULL,
-                                  metis_options, &objval, ret_partition_cell);
-        if (METIS_OK != ret) {
-            std::cerr << "Invalid return from metis\n";
-            abort();
-        }
-
-        std::cout << "Edge cut is: " << objval << "\n";
-
-        for (size_t i = 0; i < matrix.xadj_len; ++i) {
-            m_partitions_cells[ret_partition_cell[i]].emplace_back(i);
-
-            const array<Id, 4> nodes = RANGE_nodesFromCells(i);
-            m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodes[0]);
-            m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodes[1]);
-            m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodes[2]);
-            m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodes[3]);
-
-            const array<Id, 4> faces = RANGE_facesFromCells(i);
-            m_partitions_faces[ret_partition_cell[i]].emplace_back(faces[0]);
-            m_partitions_faces[ret_partition_cell[i]].emplace_back(faces[1]);
-            m_partitions_faces[ret_partition_cell[i]].emplace_back(faces[2]);
-            m_partitions_faces[ret_partition_cell[i]].emplace_back(faces[3]);
-        }
-
-
-        /* Compute neighbors partitions here */
-        // map <Id, array<Id, 4>> m_partitions_neighbors;
-
-        /* Nodes and faces of partitions */
-#define ___POPULATE_PARTITIONS(type, what, from) {                                               \
-std::set_intersection(m_mesh->get##from().begin(), m_mesh->get##from().end(),                    \
-                      m_partitions_##type[i].begin(), m_partitions_##type[i].end(),              \
-                      std::back_inserter(m_partitions_##what##_##type[i]));                      \
-for (size_t index_in_partition = 0;                                                              \
-     index_in_partition < m_partitions_##what##_##type[i].size();                                \
-     ++index_in_partition) {                                                                     \
-    for (size_t index = 0; index < m_mesh->get##from().size(); ++index) {                        \
-        if (m_mesh->get##from()[index] == m_partitions_##what##_##type[i][index_in_partition]) { \
-            m_partitions_##what##_##type[i][index_in_partition] = index;                         \
-            break;                                                                               \
-        }                                                                                        \
-    }                                                                                            \
-}}
-        /* Quick and dirty parallelisation for independent loop's body */
-        #pragma omp parallel for
-        for (size_t i = 0; i < num_partition; ++i) {
-            utils::vector_uniq(m_partitions_nodes[i]);
-            utils::vector_uniq(m_partitions_faces[i]);
-            ___POPULATE_PARTITIONS(cells, top,    TopCells);
-            ___POPULATE_PARTITIONS(cells, bottom, BottomCells);
-            ___POPULATE_PARTITIONS(cells, left,   LeftCells);
-            ___POPULATE_PARTITIONS(cells, right,  RightCells);
-            ___POPULATE_PARTITIONS(cells, inner,  InnerCells);
-            ___POPULATE_PARTITIONS(cells, outer,  OuterCells);
-            ___POPULATE_PARTITIONS(nodes, top,    TopNodes);
-            ___POPULATE_PARTITIONS(nodes, bottom, BottomNodes);
-            ___POPULATE_PARTITIONS(nodes, left,   LeftNodes);
-            ___POPULATE_PARTITIONS(nodes, right,  RightNodes);
-            ___POPULATE_PARTITIONS(nodes, inner,  InnerNodes);
-            ___POPULATE_PARTITIONS(faces, top,    TopFaces);
-            ___POPULATE_PARTITIONS(faces, bottom, BottomFaces);
-            ___POPULATE_PARTITIONS(faces, left,   LeftFaces);
-            ___POPULATE_PARTITIONS(faces, right,  RightFaces);
-            ___POPULATE_PARTITIONS(faces, inner,  InnerFaces);
-            ___POPULATE_PARTITIONS(faces, outer,  OuterFaces);
-            ___POPULATE_PARTITIONS(faces, innerHorizontal, InnerHorizontalFaces);
-            ___POPULATE_PARTITIONS(faces, innerVertical,   InnerVerticalFaces);
-        }
-#undef ___POPULATE_PARTITIONS
-
-        for (size_t i = 0; i < num_partition; ++i) {
-            /* Some beautifull printing */
-            const size_t max_length = std::to_string(m_partitions_cells[0].size() * 4).size() + 1;
-            std::cout << "Partition " << std::setw(max_length) << i << ": "
-                      /* CELLS */
-                      << m_partitions_cells[i].size() << " cells"
-                      << " (t "   << std::setw(max_length) << m_partitions_top_cells[i].size()
-                      << ", b "   << std::setw(max_length) << m_partitions_bottom_cells[i].size()
-                      << ", r "   << std::setw(max_length) << m_partitions_right_cells[i].size()
-                      << ", l "   << std::setw(max_length) << m_partitions_left_cells[i].size()
-                      << ", in "  << std::setw(max_length) << m_partitions_inner_cells[i].size()
-                      << ", out " << std::setw(max_length) << m_partitions_outer_cells[i].size()
-                      << ") "
-                      /* NODES */
-                      << m_partitions_nodes[i].size() << " nodes"
-                      << " (t "   << std::setw(max_length) << m_partitions_top_nodes[i].size()
-                      << ", b "   << std::setw(max_length) << m_partitions_bottom_nodes[i].size()
-                      << ", r "   << std::setw(max_length) << m_partitions_right_nodes[i].size()
-                      << ", l "   << std::setw(max_length) << m_partitions_left_nodes[i].size()
-                      << ", in "  << std::setw(max_length) << m_partitions_inner_nodes[i].size()
-                      << ") "
-                      /* FACES */
-                      << m_partitions_faces[i].size() << " faces"
-                      << " (t "   << std::setw(max_length) << m_partitions_top_faces[i].size()
-                      << ", b "   << std::setw(max_length) << m_partitions_bottom_faces[i].size()
-                      << ", r "   << std::setw(max_length) << m_partitions_right_faces[i].size()
-                      << ", l "   << std::setw(max_length) << m_partitions_left_faces[i].size()
-                      << ", in "  << std::setw(max_length) << m_partitions_inner_faces[i].size()
-                      << ", inV " << std::setw(max_length) << m_partitions_innerVertical_faces[i].size()
-                      << ", inH " << std::setw(max_length) << m_partitions_innerHorizontal_faces[i].size()
-                      << ", out " << std::setw(max_length) << m_partitions_outer_faces[i].size()
-                      << ")\n";
-        }
-        std::cout << "Totals: \n\t" << mesh->getNbCells()                << " cells, "
-                                    << mesh->getNbNodes()                << " nodes, "
-                                    << mesh->getNbFaces()                << " faces\n\t"
-                                    << mesh->getNbTopFaces()             << " T faces, "
-                                    << mesh->getNbBottomFaces()          << " B faces, "
-                                    << mesh->getNbRightFaces()           << " R faces, "
-                                    << mesh->getNbLeftFaces()            << " L faces, "
-                                    << mesh->getNbInnerFaces()           << " I faces, "
-                                    << mesh->getNbInnerHorizontalFaces() << " IH faces, "
-                                    << mesh->getNbInnerVerticalFaces()   << " IV faces, "
-                                    << mesh->getNbOuterFaces()           << " O faces\n";
-        std::cout << "/!\\ DON'T TRUST THE FACES NUMBERS FOR THE MOMENT /!\\\n";
-        delete[] ret_partition_cell;
-        CSR_Matrix::free(matrix);
+        createPartitions();
+        computePartialPartitions();
+        computeNeighborPartitions();
+        printPartialPartitions();
     }
 
     ~CartesianPartition2D() = default;
@@ -434,6 +295,163 @@ private:
             /* tl */ next_cell + next_line,
             /* tr */ next_cell + next_line + 1,
         };
+    }
+
+    inline void
+    printPartialPartitions() noexcept
+    {
+        for (size_t i = 0; i < PartitionNumber; ++i) {
+            const size_t max_length = std::to_string(m_partitions_cells[0].size() * 4).size() + 1;
+            std::cout << "Partition " << std::setw(max_length) << i << ": "
+                      /* CELLS */
+                      << m_partitions_cells[i].size() << " cells"
+                      << " (t "   << std::setw(max_length) << m_partitions_top_cells[i].size()
+                      << ", b "   << std::setw(max_length) << m_partitions_bottom_cells[i].size()
+                      << ", r "   << std::setw(max_length) << m_partitions_right_cells[i].size()
+                      << ", l "   << std::setw(max_length) << m_partitions_left_cells[i].size()
+                      << ", in "  << std::setw(max_length) << m_partitions_inner_cells[i].size()
+                      << ", out " << std::setw(max_length) << m_partitions_outer_cells[i].size()
+                      << ") "
+                      /* NODES */
+                      << m_partitions_nodes[i].size() << " nodes"
+                      << " (t "   << std::setw(max_length) << m_partitions_top_nodes[i].size()
+                      << ", b "   << std::setw(max_length) << m_partitions_bottom_nodes[i].size()
+                      << ", r "   << std::setw(max_length) << m_partitions_right_nodes[i].size()
+                      << ", l "   << std::setw(max_length) << m_partitions_left_nodes[i].size()
+                      << ", in "  << std::setw(max_length) << m_partitions_inner_nodes[i].size()
+                      << ") "
+                      /* FACES */
+                      << m_partitions_faces[i].size() << " faces"
+                      << " (t "   << std::setw(max_length) << m_partitions_top_faces[i].size()
+                      << ", b "   << std::setw(max_length) << m_partitions_bottom_faces[i].size()
+                      << ", r "   << std::setw(max_length) << m_partitions_right_faces[i].size()
+                      << ", l "   << std::setw(max_length) << m_partitions_left_faces[i].size()
+                      << ", in "  << std::setw(max_length) << m_partitions_inner_faces[i].size()
+                      << ", inV " << std::setw(max_length) << m_partitions_innerVertical_faces[i].size()
+                      << ", inH " << std::setw(max_length) << m_partitions_innerHorizontal_faces[i].size()
+                      << ", out " << std::setw(max_length) << m_partitions_outer_faces[i].size()
+                      << ")\n";
+        }
+
+        std::cout << "Totals: \n\t" << m_mesh->getNbCells()                << " cells, "
+                                    << m_mesh->getNbNodes()                << " nodes, "
+                                    << m_mesh->getNbFaces()                << " faces\n\t"
+                                    << m_mesh->getNbTopFaces()             << " T faces, "
+                                    << m_mesh->getNbBottomFaces()          << " B faces, "
+                                    << m_mesh->getNbRightFaces()           << " R faces, "
+                                    << m_mesh->getNbLeftFaces()            << " L faces, "
+                                    << m_mesh->getNbInnerFaces()           << " I faces, "
+                                    << m_mesh->getNbInnerHorizontalFaces() << " IH faces, "
+                                    << m_mesh->getNbInnerVerticalFaces()   << " IV faces, "
+                                    << m_mesh->getNbOuterFaces()           << " O faces\n";
+    }
+
+    inline void
+    createPartitions() noexcept
+    {
+        CSR_Matrix matrix     = CSR_Matrix::createFrom2DCartesianMesh(m_problem_x, m_problem_y);
+        idx_t num_partition   = PartitionNumber;
+        idx_t num_constraints = 1; // Number of balancing constraints, which must be at least 1.
+        idx_t objval; // On return, the edge cut volume of the partitioning solution.
+        idx_t *metis_partition_cell = new idx_t[matrix.xadj_len]();
+        idx_t metis_options[METIS_NOPTIONS];
+        int ret;
+
+        ret = METIS_SetDefaultOptions(metis_options);
+        if (METIS_OK != ret) {
+            std::cerr << "Could not set default options with metis\n";
+            abort();
+        }
+        metis_options[METIS_OPTION_OBJTYPE] = METIS_OBJTYPE_CUT; /* Edge cut    */
+        metis_options[METIS_OPTION_MINCONN] = true; /* Minimize connections     */
+        metis_options[METIS_OPTION_CONTIG]  = true; /* Contiguous partitions    */
+        metis_options[METIS_OPTION_NCUTS]   = 5; /* 5 generation, take the best */
+
+        /* It is used to partition a graph into k equal-size parts using
+         * multilevel recursive bisection. It provides the functionality of
+         * the pmetis program. The objective of the partitioning is to minimize
+         * the edgecut. Here, objval is the edgecut.
+         */
+        ret = METIS_PartGraphKway(&matrix.xadj_len, &num_constraints, matrix.xadj, matrix.adjncy,
+                                  NULL, NULL, NULL, &num_partition, NULL, NULL,
+                                  metis_options, &objval, metis_partition_cell);
+        if (METIS_OK != ret) {
+            std::cerr << "Invalid return from metis\n";
+            abort();
+        }
+
+        std::cout << "Edge cut is: " << objval << "\n";
+
+        for (size_t i = 0; i < matrix.xadj_len; ++i) {
+            m_partitions_cells[metis_partition_cell[i]].emplace_back(i);
+
+            const array<Id, 4> nodes = RANGE_nodesFromCells(i);
+            m_partitions_nodes[metis_partition_cell[i]].emplace_back(nodes[0]);
+            m_partitions_nodes[metis_partition_cell[i]].emplace_back(nodes[1]);
+            m_partitions_nodes[metis_partition_cell[i]].emplace_back(nodes[2]);
+            m_partitions_nodes[metis_partition_cell[i]].emplace_back(nodes[3]);
+
+            const array<Id, 4> faces = RANGE_facesFromCells(i);
+            m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[0]);
+            m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[1]);
+            m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[2]);
+            m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[3]);
+        }
+
+        CSR_Matrix::free(matrix);
+        delete[] metis_partition_cell;
+    }
+
+    inline void
+    computeNeighborPartitions() noexcept
+    {
+        /* computePartialPartitions and createPartitions have been called at
+         * this point. TODO: Compute the borders of the partitions and populate
+         * the `map<Id,array<Id,4>> m_partitions_neighbors` object for the PIN
+         * functions to work an not segfault at rentime. */
+    }
+
+    inline void
+    computePartialPartitions() noexcept
+    {
+        #define ___POPULATE_PARTITIONS(type, what, from) {                                               \
+        std::set_intersection(m_mesh->get##from().begin(), m_mesh->get##from().end(),                    \
+                              m_partitions_##type[i].begin(), m_partitions_##type[i].end(),              \
+                              std::back_inserter(m_partitions_##what##_##type[i]));                      \
+        for (size_t index_in_partition = 0; index_in_partition < m_partitions_##what##_##type[i].size(); ++index_in_partition) { \
+            for (size_t index = 0; index < m_mesh->get##from().size(); ++index) {                        \
+                if (m_mesh->get##from()[index] == m_partitions_##what##_##type[i][index_in_partition]) { \
+                    m_partitions_##what##_##type[i][index_in_partition] = index;                         \
+                    break;                                                                               \
+                }                                                                                        \
+            }                                                                                            \
+        }}
+        /* Quick and dirty parallelisation for independent loop's body */
+        #pragma omp parallel for
+        for (size_t i = 0; i < PartitionNumber; ++i) {
+            utils::vector_uniq(m_partitions_nodes[i]);
+            utils::vector_uniq(m_partitions_faces[i]);
+            ___POPULATE_PARTITIONS(cells, top,    TopCells);
+            ___POPULATE_PARTITIONS(cells, bottom, BottomCells);
+            ___POPULATE_PARTITIONS(cells, left,   LeftCells);
+            ___POPULATE_PARTITIONS(cells, right,  RightCells);
+            ___POPULATE_PARTITIONS(cells, inner,  InnerCells);
+            ___POPULATE_PARTITIONS(cells, outer,  OuterCells);
+            ___POPULATE_PARTITIONS(nodes, top,    TopNodes);
+            ___POPULATE_PARTITIONS(nodes, bottom, BottomNodes);
+            ___POPULATE_PARTITIONS(nodes, left,   LeftNodes);
+            ___POPULATE_PARTITIONS(nodes, right,  RightNodes);
+            ___POPULATE_PARTITIONS(nodes, inner,  InnerNodes);
+            ___POPULATE_PARTITIONS(faces, top,    TopFaces);
+            ___POPULATE_PARTITIONS(faces, bottom, BottomFaces);
+            ___POPULATE_PARTITIONS(faces, left,   LeftFaces);
+            ___POPULATE_PARTITIONS(faces, right,  RightFaces);
+            ___POPULATE_PARTITIONS(faces, inner,  InnerFaces);
+            ___POPULATE_PARTITIONS(faces, outer,  OuterFaces);
+            ___POPULATE_PARTITIONS(faces, innerHorizontal, InnerHorizontalFaces);
+            ___POPULATE_PARTITIONS(faces, innerVertical,   InnerVerticalFaces);
+        }
+        #undef ___POPULATE_PARTITIONS
     }
 
     /* Attributes */
