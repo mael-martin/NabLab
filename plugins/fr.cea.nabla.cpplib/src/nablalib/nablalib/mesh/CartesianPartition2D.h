@@ -133,15 +133,15 @@ private:
     }
 };
 
-
-/* Note: the mesh is as follows
- *  15---16---17---18---19          |-27-|-28-|-29-|-30-|
- *   | 8  | 9  | 10 | 11 |         19   21   23   25   26
- *  10---11---12---13---14          |-18-|-20-|-22-|-24-|
- *   | 4  | 5  | 6  | 7  |         10   12   14   16   17
- *   5----6----7----8----9          |--9-|-11-|-13-|-15-|
- *   | 0  | 1  | 2  | 3  |          1    3    5    7    8
- *   0----1----2----3----4          |-0--|-2--|-4--|-6--|
+/* Note: the mesh is as follows for the nodes and cells. The faces don't seem
+ * to follow the graph in the Factory source file.
+ *  15---16---17---18---19
+ *   | 8  | 9  | 10 | 11 |
+ *  10---11---12---13---14
+ *   | 4  | 5  | 6  | 7  |
+ *   5----6----7----8----9
+ *   | 0  | 1  | 2  | 3  |
+ *   0----1----2----3----4
  *
  * CartesianPartition2D<5, 2>
  *                      |  |
@@ -247,8 +247,7 @@ public:
                     break;                                                          \
                 }                                                                   \
             }                                                                       \
-        }                                                                           \
-    }
+        }}
         for (size_t i = 0; i < num_partition; ++i)
         {
             utils::vector_uniq(m_partitions_nodes[i]);
@@ -309,6 +308,9 @@ public:
                       << ", inH " << std::setw(max_length) << m_partitions_innerHorizontal_faces[i].size()
                       << ")\n";
         }
+        std::cout << "Totals: " << mesh->getNbCells() << " cells, "
+                                << mesh->getNbNodes() << " nodes, "
+                                << mesh->getNbFaces() << " faces\n";
         std::cout << "/!\\ DON'T TRUST THE FACES NUMBERS FOR THE MOMENT /!\\\n";
         delete[] ret_partition_cell;
         CSR_Matrix::free(matrix);
@@ -433,10 +435,10 @@ private:
         const size_t next_line    = current_line + 1;
         const Id next_cell        = cell + m_problem_x;
         return array<Id, 4>{
-            cell + current_line,
-            cell + current_line + 1,
-            next_cell + next_line,
-            next_cell + next_line + 1,
+            /* bl */ cell + current_line,
+            /* br */ cell + current_line + 1,
+            /* tl */ next_cell + next_line,
+            /* tr */ next_cell + next_line + 1,
         };
     }
 
