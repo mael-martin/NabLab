@@ -39,7 +39,7 @@ template<typename T> static inline void
 vector_uniq(vector<T> &vec)
 {
     std::sort(vec.begin(), vec.end());
-    vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
+    vec.resize(distance(vec.begin(), unique(vec.begin(), vec.end())));
 }
 }
 
@@ -200,25 +200,14 @@ public:
 
         std::cout << "Edge cut is: " << objval << "\n";
 
-        /* Populate the partitions:
-         * - partition -> cell relations
-         * - partition -> node relations
-         */
-        for (size_t i = 0; i < matrix.xadj_len; ++i)
-        {
+        for (size_t i = 0; i < matrix.xadj_len; ++i) {
             m_partitions_cells[ret_partition_cell[i]].emplace_back(i);
 
-            const array<Id, 4> nodesFromCell = RANGE_nodesFromCells(i);
-            m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodesFromCell[0]);
-            m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodesFromCell[1]);
-            m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodesFromCell[2]);
-            m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodesFromCell[3]);
-
-            const array<Id, 4> facesFromCell = RANGE_facesFromCells(i);
-            m_partitions_faces[ret_partition_cell[i]].emplace_back(facesFromCell[0]);
-            m_partitions_faces[ret_partition_cell[i]].emplace_back(facesFromCell[1]);
-            m_partitions_faces[ret_partition_cell[i]].emplace_back(facesFromCell[2]);
-            m_partitions_faces[ret_partition_cell[i]].emplace_back(facesFromCell[3]);
+            const array<Id, 4> nodes = RANGE_nodesFromCells(i);
+            m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodes[0]);
+            m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodes[1]);
+            m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodes[2]);
+            m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodes[3]);
         }
 
 
@@ -226,57 +215,36 @@ public:
         // map <Id, array<Id, 4>> m_partitions_neighbors;
 
         /* Nodes and faces of partitions */
-#define __POPULATE_PARTITIONS(what, from) {                                         \
-        const std::vector<Id> &mesh_vector = m_mesh->get##from();                   \
-        const std::vector<Id> &partition_vector = m_partitions_nodes[i];            \
-        /* Get the number of edge nodes that are in the partition */                \
-        std::set_intersection(mesh_vector.begin(),      mesh_vector.end(),          \
-                              partition_vector.begin(), partition_vector.end(),     \
-                              std::back_inserter(m_partitions_##what[i]));          \
-        /* Because the edge RANGE will be used to index the edge vector from
-         * the mesh, we need to reindex: replace each elements in the edge
-         * partition by its index in the mesh vector */                             \
-        /* XXX: This is ugly, find a better way to do it... */                      \
-        std::vector <Id> &partition_edge = m_partitions_##what[i];                  \
-        for (size_t index_in_partition = 0;                                         \
-             index_in_partition < partition_edge.size();                            \
-             ++index_in_partition) {                                                \
-            for (size_t index = 0; index < mesh_vector.size(); ++index) {           \
-                if (mesh_vector[index] == partition_edge[index_in_partition]) {     \
-                    partition_edge[index_in_partition] = index;                     \
-                    break;                                                          \
-                }                                                                   \
-            }                                                                       \
-        }}
-        for (size_t i = 0; i < num_partition; ++i)
-        {
+#define __POPULATE_PARTITIONS(type, what, from) {                                       \
+    std::set_intersection(m_mesh->get##from().begin(), m_mesh->get##from().end(),       \
+                          m_partitions_##type[i].begin(), m_partitions_##type[i].end(), \
+                          std::back_inserter(m_partitions_##what##_##type[i]));         \
+    for (size_t index_in_partition = 0;                                                 \
+         index_in_partition < m_partitions_##what##_##type[i].size();                   \
+         ++index_in_partition) {                                                        \
+        for (size_t index = 0; index < m_mesh->get##from().size(); ++index) {           \
+            if (m_mesh->get##from()[index] == m_partitions_##what##_##type[i][index_in_partition]) { \
+                m_partitions_##what##_##type[i][index_in_partition] = index;            \
+                break;                                                                  \
+            }                                                                           \
+        }                                                                               \
+    }}
+        for (size_t i = 0; i < num_partition; ++i) {
             utils::vector_uniq(m_partitions_nodes[i]);
             utils::vector_uniq(m_partitions_faces[i]);
 
-            /* Inner, Left, Right, Top, Bottom nodes relations */
-            __POPULATE_PARTITIONS(inner_nodes,  InnerNodes );
-            __POPULATE_PARTITIONS(right_nodes,  RightNodes );
-            __POPULATE_PARTITIONS(left_nodes,   LeftNodes  );
-            __POPULATE_PARTITIONS(top_nodes,    TopNodes   );
-            __POPULATE_PARTITIONS(bottom_nodes, BottomNodes);
+            __POPULATE_PARTITIONS(cells, top,    TopCells);
+            __POPULATE_PARTITIONS(cells, bottom, BottomCells);
+            __POPULATE_PARTITIONS(cells, left,   LeftCells);
+            __POPULATE_PARTITIONS(cells, right,  RightCells);
+            __POPULATE_PARTITIONS(cells, inner,  InnerCells);
+            __POPULATE_PARTITIONS(cells, outer,  OuterCells);
 
-            /* Same for cells */
-            __POPULATE_PARTITIONS(inner_cells,  InnerCells );
-            __POPULATE_PARTITIONS(outer_cells,  InnerCells );
-            __POPULATE_PARTITIONS(right_cells,  RightCells );
-            __POPULATE_PARTITIONS(left_cells,   LeftCells  );
-            __POPULATE_PARTITIONS(top_cells,    TopCells   );
-            __POPULATE_PARTITIONS(bottom_cells, BottomCells);
-
-            /* Same for faces */
-            __POPULATE_PARTITIONS(inner_faces,           InnerFaces          );
-            __POPULATE_PARTITIONS(outer_faces,           InnerFaces          );
-            __POPULATE_PARTITIONS(right_faces,           RightFaces          );
-            __POPULATE_PARTITIONS(left_faces,            LeftFaces           );
-            __POPULATE_PARTITIONS(top_faces,             TopFaces            );
-            __POPULATE_PARTITIONS(bottom_faces,          BottomFaces         );
-            __POPULATE_PARTITIONS(innerVertical_faces,   InnerVerticalFaces  );
-            __POPULATE_PARTITIONS(innerHorizontal_faces, InnerHorizontalFaces);
+            __POPULATE_PARTITIONS(nodes, top,    TopNodes);
+            __POPULATE_PARTITIONS(nodes, bottom, BottomNodes);
+            __POPULATE_PARTITIONS(nodes, left,   LeftNodes);
+            __POPULATE_PARTITIONS(nodes, right,  RightNodes);
+            __POPULATE_PARTITIONS(nodes, inner,  InnerNodes);
 
             /* Some beautifull printing */
             const size_t max_length = std::to_string(m_partitions_cells[0].size() * 4).size() + 1;
@@ -289,28 +257,27 @@ public:
                       << ", l "   << std::setw(max_length) << m_partitions_left_cells[i].size()
                       << ", in "  << std::setw(max_length) << m_partitions_inner_cells[i].size()
                       << ", out " << std::setw(max_length) << m_partitions_outer_cells[i].size()
+                      << ") "
                       /* NODES */
-                      << ") | "   << std::setw(max_length) << m_partitions_nodes[i].size() << " nodes"
+                      << m_partitions_nodes[i].size() << " nodes"
                       << " (t "   << std::setw(max_length) << m_partitions_top_nodes[i].size()
                       << ", b "   << std::setw(max_length) << m_partitions_bottom_nodes[i].size()
                       << ", r "   << std::setw(max_length) << m_partitions_right_nodes[i].size()
                       << ", l "   << std::setw(max_length) << m_partitions_left_nodes[i].size()
                       << ", in "  << std::setw(max_length) << m_partitions_inner_nodes[i].size()
-                      /* FACES */
-                      << ") | "   << std::setw(max_length) << m_partitions_faces[i].size() << " faces"
-                      << " (t "   << std::setw(max_length) << m_partitions_top_faces[i].size()
-                      << ", b "   << std::setw(max_length) << m_partitions_bottom_faces[i].size()
-                      << ", r "   << std::setw(max_length) << m_partitions_right_faces[i].size()
-                      << ", l "   << std::setw(max_length) << m_partitions_left_faces[i].size()
-                      << ", o "   << std::setw(max_length) << m_partitions_outer_faces[i].size()
-                      << ", in "  << std::setw(max_length) << m_partitions_inner_faces[i].size()
-                      << ", inV " << std::setw(max_length) << m_partitions_innerVertical_faces[i].size()
-                      << ", inH " << std::setw(max_length) << m_partitions_innerHorizontal_faces[i].size()
                       << ")\n";
         }
-        std::cout << "Totals: " << mesh->getNbCells() << " cells, "
-                                << mesh->getNbNodes() << " nodes, "
-                                << mesh->getNbFaces() << " faces\n";
+        std::cout << "Totals: \n\t" << mesh->getNbCells()                << " cells, "
+                                    << mesh->getNbNodes()                << " nodes, "
+                                    << mesh->getNbFaces()                << " faces\n\t"
+                                    << mesh->getNbTopFaces()             << " T faces, "
+                                    << mesh->getNbBottomFaces()          << " B faces, "
+                                    << mesh->getNbRightFaces()           << " R faces, "
+                                    << mesh->getNbLeftFaces()            << " L faces, "
+                                    << mesh->getNbInnerFaces()           << " I faces, "
+                                    << mesh->getNbInnerHorizontalFaces() << " IH faces, "
+                                    << mesh->getNbInnerVerticalFaces()   << " IV faces, "
+                                    << mesh->getNbOuterFaces()           << " O faces\n";
         std::cout << "/!\\ DON'T TRUST THE FACES NUMBERS FOR THE MOMENT /!\\\n";
         delete[] ret_partition_cell;
         CSR_Matrix::free(matrix);
