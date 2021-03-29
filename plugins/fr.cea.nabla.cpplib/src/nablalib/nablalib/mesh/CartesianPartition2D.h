@@ -208,6 +208,12 @@ public:
             m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodes[1]);
             m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodes[2]);
             m_partitions_nodes[ret_partition_cell[i]].emplace_back(nodes[3]);
+
+            const array<Id, 4> faces = RANGE_facesFromCells(i);
+            m_partitions_faces[ret_partition_cell[i]].emplace_back(faces[0]);
+            m_partitions_faces[ret_partition_cell[i]].emplace_back(faces[1]);
+            m_partitions_faces[ret_partition_cell[i]].emplace_back(faces[2]);
+            m_partitions_faces[ret_partition_cell[i]].emplace_back(faces[3]);
         }
 
 
@@ -246,6 +252,15 @@ public:
             __POPULATE_PARTITIONS(nodes, right,  RightNodes);
             __POPULATE_PARTITIONS(nodes, inner,  InnerNodes);
 
+            __POPULATE_PARTITIONS(faces, top,    TopFaces);
+            __POPULATE_PARTITIONS(faces, bottom, BottomFaces);
+            __POPULATE_PARTITIONS(faces, left,   LeftFaces);
+            __POPULATE_PARTITIONS(faces, right,  RightFaces);
+            __POPULATE_PARTITIONS(faces, inner,  InnerFaces);
+            __POPULATE_PARTITIONS(faces, outer,  OuterFaces);
+            __POPULATE_PARTITIONS(faces, innerHorizontal,   InnerHorizontalFaces);
+            __POPULATE_PARTITIONS(faces, innerVertical,     InnerVerticalFaces);
+
             /* Some beautifull printing */
             const size_t max_length = std::to_string(m_partitions_cells[0].size() * 4).size() + 1;
             std::cout << "Partition " << std::setw(max_length) << i << ": "
@@ -265,6 +280,17 @@ public:
                       << ", r "   << std::setw(max_length) << m_partitions_right_nodes[i].size()
                       << ", l "   << std::setw(max_length) << m_partitions_left_nodes[i].size()
                       << ", in "  << std::setw(max_length) << m_partitions_inner_nodes[i].size()
+                      << ") "
+                      /* FACES */
+                      << m_partitions_faces[i].size() << " faces"
+                      << " (t "   << std::setw(max_length) << m_partitions_top_faces[i].size()
+                      << ", b "   << std::setw(max_length) << m_partitions_bottom_faces[i].size()
+                      << ", r "   << std::setw(max_length) << m_partitions_right_faces[i].size()
+                      << ", l "   << std::setw(max_length) << m_partitions_left_faces[i].size()
+                      << ", in "  << std::setw(max_length) << m_partitions_inner_faces[i].size()
+                      << ", inV " << std::setw(max_length) << m_partitions_innerVertical_faces[i].size()
+                      << ", inH " << std::setw(max_length) << m_partitions_innerHorizontal_faces[i].size()
+                      << ", out " << std::setw(max_length) << m_partitions_outer_faces[i].size()
                       << ")\n";
         }
         std::cout << "Totals: \n\t" << mesh->getNbCells()                << " cells, "
@@ -381,7 +407,7 @@ private:
             /* bottom */ (cell * 2) + line,
             /* top    */ (line != (m_problem_y - 1))
                          /* not the last line */ ? (((cell + m_problem_x) * 2) + (line + 1))
-                         /* the last top line */ : ((m_problem_x * m_problem_y - 1) * 2 + (m_problem_y + 1) + (cell % m_problem_x)),
+                         /* the last top line */ : ((m_problem_x * m_problem_y - 1) * 2 + (m_problem_y + 2) + (cell % m_problem_x)),
             /* left   */ (cell * 2) + (line + 1),
             /* right  */ (cell * 2) + (line + 2) + (column != (m_problem_x - 1))
         };
