@@ -28,6 +28,7 @@ import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.BaseType
 import java.util.stream.IntStream
 import java.util.Iterator
+import java.util.List
 
 class CppGeneratorUtils
 {
@@ -39,13 +40,7 @@ class CppGeneratorUtils
 	static def getOMPTaskMaxNumber() { return 10; /* FIXME: Need to be given from the NGEN file */ }
 	static def getOMPSideTaskNumber() { return Math::floor(Math::sqrt(OMPTaskMaxNumber)).intValue(); }
 
-	enum DIRECTION_2D {
-		NORTH,
-		SOUTH,
-		WEST,
-		EAST
-	}
-	
+	enum DIRECTION_2D { NORTH, SOUTH, WEST, EAST }
 	static def DIRECTION_2D_ALL() { return #[DIRECTION_2D::NORTH, DIRECTION_2D::SOUTH, DIRECTION_2D::WEST, DIRECTION_2D::EAST]; }
 	static def DIRECTION_2D_CPPNAME(DIRECTION_2D dir)
 	{
@@ -57,7 +52,6 @@ class CppGeneratorUtils
 			case EAST:  return '''CSR_2D_Direction::EAST'''
 		}
 	}
-	
 	
 	static public boolean OMPTraces = false /* FIXME: Need to be given from the NGEN file */
 
@@ -77,6 +71,7 @@ class CppGeneratorUtils
 			default: return false
 		}
 	}
+
 	static def getDependenciesAll(String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
 	{
 		if (deps.length != 0)
@@ -91,9 +86,24 @@ class CppGeneratorUtils
 		}
 		else ''''''
 	}
+
 	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition)
 	{
 		if (deps.length != 0) ''' depend(«inout»: «FOR v : deps SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, taskPartition)»«ENDFOR»)'''
+		else ''''''
+	}
+
+	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition, List<DIRECTION_2D> directions)
+	{
+		if (directions === null || directions.length == 0)
+			getDependencies(inout, deps, taskPartition)
+
+		else if (deps.length != 0)
+			''' depend(iterator(neighbor_index=0:___partition->NEIGHBOR_getNumberForPartition(«taskPartition»)), «inout»: «
+			FOR v : deps SEPARATOR ', '»«
+				getVariableName(v)»«getVariableRange(v, '''«taskPartition», neighbor_index''')»«
+			ENDFOR»)'''
+
 		else ''''''
 	}
 	

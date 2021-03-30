@@ -190,14 +190,15 @@ public:
     inline Id PIN_nodesFromPartition(const size_t partition, const size_t neighbor_index) const noexcept { return PIN_nodesFromCells(PIN_cellsFromPartition(m_partitions_neighbors.at(partition).at(neighbor_index))); }
     inline Id PIN_facesFromPartition(const size_t partition, const size_t neighbor_index) const noexcept { return PIN_facesFromCells(PIN_cellsFromPartition(m_partitions_neighbors.at(partition).at(neighbor_index))); }
 
-    /* HowTo:
-     * #pragma omp task \
-     *     depend(in: this->F[___partition->PIN_cellsFromPartition(task)], ...) \
-     *     depend(iterator(neighbor_index=0:___partition->NEIGHBOR_getNumberForPartition(task)), in: this->F[___partition->PIN_cellsFromPartition(task, neighbor_index)]) \
-     *     ... \
+    /* HOWTO:
+     * #pragma omp task                                                                             \
+     *     depend(iterator(neighbor_index=0:___partition->NEIGHBOR_getNumberForPartition(task)),    \
+     *            in: this->F[___partition->PIN_cellsFromPartition(task, neighbor_index)])          \
+     *     ... ... ...                                                                              \
      *     depend(out: this->uj_nplus1[___partition->PIN_cellsFromPartition(task)])
      * { ... }
-     * */
+     * NOTE: the neighbor_index 0 is always the partition itself.
+     */
     inline size_t
     NEIGHBOR_getNumberForPartition(const size_t partition) const noexcept
     {
@@ -301,7 +302,7 @@ private:
     {
         for (size_t i = 0; i < PartitionNumber; ++i) {
             const size_t max_length = std::to_string(m_partitions_cells[0].size() * 4).size() + 1;
-            std::cout << "Partition " << std::setw(max_length) << i << ": "
+            std::cout << "Partition " << std::setw(max_length) << i << ":\n\t"
                       /* CELLS */
                       << m_partitions_cells[i].size() << " cells"
                       << " (t "   << std::setw(max_length) << m_partitions_top_cells[i].size()
@@ -310,7 +311,7 @@ private:
                       << ", l "   << std::setw(max_length) << m_partitions_left_cells[i].size()
                       << ", in "  << std::setw(max_length) << m_partitions_inner_cells[i].size()
                       << ", out " << std::setw(max_length) << m_partitions_outer_cells[i].size()
-                      << ") "
+                      << ")\n\t"
                       /* NODES */
                       << m_partitions_nodes[i].size() << " nodes"
                       << " (t "   << std::setw(max_length) << m_partitions_top_nodes[i].size()
@@ -318,7 +319,7 @@ private:
                       << ", r "   << std::setw(max_length) << m_partitions_right_nodes[i].size()
                       << ", l "   << std::setw(max_length) << m_partitions_left_nodes[i].size()
                       << ", in "  << std::setw(max_length) << m_partitions_inner_nodes[i].size()
-                      << ") "
+                      << ")\n\t"
                       /* FACES */
                       << m_partitions_faces[i].size() << " faces"
                       << " (t "   << std::setw(max_length) << m_partitions_top_faces[i].size()
@@ -408,6 +409,10 @@ private:
          * this point. TODO: Compute the borders of the partitions and populate
          * the `map<Id,array<Id,4>> m_partitions_neighbors` object for the PIN
          * functions to work an not segfault at rentime. */
+
+        for (size_t i = 0; i < PartitionNumber; ++i) {
+            m_partitions_neighbors[i] = move(vector<Id>{{i}});
+        }
     }
 
     inline void

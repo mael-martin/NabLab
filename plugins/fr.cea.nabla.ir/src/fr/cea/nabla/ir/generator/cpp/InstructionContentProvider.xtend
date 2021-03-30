@@ -550,9 +550,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		inputs.addAll(inouts)
 	'''
 		{
-		«val detectedDeps = detectDependencies»
 		#pragma omp task«
-			getDependencies('in',    ins,    partitionId.toString) /* Consumed by the task */»«
+			getDependencies('in',    ins,    partitionId.toString, detectDependencies.value) /* Consumed by the task */»«
 			getDependencies('out',   outs,   partitionId.toString) /* Produced by the task */»«
 			getDependencies('inout', inouts, partitionId.toString) /* Consumed and produced by the task */»
 		{
