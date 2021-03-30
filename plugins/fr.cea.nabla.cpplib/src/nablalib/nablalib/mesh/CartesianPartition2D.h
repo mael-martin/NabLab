@@ -60,6 +60,37 @@ enum CSR_2D_Direction_index {
     index_NORTH = 3
 };
 
+static inline bool
+getCellNeighbor(const size_t X, const size_t Y, const size_t x, const size_t y,
+                CSR_2D_Direction dir, pair<Id, Id> &ret) noexcept
+{
+    /* Check border conditions */
+    if (((x == 0)     && (dir & CSR_2D_Direction::WEST))  ||
+        ((x == X - 1) && (dir & CSR_2D_Direction::EAST))  ||
+        ((y == 0)     && (dir & CSR_2D_Direction::SOUTH)) ||
+        ((y == Y - 1) && (dir & CSR_2D_Direction::NORTH))) {
+        return false;
+    }
+    ret.first  = x + ((dir & CSR_2D_Direction::EAST)  >> 3) - ((dir & CSR_2D_Direction::WEST)  >> 2);
+    ret.second = y + ((dir & CSR_2D_Direction::NORTH) >> 4) - ((dir & CSR_2D_Direction::SOUTH) >> 1);
+    return true;
+}
+
+static inline pair<Id, Id>
+getCellCoordinateFromId(const size_t X, const size_t Y, const Id cellid) noexcept
+{
+    return pair<Id, Id>{
+        cellid % X,
+        cellid / X
+    };
+}
+
+static inline Id
+getCellIdFromCoordinate(const size_t X, const size_t Y, const pair<Id, Id> &coo) noexcept
+{
+    return coo.first + coo.second * X;
+}
+
 /* Create CSR matrix from a 2D cartesian mesh */
 struct CSR_Matrix
 {
@@ -81,10 +112,10 @@ struct CSR_Matrix
         ret.adjncy     = new idx_t[ret.adjncy_len]();
 
         pair<Id, Id> neighbor_{};
-#define __ADD_NEIGHBOR(dir)                                                 \
-    if (getNeighbor(X, Y, x, y, CSR_2D_Direction::dir, neighbor_)) {        \
-        ret.adjncy[adjncy_index] = neighbor_.first + neighbor_.second * X;  \
-        adjncy_index++;                                                     \
+#define __ADD_NEIGHBOR(dir)                                                  \
+    if (getCellNeighbor(X, Y, x, y, CSR_2D_Direction::dir, neighbor_)) {     \
+        ret.adjncy[adjncy_index] = getCellIdFromCoordinate(X, Y, neighbor_); \
+        adjncy_index++;                                                      \
     } // else { std::cerr << "No " #dir " neighbor for (x: " << x << ", y:" << y << ")\n"; }
         size_t xadj_index   = 0;
         size_t adjncy_index = 0;
@@ -113,22 +144,6 @@ struct CSR_Matrix
         matrix.adjncy     = nullptr;
         matrix.xadj_len   = 0;
         matrix.adjncy_len = 0;
-    }
-
-private:
-    static inline bool
-    getNeighbor(const size_t X, const size_t Y, const size_t x, const size_t y, CSR_2D_Direction dir, pair<Id, Id> &ret) noexcept
-    {
-        /* Check border conditions */
-        if (((x == 0)     && (dir & CSR_2D_Direction::WEST))  ||
-            ((x == X - 1) && (dir & CSR_2D_Direction::EAST))  ||
-            ((y == 0)     && (dir & CSR_2D_Direction::SOUTH)) ||
-            ((y == Y - 1) && (dir & CSR_2D_Direction::NORTH))) {
-            return false;
-        }
-        ret.first  = x + ((dir & CSR_2D_Direction::EAST)  >> 3) - ((dir & CSR_2D_Direction::WEST)  >> 2);
-        ret.second = y + ((dir & CSR_2D_Direction::NORTH) >> 4) - ((dir & CSR_2D_Direction::SOUTH) >> 1);
-        return true;
     }
 };
 
@@ -165,9 +180,9 @@ public:
         static_assert(PartitionNumber == TaskNumber, "Only one partition per task is supported");
         if ((math::min<uint64_t>(problem_x, problem_x) / PartitionNumber) <= MAX_SHIFT)
             abort();
-        createPartitions();
+        idx_t *metis_partition_cell = createPartitions();
         computePartialPartitions();
-        computeNeighborPartitions();
+        computeNeighborPartitions(metis_partition_cell);
         printPartialPartitions();
     }
 
@@ -346,7 +361,7 @@ private:
                                     << m_mesh->getNbOuterFaces()           << " O faces\n";
     }
 
-    inline void
+    inline idx_t*
     createPartitions() noexcept
     {
         CSR_Matrix matrix     = CSR_Matrix::createFrom2DCartesianMesh(m_problem_x, m_problem_y);
@@ -399,20 +414,50 @@ private:
         }
 
         CSR_Matrix::free(matrix);
-        delete[] metis_partition_cell;
+        return metis_partition_cell;
     }
 
     inline void
-    computeNeighborPartitions() noexcept
+    computeNeighborPartitions(idx_t *metis_partition_cell) noexcept
     {
         /* computePartialPartitions and createPartitions have been called at
-         * this point. TODO: Compute the borders of the partitions and populate
-         * the `map<Id,array<Id,4>> m_partitions_neighbors` object for the PIN
-         * functions to work an not segfault at rentime. */
+         * this point. NOTE: metis_partition_cell must have
+         * `m_problem_x * m_problem_y` elements inside.
+         *
+         * The Algo:
+         * For All p In partitions, c In Partition(p), cn In Neighbor(c),
+         * => If PartNum(cn) != p Then Neighbor(p) += { PartNum(cn) }
+         */
 
+#define ___CHECK_NEIGHBOR_CELL(dir)                                                     \
+    if (getCellNeighbor(m_problem_x, m_problem_y, x, y, CSR_2D_Direction::dir, cn)) {   \
+        const Id cnid       = getCellIdFromCoordinate(m_problem_x, m_problem_y, cn);    \
+        const Id partnum_cn = metis_partition_cell[cnid];                               \
+        /* If PartNum(cn) != p Then Neighbor(p) += { PartNum(cn) } */                   \
+        if (partnum_cn != i) m_partitions_neighbors[i].push_back(partnum_cn);           \
+    }
+
+        // For All p In partitions
         for (size_t i = 0; i < PartitionNumber; ++i) {
             m_partitions_neighbors[i] = move(vector<Id>{{i}});
+
+            // For All c In Partition(p)
+            for (const Id cellid : m_partitions_cells[i]) {
+                auto[x, y] = getCellCoordinateFromId(m_problem_x, m_problem_y, cellid);
+                pair<Id, Id> cn;
+
+                // For All cn In Neighbor(c),
+                // => If PartNum(cn) != p Then Neighbor(p) += { PartNum(cn) }
+                ___CHECK_NEIGHBOR_CELL(NORTH);
+                ___CHECK_NEIGHBOR_CELL(SOUTH);
+                ___CHECK_NEIGHBOR_CELL(EAST);
+                ___CHECK_NEIGHBOR_CELL(WEST);
+            }
         }
+
+#undef ___CHECK_NEIGHBOR_CELL
+
+        delete[] metis_partition_cell;
     }
 
     inline void
@@ -499,12 +544,7 @@ private:
     /* Neighbors for partitions */
     map<Id, vector<Id>> m_partitions_neighbors;
 
-    /* TODO List:
-     * - Find a `cell -> face` relation
-     * - Find a `node -> cell` relation
-     * - Find a `face -> cell` relation
-     *
-     * TODO Return vector<Id>
+    /* TODO Return vector<Id>
      * - [D] getCellsOfNode
      * - [D] getCellsOfFaces
      * - [D] getNeighborCells
