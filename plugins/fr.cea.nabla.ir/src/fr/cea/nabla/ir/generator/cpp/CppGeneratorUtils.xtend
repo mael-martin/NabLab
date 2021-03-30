@@ -26,7 +26,6 @@ import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.BaseType
-import java.util.stream.IntStream
 import java.util.Iterator
 import java.util.List
 
@@ -74,12 +73,15 @@ class CppGeneratorUtils
 
 	static def getDependenciesAll(String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
 	{
+		val boolean at_least_one_is_range = deps !== null && deps.length != 0 &&
+			deps.map[isVariableRange].reduce[bool1, bool2 | return bool1 || bool2];
+		val partition_iterator = at_least_one_is_range ? '''iterator(partition_index=0:«taskLimit»), ''' : '''''';
+		
 		if (deps.length != 0)
 		{
-			val range = IntStream.range(fromTask, taskLimit).toArray
-			''' depend(«inout»: «
+			''' depend(«partition_iterator»«inout»: «
 			FOR v : deps SEPARATOR ', '»«
-				IF v.isVariableRange»«FOR i : range SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, i.toString)»«ENDFOR»«
+				IF v.isVariableRange»«getVariableName(v)»«getVariableRange(v, '''partition_index''')»«
 				ELSE»«getVariableName(v)»«
 				ENDIF»«
 			ENDFOR»)'''
