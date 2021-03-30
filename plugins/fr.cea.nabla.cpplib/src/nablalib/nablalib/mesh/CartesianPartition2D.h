@@ -80,11 +80,10 @@ struct CSR_Matrix
         ret.xadj       = new idx_t[ret.xadj_len + 1]();
         ret.adjncy     = new idx_t[ret.adjncy_len]();
 
+        pair<Id, Id> neighbor_{};
 #define __ADD_NEIGHBOR(dir)                                                 \
-    pair<Id, Id> neighbor_##dir{};                                          \
-    if (getNeighbor(X, Y, x, y, CSR_2D_Direction::dir, neighbor_##dir)) {   \
-        ret.adjncy[adjncy_index] = neighbor_##dir.first         /* x */     \
-                                 + neighbor_##dir.second * X;   /* y */     \
+    if (getNeighbor(X, Y, x, y, CSR_2D_Direction::dir, neighbor_)) {        \
+        ret.adjncy[adjncy_index] = neighbor_.first + neighbor_.second * X;  \
         adjncy_index++;                                                     \
     } // else { std::cerr << "No " #dir " neighbor for (x: " << x << ", y:" << y << ")\n"; }
         size_t xadj_index   = 0;
@@ -382,7 +381,7 @@ private:
 
         std::cout << "Edge cut is: " << objval << "\n";
 
-        for (size_t i = 0; i < matrix.xadj_len; ++i) {
+        for (idx_t i = 0; i < matrix.xadj_len; ++i) {
             m_partitions_cells[metis_partition_cell[i]].emplace_back(i);
 
             const array<Id, 4> nodes = RANGE_nodesFromCells(i);

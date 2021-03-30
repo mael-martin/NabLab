@@ -372,7 +372,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val out = parentJob.getOutVars.head /* Produced, unlock jobs that need them */
 		'''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
-			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)«getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)» depend(out: «out.name»)
+			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)«getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)» depend(out: this->«out.name»)
 			{
 			«iterationBlock.defineInterval('''
 			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
@@ -539,11 +539,12 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		return new Pair(iteratorToIterable(names.filter[length>1].toList.stream.distinct.iterator), neighbors)
 	}
 	
-	private def launchSingleTaskForPartition(Loop it, /* The CORE loop */
-		CharSequence partitionId, Set<Variable> ins, Set<Variable> outs, Set<Variable> inouts /* The variables dependencies (DataFlow) */
-		/* NOTE: No need for baseIndex and taskNbElems for that version of the
-		* function because all will be retrieved at run time with the RANGE
-		* functions from the partition. */
+	/* NOTE: No need for baseIndex and taskNbElems for that version of the
+	 * function because all will be retrieved at run time with the RANGE
+	 * functions from the partition. TODO: Take into account which directions
+	 * are used (to only pin 1 or 2 partitions, not all the neighbors). */
+	private def launchSingleTaskForPartition(Loop it, CharSequence partitionId, Set<Variable> ins,
+		Set<Variable> outs, Set<Variable> inouts
 	) {
 		var inputs = ins.clone
 		inputs.addAll(inouts)
@@ -551,7 +552,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		{
 		«val detectedDeps = detectDependencies»
 		#pragma omp task«
-			getDependencies('in',    ins,    partitionId.toString, detectedDeps.value) /* Consumed by the task */»«
+			getDependencies('in',    ins,    partitionId.toString) /* Consumed by the task */»«
 			getDependencies('out',   outs,   partitionId.toString) /* Produced by the task */»«
 			getDependencies('inout', inouts, partitionId.toString) /* Consumed and produced by the task */»
 		{

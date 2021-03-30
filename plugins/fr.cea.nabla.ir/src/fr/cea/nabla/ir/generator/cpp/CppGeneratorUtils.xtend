@@ -28,7 +28,6 @@ import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.BaseType
 import java.util.stream.IntStream
 import java.util.Iterator
-import java.util.List
 
 class CppGeneratorUtils
 {
@@ -92,17 +91,6 @@ class CppGeneratorUtils
 		}
 		else ''''''
 	}
-	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition, List<DIRECTION_2D> directions)
-	{
-		if (deps.length != 0) {
-			var ret = getDependencies(inout, deps, taskPartition)
-			for (dir : directions) {
-				ret = '''«ret» depend(«inout»: «FOR v : deps SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, taskPartition, dir)»«ENDFOR»)'''
-			}
-		return ret;
-		}
-		else ''''''
-	}
 	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition)
 	{
 		if (deps.length != 0) ''' depend(«inout»: «FOR v : deps SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, taskPartition)»«ENDFOR»)'''
@@ -111,15 +99,13 @@ class CppGeneratorUtils
 	
 	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''___partition->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
 	
-	static def getVariableRange(Variable it, CharSequence taskCurrent) { getVariableRange(it, taskCurrent, null) }
-	static def getVariableRange(Variable it, CharSequence taskCurrent, DIRECTION_2D dir)
+	static def getVariableRange(Variable it, CharSequence taskCurrent)
 	{
-		val neighbor = dir === null ? '''''' : ''', «DIRECTION_2D_CPPNAME(dir)»'''
 		val type = (it as ArgOrVar).type;
 		switch (type) {
 			ConnectivityType: {
 				val connectivites = (type as ConnectivityType).connectivities.map[name].head;
-				return '''[___partition->PIN_«connectivites»FromPartition(«taskCurrent»«neighbor»)]'''
+				return '''[___partition->PIN_«connectivites»FromPartition(«taskCurrent»)]'''
 			}
 			LinearAlgebraType: return '''''' /* This is an opaque type, don't know what to do with it */
 			BaseType: return '''''' /* An integer, etc => the name is the dependency */
