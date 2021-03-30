@@ -544,7 +544,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		{
 			#pragma omp task«
 			getDependencies('in',  ins,  partitionId.toString, detectDependencies.value) /* Consumed by the task */»«
-			getDependencies('out', outs, partitionId.toString) /* Produced by the task */»
+			getDependencies('out', outs, partitionId.toString, null) /* Produced by the task */»
 		«IF OMPTraces»
 		{
 			«takeOMPTraces(ins, outs)»

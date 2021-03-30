@@ -40,15 +40,15 @@ class CppGeneratorUtils
 	static def getOMPSideTaskNumber() { return Math::floor(Math::sqrt(OMPTaskMaxNumber)).intValue(); }
 
 	enum DIRECTION_2D { NORTH, SOUTH, WEST, EAST }
-	static def DIRECTION_2D_ALL() { return #[DIRECTION_2D::NORTH, DIRECTION_2D::SOUTH, DIRECTION_2D::WEST, DIRECTION_2D::EAST]; }
+	static def DIRECTION_2D_ALL() { #[DIRECTION_2D::NORTH, DIRECTION_2D::SOUTH, DIRECTION_2D::WEST, DIRECTION_2D::EAST]; }
 	static def DIRECTION_2D_CPPNAME(DIRECTION_2D dir)
 	{
 		switch (dir)
 		{
-			case NORTH: return '''CSR_2D_Direction::NORTH'''
-			case SOUTH: return '''CSR_2D_Direction::SOUTH'''
-			case WEST:  return '''CSR_2D_Direction::WEST'''
-			case EAST:  return '''CSR_2D_Direction::EAST'''
+			case NORTH: '''CSR_2D_Direction::NORTH'''
+			case SOUTH: '''CSR_2D_Direction::SOUTH'''
+			case WEST:  '''CSR_2D_Direction::WEST'''
+			case EAST:  '''CSR_2D_Direction::EAST'''
 		}
 	}
 	
@@ -71,12 +71,41 @@ class CppGeneratorUtils
 		}
 	}
 
+	/* Construct OpenMP clauses */
+	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition, List<DIRECTION_2D> directions)
+	{
+		/* Need iterators? */
+		var iterator = ''''''
+		var neighbor = ''''''
+		if (directions === null || directions.length == 0) {
+			iterator = '''iterator(neighbor_index=0:___partition->NEIGHBOR_getNumberForPartition(«taskPartition»)), '''
+			neighbor = ''', neighbor_index'''
+		}
+
+		/* Construct the OpenMP clause */
+		if (deps.length != 0)
+			''' depend(«iterator»«inout»: «
+			FOR v : deps SEPARATOR ', '»«
+				getVariableName(v)»«getVariableRange(v, '''«taskPartition»«neighbor»''')»«
+			ENDFOR»)'''
+		else ''''''
+	}
+
+	static def getAffinities(Iterable<Variable> deps, CharSequence taskPartition)
+	{
+		val dep = deps.filter(v | v.isVariableRange && ! v.isOption) // Simple and stupid algorithm to choose which variable is important
+		if (dep.length != 0) ''' affinity(this->«dep.head.name»«getVariableRange(dep.head, taskPartition)»)'''
+		else ''''''
+	}
+
 	static def getDependenciesAll(String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
 	{
+		/* Need iterators? */
 		val boolean at_least_one_is_range = deps !== null && deps.length != 0 &&
 			deps.map[isVariableRange].reduce[bool1, bool2 | return bool1 || bool2];
 		val partition_iterator = at_least_one_is_range ? '''iterator(partition_index=0:«taskLimit»), ''' : '''''';
 		
+		/* Construct the OpenMP clause */
 		if (deps.length != 0)
 		{
 			''' depend(«partition_iterator»«inout»: «
@@ -88,28 +117,9 @@ class CppGeneratorUtils
 		}
 		else ''''''
 	}
-
-	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition)
-	{
-		if (deps.length != 0) ''' depend(«inout»: «FOR v : deps SEPARATOR ', '»«getVariableName(v)»«getVariableRange(v, taskPartition)»«ENDFOR»)'''
-		else ''''''
-	}
-
-	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition, List<DIRECTION_2D> directions)
-	{
-		if (directions === null || directions.length == 0)
-			getDependencies(inout, deps, taskPartition)
-
-		else if (deps.length != 0)
-			''' depend(iterator(neighbor_index=0:___partition->NEIGHBOR_getNumberForPartition(«taskPartition»)), «inout»: «
-			FOR v : deps SEPARATOR ', '»«
-				getVariableName(v)»«getVariableRange(v, '''«taskPartition», neighbor_index''')»«
-			ENDFOR»)'''
-
-		else ''''''
-	}
 	
-	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''___partition->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
+	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent)
+	'''___partition->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
 	
 	static def getVariableRange(Variable it, CharSequence taskCurrent)
 	{
