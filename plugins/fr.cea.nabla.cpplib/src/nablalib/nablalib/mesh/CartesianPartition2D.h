@@ -112,7 +112,7 @@ struct CSR_Matrix
         ret.adjncy     = new idx_t[ret.adjncy_len]();
 
         pair<Id, Id> neighbor_{};
-#define __ADD_NEIGHBOR(dir)                                                  \
+#define ___ADD_NEIGHBOR(dir)                                                 \
     if (getCellNeighbor(X, Y, x, y, CSR_2D_Direction::dir, neighbor_)) {     \
         ret.adjncy[adjncy_index] = getCellIdFromCoordinate(X, Y, neighbor_); \
         adjncy_index++;                                                      \
@@ -122,14 +122,14 @@ struct CSR_Matrix
         for (size_t y = 0; y < Y; ++y) {
             for (size_t x = 0; x < X; ++x) {
                 ret.xadj[xadj_index] = adjncy_index;
-                __ADD_NEIGHBOR(SOUTH);
-                __ADD_NEIGHBOR(WEST);
-                __ADD_NEIGHBOR(EAST);
-                __ADD_NEIGHBOR(NORTH);
+                ___ADD_NEIGHBOR(SOUTH);
+                ___ADD_NEIGHBOR(WEST);
+                ___ADD_NEIGHBOR(EAST);
+                ___ADD_NEIGHBOR(NORTH);
                 xadj_index++; /* Because there is at least one neighbor */
             }
         }
-#undef __ADD_NEIGHBOR
+#undef ___ADD_NEIGHBOR
 
         ret.xadj[ret.xadj_len] = ret.adjncy_len; // For metis
         return ret;
@@ -227,42 +227,42 @@ public:
     inline auto RANGE_nodesFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_nodes.at(partition); }
     inline auto RANGE_facesFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_faces.at(partition); }
 
-#define __DEFINE_RANGE_FOR_SIDE_NODE(what)                                  \
+#define ___DEFINE_RANGE_FOR_SIDE_NODE(what)                                 \
     inline const vector<Id>&                                                \
     RANGE_##what##NodesFromPartition(const size_t partition) const noexcept \
     { return m_partitions_##what##_nodes.at(partition); }
-    __DEFINE_RANGE_FOR_SIDE_NODE(top)
-    __DEFINE_RANGE_FOR_SIDE_NODE(bottom)
-    __DEFINE_RANGE_FOR_SIDE_NODE(left)
-    __DEFINE_RANGE_FOR_SIDE_NODE(right)
-    __DEFINE_RANGE_FOR_SIDE_NODE(inner)
-#undef __DEFINE_RANGE_FOR_SIDE_NODE
+    ___DEFINE_RANGE_FOR_SIDE_NODE(top)
+    ___DEFINE_RANGE_FOR_SIDE_NODE(bottom)
+    ___DEFINE_RANGE_FOR_SIDE_NODE(left)
+    ___DEFINE_RANGE_FOR_SIDE_NODE(right)
+    ___DEFINE_RANGE_FOR_SIDE_NODE(inner)
+#undef ___DEFINE_RANGE_FOR_SIDE_NODE
 
-#define __DEFINE_RANGE_FOR_SIDE_CELL(what)                                  \
+#define ___DEFINE_RANGE_FOR_SIDE_CELL(what)                                 \
     inline const vector<Id>&                                                \
     RANGE_##what##CellsFromPartition(const size_t partition) const noexcept \
     { return m_partitions_##what##_cells.at(partition); }
-    __DEFINE_RANGE_FOR_SIDE_CELL(top)
-    __DEFINE_RANGE_FOR_SIDE_CELL(bottom)
-    __DEFINE_RANGE_FOR_SIDE_CELL(left)
-    __DEFINE_RANGE_FOR_SIDE_CELL(right)
-    __DEFINE_RANGE_FOR_SIDE_CELL(inner)
-    __DEFINE_RANGE_FOR_SIDE_CELL(outer)
-#undef __DEFINE_RANGE_FOR_SIDE_CELL
+    ___DEFINE_RANGE_FOR_SIDE_CELL(top)
+    ___DEFINE_RANGE_FOR_SIDE_CELL(bottom)
+    ___DEFINE_RANGE_FOR_SIDE_CELL(left)
+    ___DEFINE_RANGE_FOR_SIDE_CELL(right)
+    ___DEFINE_RANGE_FOR_SIDE_CELL(inner)
+    ___DEFINE_RANGE_FOR_SIDE_CELL(outer)
+#undef ___DEFINE_RANGE_FOR_SIDE_CELL
 
-#define __DEFINE_RANGE_FOR_SIDE_FACE(what)                                  \
+#define ___DEFINE_RANGE_FOR_SIDE_FACE(what)                                 \
     inline const vector<Id>&                                                \
     RANGE_##what##FaceFromPartition(const size_t partition) const noexcept  \
     { return m_partitions_##what##_faces.at(partition); }
-    __DEFINE_RANGE_FOR_SIDE_FACE(top)
-    __DEFINE_RANGE_FOR_SIDE_FACE(bottom)
-    __DEFINE_RANGE_FOR_SIDE_FACE(left)
-    __DEFINE_RANGE_FOR_SIDE_FACE(right)
-    __DEFINE_RANGE_FOR_SIDE_FACE(inner)
-    __DEFINE_RANGE_FOR_SIDE_FACE(outer)
-    __DEFINE_RANGE_FOR_SIDE_FACE(innerVertical)
-    __DEFINE_RANGE_FOR_SIDE_FACE(innerHorizontal)
-#undef __DEFINE_RANGE_FOR_SIDE_FACE
+    ___DEFINE_RANGE_FOR_SIDE_FACE(top)
+    ___DEFINE_RANGE_FOR_SIDE_FACE(bottom)
+    ___DEFINE_RANGE_FOR_SIDE_FACE(left)
+    ___DEFINE_RANGE_FOR_SIDE_FACE(right)
+    ___DEFINE_RANGE_FOR_SIDE_FACE(inner)
+    ___DEFINE_RANGE_FOR_SIDE_FACE(outer)
+    ___DEFINE_RANGE_FOR_SIDE_FACE(innerVertical)
+    ___DEFINE_RANGE_FOR_SIDE_FACE(innerHorizontal)
+#undef ___DEFINE_RANGE_FOR_SIDE_FACE
 
     /* Internal methods */
 private:
