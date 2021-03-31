@@ -197,13 +197,52 @@ public:
     /* Pin functions, from a partition get always the same id for the
      * node/cell/face to mark it as a dependency with OpenMP.
      * Pin the first node from a partition. */
-    inline Id PIN_cellsFromPartition(const size_t partition) const noexcept { return m_partitions_cells.at(partition)[0]; }
-    inline Id PIN_nodesFromPartition(const size_t partition) const noexcept { return PIN_nodesFromCells(PIN_cellsFromPartition(partition)); }
-    inline Id PIN_facesFromPartition(const size_t partition) const noexcept { return PIN_facesFromCells(PIN_cellsFromPartition(partition)); }
+#define ___SANITIZE_PARTITION_INDEX(index) {if (index >= PartitionNumber) abort();}
+#define ___SANITIZE_NEIGHBOR_INDEX(part, index) {if (m_partitions_neighbors.at(part).size() <= (index)) index = 0;}
+    inline Id PIN_cellsFromPartition(size_t partition) const noexcept
+    {
+        ___SANITIZE_PARTITION_INDEX(partition);
+        return m_partitions_cells.at(partition)[0];
+    }
 
-    inline Id PIN_cellsFromPartition(const size_t partition, const size_t neighbor_index) const noexcept { return m_partitions_cells.at(m_partitions_neighbors.at(partition).at(neighbor_index))[0]; }
-    inline Id PIN_nodesFromPartition(const size_t partition, const size_t neighbor_index) const noexcept { return PIN_nodesFromCells(PIN_cellsFromPartition(m_partitions_neighbors.at(partition).at(neighbor_index))); }
-    inline Id PIN_facesFromPartition(const size_t partition, const size_t neighbor_index) const noexcept { return PIN_facesFromCells(PIN_cellsFromPartition(m_partitions_neighbors.at(partition).at(neighbor_index))); }
+    inline Id PIN_nodesFromPartition(size_t partition) const noexcept
+    {
+        ___SANITIZE_PARTITION_INDEX(partition);
+        return PIN_nodesFromCells(PIN_cellsFromPartition(partition));
+    }
+
+    inline Id PIN_facesFromPartition(size_t partition) const noexcept
+    {
+        ___SANITIZE_PARTITION_INDEX(partition);
+        return PIN_facesFromCells(PIN_cellsFromPartition(partition));
+    }
+
+    inline Id PIN_cellsFromPartition(size_t partition, size_t neighbor_index) const noexcept
+    {
+        ___SANITIZE_PARTITION_INDEX(partition);
+        ___SANITIZE_NEIGHBOR_INDEX(partition, neighbor_index);
+        size_t neighbor_partition = m_partitions_neighbors.at(partition).at(neighbor_index);
+        ___SANITIZE_PARTITION_INDEX(neighbor_partition);
+        return m_partitions_cells.at(neighbor_index)[0];
+    }
+
+    inline Id PIN_nodesFromPartition(size_t partition, size_t neighbor_index) const noexcept
+    {
+        ___SANITIZE_PARTITION_INDEX(partition);
+        ___SANITIZE_NEIGHBOR_INDEX(partition, neighbor_index);
+        size_t neighbor_partition = m_partitions_neighbors.at(partition).at(neighbor_index);
+        ___SANITIZE_PARTITION_INDEX(neighbor_partition);
+        return PIN_nodesFromCells(PIN_cellsFromPartition(neighbor_partition));
+    }
+
+    inline Id PIN_facesFromPartition(size_t partition, size_t neighbor_index) const noexcept
+    {
+        ___SANITIZE_PARTITION_INDEX(partition);
+        ___SANITIZE_NEIGHBOR_INDEX(partition, neighbor_index);
+        size_t neighbor_partition = m_partitions_neighbors.at(partition).at(neighbor_index);
+        ___SANITIZE_PARTITION_INDEX(neighbor_partition);
+        return PIN_facesFromCells(PIN_cellsFromPartition(neighbor_partition));
+    }
 
     /* HOWTO:
      * #pragma omp task                                                                             \
@@ -215,10 +254,12 @@ public:
      * NOTE: the neighbor_index 0 is always the partition itself.
      */
     inline size_t
-    NEIGHBOR_getNumberForPartition(const size_t partition) const noexcept
+    NEIGHBOR_getNumberForPartition(size_t partition) const noexcept
     {
+        ___SANITIZE_PARTITION_INDEX(partition);
         return m_partitions_neighbors.at(partition).size();
     }
+#undef ___SANITIZE_PARTITION_INDEX
 
 public:
     /* Range functions, from a partition get a way to iterate through all the

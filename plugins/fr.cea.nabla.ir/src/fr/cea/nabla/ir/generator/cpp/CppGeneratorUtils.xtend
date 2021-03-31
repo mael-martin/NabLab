@@ -29,6 +29,7 @@ import fr.cea.nabla.ir.ir.BaseType
 import java.util.Iterator
 import java.util.List
 import fr.cea.nabla.ir.ir.ItemIndex
+import java.util.stream.IntStream
 
 class CppGeneratorUtils
 {
@@ -75,14 +76,6 @@ class CppGeneratorUtils
 	/* Construct OpenMP clauses */
 	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition, List<DIRECTION_2D> directions)
 	{
-		/* Need iterators? */
-		var iterator = ''''''
-		var neighbor = ''''''
-		if ((directions === null || directions.length == 0) && inout == "in") {
-			iterator = '''iterator(neighbor_index=0:ITERATOR_LIMIT:1), '''
-			neighbor = ''', neighbor_index'''
-		}
-
 		/* Construct the OpenMP clause */
 		val dependencies = deps.filter(v|!v.isOption);
 		if (dependencies.length == 0) return ''''''
@@ -96,9 +89,10 @@ class CppGeneratorUtils
 		if (need_ranges)
 		{
 			/* All ranges */
-			ret = ''' depend(«iterator»«inout»: «FOR v : dep_ranges SEPARATOR ', '»(«
-			getVariableName(v)»«getVariableRange(v, '''«taskPartition»«neighbor»''')»)«
-			ENDFOR»)'''
+			val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
+			ret = ''' depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '»(«
+			getVariableName(v)»«getVariableRange(v, '''«taskPartition», «i»''')»)«
+			ENDFOR»«ENDFOR»)'''
 		}
 
 		if (need_simple)
@@ -119,11 +113,6 @@ class CppGeneratorUtils
 
 	static def getDependenciesAll(String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
 	{
-		/* Need iterators? */
-		val boolean at_least_one_is_range = deps !== null && deps.length != 0 &&
-			deps.map[isVariableRange].reduce[bool1, bool2 | return bool1 || bool2];
-		val partition_iterator = at_least_one_is_range ? '''iterator(partition_index=0:«OMPTaskMaxNumber»:1), ''' : '''''';
-		
 		/* Construct the OpenMP clause(s) */
 		val dependencies = deps.filter(v|!v.isOption);
 		if (dependencies.length == 0) return ''''''
@@ -137,8 +126,9 @@ class CppGeneratorUtils
 		if (need_ranges)
 		{
 			/* All ranges */
-			ret = ''' depend(«partition_iterator»«inout»: «FOR v : dep_ranges SEPARATOR ', '»(«
-			getVariableName(v)»«getVariableRange(v, '''partition_index''')»)«ENDFOR»)'''
+			val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
+			ret = ''' depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '»(«
+			getVariableName(v)»«getVariableRange(v, '''«i»''')»)«ENDFOR»«ENDFOR»)'''
 		}
 
 		if (need_simple)
@@ -159,7 +149,7 @@ class CppGeneratorUtils
 		switch (type) {
 			ConnectivityType: {
 				val connectivites = (type as ConnectivityType).connectivities.map[name].head;
-				return '''[___partition->PIN_«connectivites»FromPartition(«taskCurrent»)]'''
+				return '''[(___partition->PIN_«connectivites»FromPartition(«taskCurrent»))]'''
 			}
 			LinearAlgebraType: return '''''' /* This is an opaque type, don't know what to do with it */
 			BaseType: return '''''' /* An integer, etc => the name is the dependency */
