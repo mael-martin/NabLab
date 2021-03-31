@@ -79,20 +79,35 @@ class CppGeneratorUtils
 		var iterator = ''''''
 		var neighbor = ''''''
 		if ((directions === null || directions.length == 0) && inout == "in") {
-			iterator = '''iterator(neighbor_index=0:___partition->NEIGHBOR_getNumberForPartition(«taskPartition»)), '''
+			iterator = '''iterator(neighbor_index=0:ITERATOR_LIMIT:1), '''
 			neighbor = ''', neighbor_index'''
 		}
 
 		/* Construct the OpenMP clause */
 		val dependencies = deps.filter(v|!v.isOption);
-		if (dependencies.length != 0)
+		if (dependencies.length == 0) return ''''''
+
+		val dep_ranges  = dependencies.filter(v|v.isVariableRange);
+		val dep_simple  = dependencies.filter(v|!v.isVariableRange);
+		val need_ranges = dep_ranges.length >= 1;
+		val need_simple = dep_simple.length >= 1;
+		var ret = ''''''
+
+		if (need_ranges)
 		{
-			''' depend(«iterator»«inout»: «
-			FOR v : dependencies SEPARATOR ', '»«
-				getVariableName(v)»«getVariableRange(v, '''«taskPartition»«neighbor»''')»«
+			/* All ranges */
+			ret = ''' depend(«iterator»«inout»: «FOR v : dep_ranges SEPARATOR ', '»(«
+			getVariableName(v)»«getVariableRange(v, '''«taskPartition»«neighbor»''')»)«
 			ENDFOR»)'''
 		}
-		else ''''''
+
+		if (need_simple)
+		{
+			/* All simple values */
+			ret = '''«ret» depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»(«getVariableName(v)»)«ENDFOR»)'''
+		}
+		
+		return ret
 	}
 
 	static def getAffinities(Iterable<Variable> deps, CharSequence taskPartition)
@@ -107,20 +122,32 @@ class CppGeneratorUtils
 		/* Need iterators? */
 		val boolean at_least_one_is_range = deps !== null && deps.length != 0 &&
 			deps.map[isVariableRange].reduce[bool1, bool2 | return bool1 || bool2];
-		val partition_iterator = at_least_one_is_range ? '''iterator(partition_index=0:«taskLimit»), ''' : '''''';
+		val partition_iterator = at_least_one_is_range ? '''iterator(partition_index=0:«OMPTaskMaxNumber»:1), ''' : '''''';
 		
-		/* Construct the OpenMP clause */
+		/* Construct the OpenMP clause(s) */
 		val dependencies = deps.filter(v|!v.isOption);
-		if (dependencies.length != 0)
+		if (dependencies.length == 0) return ''''''
+
+		val dep_ranges  = dependencies.filter(v|v.isVariableRange);
+		val dep_simple  = dependencies.filter(v|!v.isVariableRange);
+		val need_ranges = dep_ranges.length >= 1;
+		val need_simple = dep_simple.length >= 1;
+		var ret = ''''''
+
+		if (need_ranges)
 		{
-			''' depend(«partition_iterator»«inout»: «
-			FOR v : dependencies SEPARATOR ', '»«
-				IF v.isVariableRange»«getVariableName(v)»«getVariableRange(v, '''partition_index''')»«
-				ELSE»«getVariableName(v)»«
-				ENDIF»«
-			ENDFOR»)'''
+			/* All ranges */
+			ret = ''' depend(«partition_iterator»«inout»: «FOR v : dep_ranges SEPARATOR ', '»(«
+			getVariableName(v)»«getVariableRange(v, '''partition_index''')»)«ENDFOR»)'''
 		}
-		else ''''''
+
+		if (need_simple)
+		{
+			/* All simple values */
+			ret = '''«ret» depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»(«getVariableName(v)»)«ENDFOR»)'''
+		}
+
+		return ret
 	}
 	
 	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent)
