@@ -442,9 +442,11 @@ private:
         if (partnum_cn != i) m_partitions_neighbors[i].push_back(partnum_cn);           \
     }
 
+        m_partitions_neighbors.resize(PartitionNumber);
+
         // For All p In partitions
         for (size_t i = 0; i < PartitionNumber; ++i) {
-            m_partitions_neighbors[i] = move(vector<Id>{{i}});
+            m_partitions_neighbors[i] = vector<Id>{i};
 
             // For All c In Partition(p)
             for (const Id cellid : m_partitions_cells[i]) {
@@ -458,6 +460,8 @@ private:
                 ___CHECK_NEIGHBOR_CELL(EAST);
                 ___CHECK_NEIGHBOR_CELL(WEST);
             }
+
+            utils::vector_uniq(m_partitions_neighbors[i]);
         }
 
 #undef ___CHECK_NEIGHBOR_CELL
@@ -547,7 +551,7 @@ private:
     map<Id, vector<Id>> m_partitions_innerHorizontal_faces;
 
     /* Neighbors for partitions */
-    map<Id, vector<Id>> m_partitions_neighbors;
+    vector<vector<Id>> m_partitions_neighbors;
 
     /* TODO Return vector<Id>
      * - [D] getCellsOfNode
