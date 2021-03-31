@@ -356,7 +356,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				#pragma omp task«
-					getDependenciesAll('in', ins, 0,   OMPTaskMaxNumber)»«
+					getDependenciesAll('in',  ins,  0, OMPTaskMaxNumber)»«
 					getDependenciesAll('out', outs, 0, OMPTaskMaxNumber)»
 				«left.content» = «right.content»;
 			'''
@@ -372,7 +372,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val out = parentJob.getOutVars.head /* Produced, unlock jobs that need them */
 		'''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
-			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)«getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)» depend(out: this->«out.name»)
+			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)«
+				getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)» depend(out: this->«out.name»)
 			{
 			«iterationBlock.defineInterval('''
 			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
@@ -531,8 +532,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				neighbors.addAll(DIRECTION_2D_ALL());
 				names.add("node => outer cell")
 			}
-
-			/* Nothing :^) */
 		}
 		return new Pair(iteratorToIterable(names.filter[length>1].toList.stream.distinct.iterator), neighbors)
 	}
@@ -544,7 +543,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		{
 			#pragma omp task«
 			getDependencies('in',  ins,  partitionId.toString, detectDependencies.value) /* Consumed by the task */»«
-			getDependencies('out', outs, partitionId.toString, null) /* Produced by the task */»
+			getDependencies('out', outs, partitionId.toString, null)                     /* Produced by the task */»
 		«IF OMPTraces»
 		{
 			«takeOMPTraces(ins, outs)»

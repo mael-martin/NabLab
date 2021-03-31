@@ -345,7 +345,12 @@ private:
                       << ", inV " << std::setw(max_length) << m_partitions_innerVertical_faces[i].size()
                       << ", inH " << std::setw(max_length) << m_partitions_innerHorizontal_faces[i].size()
                       << ", out " << std::setw(max_length) << m_partitions_outer_faces[i].size()
-                      << ")\n";
+                      << ")\n\t"
+                      /* NEIGHBORS */
+                      << "neighbors: ";
+            for (const Id part : m_partitions_neighbors[i])
+                std::cout << "  " << part;
+            std::cout << "\n";
         }
 
         std::cout << "Totals: \n\t" << m_mesh->getNbCells()                << " cells, "
