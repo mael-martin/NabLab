@@ -541,9 +541,11 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	private def launchSingleTaskForPartition(Loop it, CharSequence partitionId, Set<Variable> ins, Set<Variable> outs)
 	'''
 		{
+			«val parentJob = EcoreUtil2.getContainerOfType(it, Job)»
+			std::cout << "launch task for partition " << «partitionId» << " for job «parentJob.name»@«parentJob.at»\n";
 			#pragma omp task«
-			getDependencies('in',  ins,  partitionId.toString, detectDependencies.value) /* Consumed by the task */»«
-			getDependencies('out', outs, partitionId.toString, null)                     /* Produced by the task */»
+			getDependencies('in',  ins,  partitionId, detectDependencies.value) /* Consumed by the task */»«
+			getDependencies('out', outs, partitionId, null)                     /* Produced by the task */»
 		«IF OMPTraces»
 		{
 			«takeOMPTraces(ins, outs)»

@@ -28,6 +28,7 @@ import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.BaseType
 import java.util.Iterator
 import java.util.List
+import fr.cea.nabla.ir.ir.ItemIndex
 
 class CppGeneratorUtils
 {
@@ -77,17 +78,20 @@ class CppGeneratorUtils
 		/* Need iterators? */
 		var iterator = ''''''
 		var neighbor = ''''''
-		if (directions === null || directions.length == 0) {
+		if ((directions === null || directions.length == 0) && inout == "in") {
 			iterator = '''iterator(neighbor_index=0:___partition->NEIGHBOR_getNumberForPartition(«taskPartition»)), '''
 			neighbor = ''', neighbor_index'''
 		}
 
 		/* Construct the OpenMP clause */
-		if (deps.length != 0)
+		val dependencies = deps.filter(v|!v.isOption);
+		if (dependencies.length != 0)
+		{
 			''' depend(«iterator»«inout»: «
-			FOR v : deps SEPARATOR ', '»«
+			FOR v : dependencies SEPARATOR ', '»«
 				getVariableName(v)»«getVariableRange(v, '''«taskPartition»«neighbor»''')»«
 			ENDFOR»)'''
+		}
 		else ''''''
 	}
 
@@ -106,10 +110,11 @@ class CppGeneratorUtils
 		val partition_iterator = at_least_one_is_range ? '''iterator(partition_index=0:«taskLimit»), ''' : '''''';
 		
 		/* Construct the OpenMP clause */
-		if (deps.length != 0)
+		val dependencies = deps.filter(v|!v.isOption);
+		if (dependencies.length != 0)
 		{
 			''' depend(«partition_iterator»«inout»: «
-			FOR v : deps SEPARATOR ', '»«
+			FOR v : dependencies SEPARATOR ', '»«
 				IF v.isVariableRange»«getVariableName(v)»«getVariableRange(v, '''partition_index''')»«
 				ELSE»«getVariableName(v)»«
 				ENDIF»«
