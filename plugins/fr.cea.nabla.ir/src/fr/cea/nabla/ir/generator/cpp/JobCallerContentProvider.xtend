@@ -9,11 +9,11 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
-import fr.cea.nabla.ir.ir.JobCaller
-
 import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
+import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+import fr.cea.nabla.ir.ir.JobCaller
 
 class JobCallerContentProvider
 {
@@ -34,14 +34,24 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 	override getCallsHeader(JobCaller it) ''''''
 
 	override getCallsContent(JobCaller it)
+	{
+		/* Will be used to compute unnecessary dependencies */
+		var allouts = calls.map[outVars.filter[!isOption]].flatten.toSet
+		var allins  = calls.map[inVars.filter[!isOption]].flatten.toSet
+		allins.removeAll(allouts)
 	'''
 		// Launch all tasks for this loop...
+		«IF allins.size > 0»
+		// XXX: We will have problems with the following dependencies:
+		// «FOR v : allins SEPARATOR ', '»«v.name»«ENDFOR»
+		«ENDIF»
 		
 		«super.getCallsContent(it)»
 		// Wait for this loop tasks to be done...
 		#pragma omp taskwait
 
 	'''
+	}
 }
 
 class KokkosTeamThreadJobCallerContentProvider extends JobCallerContentProvider

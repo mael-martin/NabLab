@@ -352,8 +352,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				 * TODO: Group all affectations in one job */
 				«takeOMPTraces(ins, outs)»
 				#pragma omp task«
-					getDependenciesAll('in',  ins,  0, OMPTaskMaxNumber)»«
-					getDependenciesAll('out', outs, 0, OMPTaskMaxNumber)»
+					getDependenciesAll(parentJob, 'in',  ins,  0, OMPTaskMaxNumber)»«
+					getDependenciesAll(parentJob, 'out', outs, 0, OMPTaskMaxNumber)»
 					«left.content» = «right.content»;
 			'''
 		}
@@ -371,13 +371,12 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«takeOMPTraces(ins, outs)»
 			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)«
-				getDependenciesAll('in', ins, 0, OMPTaskMaxNumber)» depend(out: this->«out.name»)
+				getDependenciesAll(parentJob, 'in', ins, 0, OMPTaskMaxNumber)» depend(out: this->«out.name»)
 			{
 			«iterationBlock.defineInterval('''
 			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
-			{
 				«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
-			}''')»
+			''')»
 		'''
 	}
 
@@ -519,9 +518,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		{
 			«takeOMPTraces(ins, outs)»
 			«val has_shifts = dataShift.size > 0»
+			«val parentJob = EcoreUtil2.getContainerOfType(it, Job)»
 			#pragma omp task«
-			getDependencies('in',  ins,  partitionId, has_shifts || detectDependencies) /* Consumed by the task */»«
-			getDependencies('out', outs, partitionId, false)                            /* Produced by the task */»
+			getDependencies(parentJob, 'in',  ins,  partitionId, has_shifts || detectDependencies) /* Consumed by the task */»«
+			getDependencies(parentJob, 'out', outs, partitionId, false)                            /* Produced by the task */»
 			for (const size_t «iterationBlock.indexName» : «getLoopRange(connectivityType, partitionId.toString)»)
 			{
 				«body.innerContent»

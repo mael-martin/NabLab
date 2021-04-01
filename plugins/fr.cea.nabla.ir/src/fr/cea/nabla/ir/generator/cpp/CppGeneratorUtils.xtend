@@ -26,9 +26,13 @@ import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.BaseType
-import java.util.Iterator
 import fr.cea.nabla.ir.ir.ItemIndex
+import fr.cea.nabla.ir.ir.IrAnnotable
+import fr.cea.nabla.ir.ir.JobCaller
+import org.eclipse.xtext.EcoreUtil2
 import java.util.stream.IntStream
+import java.util.Iterator
+import java.util.HashSet
 
 class CppGeneratorUtils
 {
@@ -41,6 +45,24 @@ class CppGeneratorUtils
 	/* FIXME: Those two need to be specified in the NGEN file */
 	static public int OMPTaskMaxNumber = 4
 	static public boolean OMPTraces = false
+	
+	/* False 'in' variables */
+	static private def getFalseInVariableForJob(Job it)
+	{
+		val parentJobCaller = caller
+		if (parentJobCaller === null) {
+			println("No parent job caller...")
+			return #[]
+		}
+		var allouts = new HashSet<Variable>();
+		var allins  = new HashSet<Variable>();
+		for (j : parentJobCaller.calls) {
+			allins.addAll(j.inVars.filter[!isOption])
+			allouts.addAll(j.outVars.filter[!isOption])
+		}
+		allins.removeAll(allouts)
+		return allins
+	}
 
 	static def dispatch getCodeName(ExternFunction it)
 	{
@@ -68,11 +90,13 @@ class CppGeneratorUtils
 	}
 
 	/* Construct OpenMP clauses */
-	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition, boolean needNeighbors)
+	static def getDependencies(Job it, String inout, Iterable<Variable> deps, CharSequence taskPartition, boolean needNeighbors)
 	{
 		/* Construct the OpenMP clause */
-		val dependencies = deps.filter(v|!v.isOption);
+		val falseIns = getFalseInVariableForJob(it);
+		val dependencies = deps.filter(v|!v.isOption).toSet;
 		if (dependencies.length == 0) return ''''''
+		dependencies.removeAll(falseIns)
 
 		val dep_ranges  = dependencies.filter(v|v.isVariableRange);
 		val dep_simple  = dependencies.filter(v|!v.isVariableRange);
@@ -100,18 +124,22 @@ class CppGeneratorUtils
 		return ret
 	}
 
-	static def getAffinities(Iterable<Variable> deps, CharSequence taskPartition)
+	static def getAffinities(Job it, Iterable<Variable> deps, CharSequence taskPartition)
 	{
-		val dep = deps.filter(v | v.isVariableRange && ! v.isOption) // Simple and stupid algorithm to choose which variable is important
-		if (dep.length != 0) ''' affinity(this->«dep.head.name»«getVariableRange(dep.head, taskPartition)»)'''
-		else ''''''
+		val falseIns = getFalseInVariableForJob(it);
+		val dep = deps.filter(v | v.isVariableRange && ! v.isOption).toSet // Simple and stupid algorithm to choose which variable is important
+		if (dep.length == 0) return ''''''
+		dep.removeAll(falseIns)
+		return ''' affinity(this->«dep.head.name»«getVariableRange(dep.head, taskPartition)»)'''
 	}
 
-	static def getDependenciesAll(String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
+	static def getDependenciesAll(Job it, String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
 	{
 		/* Construct the OpenMP clause(s) */
-		val dependencies = deps.filter(v|!v.isOption);
+		val falseIns = getFalseInVariableForJob(it);
+		val dependencies = deps.filter(v|!v.isOption).toSet;
 		if (dependencies.length == 0) return ''''''
+		dependencies.removeAll(falseIns)
 
 		val dep_ranges  = dependencies.filter(v|v.isVariableRange);
 		val dep_simple  = dependencies.filter(v|!v.isVariableRange);
