@@ -410,6 +410,30 @@ private:
     inline idx_t*
     createPartitions() noexcept
     {
+        /* 1 partition case */
+        if (PartitionNumber == 1) {
+            idx_t *metis_partition_cell = new idx_t[m_problem_x * m_problem_y]();
+            for (size_t i = 0; i < m_problem_x * m_problem_y; ++i) {
+                m_partitions_cells[0].emplace_back(i);
+
+                const array<Id, 4> nodes = RANGE_nodesFromCells(i);
+                m_partitions_nodes[0].emplace_back(nodes[0]);
+                m_partitions_nodes[0].emplace_back(nodes[1]);
+                m_partitions_nodes[0].emplace_back(nodes[2]);
+                m_partitions_nodes[0].emplace_back(nodes[3]);
+
+                const array<Id, 4> faces = RANGE_facesFromCells(i);
+                m_partitions_faces[0].emplace_back(faces[0]);
+                m_partitions_faces[0].emplace_back(faces[1]);
+                m_partitions_faces[0].emplace_back(faces[2]);
+                m_partitions_faces[0].emplace_back(faces[3]);
+
+                metis_partition_cell[i] = 0;
+            }
+            return metis_partition_cell;
+        }
+
+        /* multi partitions case */
         CSR_Matrix matrix     = CSR_Matrix::createFrom2DCartesianMesh(m_problem_x, m_problem_y);
         idx_t num_partition   = PartitionNumber;
         idx_t num_constraints = 1; // Number of balancing constraints, which must be at least 1.
