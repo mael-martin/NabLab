@@ -27,9 +27,6 @@ import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.ItemIndex
-import fr.cea.nabla.ir.ir.IrAnnotable
-import fr.cea.nabla.ir.ir.JobCaller
-import org.eclipse.xtext.EcoreUtil2
 import java.util.stream.IntStream
 import java.util.Iterator
 import java.util.HashSet
@@ -57,8 +54,8 @@ class CppGeneratorUtils
 		var allouts = new HashSet<Variable>();
 		var allins  = new HashSet<Variable>();
 		for (j : parentJobCaller.calls) {
-			allins.addAll(j.inVars.filter[!isOption])
-			allouts.addAll(j.outVars.filter[!isOption])
+			allins.addAll(j.inVars)
+			allouts.addAll(j.outVars)
 		}
 		allins.removeAll(allouts)
 		return allins
@@ -94,7 +91,7 @@ class CppGeneratorUtils
 	{
 		/* Construct the OpenMP clause */
 		val falseIns = getFalseInVariableForJob(it);
-		val dependencies = deps.filter(v|!v.isOption).toSet;
+		val dependencies = deps.toSet;
 		if (dependencies.length == 0) return ''''''
 		dependencies.removeAll(falseIns)
 
@@ -127,7 +124,7 @@ class CppGeneratorUtils
 	static def getAffinities(Job it, Iterable<Variable> deps, CharSequence taskPartition)
 	{
 		val falseIns = getFalseInVariableForJob(it);
-		val dep = deps.filter(v | v.isVariableRange && ! v.isOption).toSet // Simple and stupid algorithm to choose which variable is important
+		val dep = deps.filter(v | v.isVariableRange).toSet // Simple and stupid algorithm to choose which variable is important
 		if (dep.length == 0) return ''''''
 		dep.removeAll(falseIns)
 		return ''' affinity(this->«dep.head.name»«getVariableRange(dep.head, taskPartition)»)'''
@@ -137,7 +134,7 @@ class CppGeneratorUtils
 	{
 		/* Construct the OpenMP clause(s) */
 		val falseIns = getFalseInVariableForJob(it);
-		val dependencies = deps.filter(v|!v.isOption).toSet;
+		val dependencies = deps.toSet;
 		if (dependencies.length == 0) return ''''''
 		dependencies.removeAll(falseIns)
 
@@ -180,8 +177,20 @@ class CppGeneratorUtils
 	}
 	
 	/* Get DF */
-	static def getInVars(IterableInstruction it) { return eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet }
-	static def getOutVars(IterableInstruction it) { return eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet }
-	static def getInVars(Job it) { return eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet }
-	static def getOutVars(Job it) { return eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet }
+	static private def getInVarsInternal(Job it) {
+		eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].filter[!isOption].toSet
+	}
+	static private def getOutVarsInternal(Job it) {
+		eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].filter[!isOption].toSet
+	}
+	static def getInVars(Job it) {
+		val allouts = caller.calls.map[outVarsInternal].flatten.toSet
+		val ins     = inVarsInternal.filter[v|allouts.contains(v)]
+		return ins.toSet
+	}
+	static def getOutVars(Job it) {
+		val allins = caller.calls.map[inVarsInternal].flatten.toSet
+		val outs   = outVarsInternal.filter[v|allins.contains(v)]
+		return outs.toSet
+	}
 }

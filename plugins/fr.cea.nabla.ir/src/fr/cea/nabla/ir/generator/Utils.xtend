@@ -87,16 +87,15 @@ class Utils
 
 	static def getComment(Job it)
 	{
-		var allouts = caller.calls.map[outVars.filter[!isOption]].flatten.toSet
-		var allins  = caller.calls.map[inVars.filter[!isOption]].flatten.toSet
-		allins.removeAll(allouts)
-		var ins = inVars.toSet
-		ins.removeAll(allins)
+		val allouts   = caller.calls.map[outVars.filter[!isOption]].flatten.toSet
+		val allins    = caller.calls.map[inVars.filter[!isOption]].flatten.toSet
+		val ins  = inVars.filter[v|allouts.contains(v)]
+		val outs = outVars.filter[v|allins.contains(v)]
 	'''
 		/**
 		 * Job «getCodeName» called @«at» in «caller.codeName» method.
 		 * In variables: «FOR v : ins.sortBy[name] SEPARATOR ', '»«v.getName»«ENDFOR»
-		 * Out variables: «FOR v : outVars.sortBy[name] SEPARATOR ', '»«v.getName»«ENDFOR»
+		 * Out variables: «FOR v : outs.sortBy[name] SEPARATOR ', '»«v.getName»«ENDFOR»
 		 */
 	'''
 	}

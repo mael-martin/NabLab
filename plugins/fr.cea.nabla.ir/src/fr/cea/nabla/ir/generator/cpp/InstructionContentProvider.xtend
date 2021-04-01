@@ -531,8 +531,9 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	
 	private def launchTasks(Loop it, int taskN)
 	{
-		val ins = getInVars   /* Need to be computed before, consumed. */
-		val outs = getOutVars /* Produced, unlock jobs that need them. */
+		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
+		val ins       = parentJob.inVars  /* Need to be computed before, consumed. */
+		val outs      = parentJob.outVars /* Produced, unlock jobs that need them. */
 		if (eAllContents.filter(ItemIdDefinition).size == 0)
 		{
 			val String itemname = iterationBlock.indexName.toString
