@@ -143,7 +143,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«IF levelDB»void createDB(const std::string& db_name);«ENDIF»
 
 	private:
+		«IF OMPTraces»
 		unsigned long task_id = 0; /* Used by the OpenMpTaskInstructionProvider */
+		«ENDIF»
 	
 		«IF postProcessing !== null»
 		void dumpVariables(int iteration, bool useTimer=true);

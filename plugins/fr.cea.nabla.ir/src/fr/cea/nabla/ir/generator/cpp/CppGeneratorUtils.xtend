@@ -27,7 +27,6 @@ import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.BaseType
 import java.util.Iterator
-import java.util.List
 import fr.cea.nabla.ir.ir.ItemIndex
 import java.util.stream.IntStream
 
@@ -38,28 +37,23 @@ class CppGeneratorUtils
 	static def getFreeFunctionNs(IrModule it) { className.toLowerCase + "freefuncs" }
 	static def dispatch getCodeName(InternFunction it) { irModule.freeFunctionNs + '::' + name }
 	static def getHDefineName(String name) { '__' + name.toUpperCase + '_H_' }
-	static def getOMPTaskMaxNumber() { return 10; /* FIXME: Need to be given from the NGEN file */ }
-	static def getOMPSideTaskNumber() { return Math::floor(Math::sqrt(OMPTaskMaxNumber)).intValue(); }
-
-	enum DIRECTION_2D { NORTH, SOUTH, WEST, EAST }
-	static def DIRECTION_2D_ALL() { #[DIRECTION_2D::NORTH, DIRECTION_2D::SOUTH, DIRECTION_2D::WEST, DIRECTION_2D::EAST]; }
-	static def DIRECTION_2D_CPPNAME(DIRECTION_2D dir)
-	{
-		switch (dir)
-		{
-			case NORTH: '''CSR_2D_Direction::NORTH'''
-			case SOUTH: '''CSR_2D_Direction::SOUTH'''
-			case WEST:  '''CSR_2D_Direction::WEST'''
-			case EAST:  '''CSR_2D_Direction::EAST'''
-		}
-	}
 	
-	static public boolean OMPTraces = false /* FIXME: Need to be given from the NGEN file */
+	/* FIXME: Those two need to be specified in the NGEN file */
+	static public int OMPTaskMaxNumber = 4
+	static public boolean OMPTraces = false
 
 	static def dispatch getCodeName(ExternFunction it)
 	{
 		if (provider.extensionName == "Math") 'std::' + name
 		else 'options.' + provider.instanceName + '.' + name
+	}
+	
+	/* Get most used variables in loops and reductions */
+	static def getMostUsedVariable(IterableInstruction it)
+	{
+		val affectations = eAllContents.filter(ArgOrVarRef);
+		val targets = affectations.filter(Variable);
+		val used = affectations.filter(ItemIndex);
 	}
 
 	/* Get variable dependencies and their ranges, etc */
@@ -74,7 +68,7 @@ class CppGeneratorUtils
 	}
 
 	/* Construct OpenMP clauses */
-	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition, List<DIRECTION_2D> directions)
+	static def getDependencies(String inout, Iterable<Variable> deps, CharSequence taskPartition, boolean needNeighbors)
 	{
 		/* Construct the OpenMP clause */
 		val dependencies = deps.filter(v|!v.isOption);
@@ -86,20 +80,22 @@ class CppGeneratorUtils
 		val need_simple = dep_simple.length >= 1;
 		var ret = ''''''
 
-		if (need_ranges)
-		{
-			/* All ranges */
-			val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
-			ret = ''' depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '»(«
-			getVariableName(v)»«getVariableRange(v, '''«taskPartition», «i»''')»)«
-			ENDFOR»«ENDFOR»)'''
-		}
+		/* Only needed for ranges with neighbors */
+		val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
 
+		/* All ranges, with the neighbors */
+		if (need_ranges && needNeighbors)
+			ret = ''' depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '»(«
+				getVariableName(v)»«getVariableRange(v, '''«taskPartition», «i»''')»)«ENDFOR»«ENDFOR»)'''
+		
+		/* All ranges, but without neighbors */
+		else if (need_ranges)
+			ret = ''' depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»(«
+				getVariableName(v)»«getVariableRange(v, '''«taskPartition»''')»)«ENDFOR»)'''
+
+		/* All simple values */
 		if (need_simple)
-		{
-			/* All simple values */
 			ret = '''«ret» depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»(«getVariableName(v)»)«ENDFOR»)'''
-		}
 		
 		return ret
 	}
@@ -140,9 +136,7 @@ class CppGeneratorUtils
 		return ret
 	}
 	
-	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent)
-	'''___partition->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
-	
+	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''___partition->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
 	static def getVariableRange(Variable it, CharSequence taskCurrent)
 	{
 		val type = (it as ArgOrVar).type;
