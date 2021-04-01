@@ -416,7 +416,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	private def getConnectivityType(Loop it)
 	{
 		val String itemname = iterationBlock.indexName.toString
-		println("Check connectivity for " + itemname);
 		
 		/* Check for node connectivities */
 		if      (itemname.contains("BottomNodes")) { return "bottomNodes" }
@@ -456,7 +455,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
 	}
 
-
 	private def takeOMPTraces(IrAnnotable it, Set<Variable> ins, Set<Variable> outs)
 	'''
 		«IF OMPTraces»
@@ -464,7 +462,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		static uint64_t ___task_id = 0;
 		++ ___task_id;
 		// (UNIQ_task_id, ['in', 'in', ...], ['out', 'out', ...], start, duration) // with DAG-dot
-		fprintf(stderr, "('«parentJob.name»@«parentJob.at»:l«counters.get("Loop"+parentJob.name)»:t%ld', [«
+		fprintf(stderr, "('R«parentJob.name»@«parentJob.at»:l«counters.get("Loop"+parentJob.name)»:t%ld', [«
 			FOR v : ins SEPARATOR ', '»'«v.name»'«ENDFOR»], [«
 			FOR v : outs SEPARATOR ', '»'«v.name»'«ENDFOR»], 0, 0)\n", ___task_id);
 		«ENDIF»

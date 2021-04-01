@@ -192,6 +192,64 @@ class OpenMpTaskJobContentProvider extends JobContentProvider
 			}
 		'''
 	}
+
+	override protected dispatch CharSequence getInnerContent(ExecuteTimeLoopJob it)
+	'''
+		«callsHeader»
+		«val itVar = iterationCounter.codeName»
+		«itVar» = 0;
+		bool continueLoop = true;
+		do
+		{
+			«IF caller.main»
+			globalTimer.start();
+			cpuTimer.start();
+			«ENDIF»
+			«itVar»++;
+			«val ppInfo = irRoot.postProcessing»
+			«IF caller.main && ppInfo !== null»
+				if (!writer.isDisabled() && «ppInfo.periodReference.codeName» >= «ppInfo.lastDumpVariable.codeName» + «ppInfo.periodValue.codeName»)
+					dumpVariables(«itVar»);
+			«ENDIF»
+			«traceContentProvider.getBeginOfLoopTrace(irModule, itVar, caller.main)»
+
+			«callsContent»
+
+			// Evaluate loop condition with variables at time n
+			continueLoop = («whileCondition.content»);
+
+			if (continueLoop)
+			{
+				// Switch variables to prepare next iteration
+				«FOR copy : copies»
+					std::swap(«copy.source.name», «copy.destination.name»);
+				«ENDFOR»
+			}
+			«IF caller.main»
+
+			cpuTimer.stop();
+			globalTimer.stop();
+			«ENDIF»
+
+			«traceContentProvider.getEndOfLoopTrace(irModule, itVar, caller.main, (ppInfo !== null))»
+
+			«IF caller.main»
+			cpuTimer.reset();
+			ioTimer.reset();
+			«ENDIF»
+		} while (continueLoop);
+		«IF caller.main»
+		std::cerr.flush();
+		std::cout.flush();
+		std::cout << ("\n[ITERS      " __BLUE__) << «itVar» << (__RESET__ "]\n");
+		std::cout << ("[STOP_TIME  " __BLUE__) << «irRoot.timeVariable.codeName» << (__RESET__ "]\n");
+		std::cout << ("[NEXT_TIME  " __BLUE__) << «irRoot.timeVariable.codeName»plus1 << (__RESET__ "]\n");
+		«ENDIF»
+		«IF caller.main && irRoot.postProcessing !== null»
+			// force a last output at the end
+			dumpVariables(«itVar», false);
+		«ENDIF»
+	'''
 }
 
 @Data
