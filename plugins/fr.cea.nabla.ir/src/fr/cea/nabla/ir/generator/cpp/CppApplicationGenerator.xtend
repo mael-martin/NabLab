@@ -9,6 +9,9 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
+import org.eclipse.xtext.EcoreUtil2
+import fr.cea.nabla.ir.ir.JobCaller
+import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.UnzipHelper
 import fr.cea.nabla.ir.Utils
 import fr.cea.nabla.ir.generator.ApplicationGenerator
@@ -394,6 +397,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«jobCallerContentProvider.getCallsContent(irRoot.main)»
 		«backend.traceContentProvider.getEndOfSimuTrace(linearAlgebra)»
 	}
+	
 	«IF levelDB»
 
 	void «className»::createDB(const std::string& db_name)
@@ -481,6 +485,26 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		return result;
 	}
 	«ENDIF»
+
+	extern "C" __attribute__((constructor)) void ___getDAG(void)
+	{
+		if (getenv("N_TRACE_DAG"))
+		{
+			«IF jobCallerContentProvider instanceof OpenMpTaskJobCallerContentProvider»
+				«val jccOMPTask = jobCallerContentProvider as OpenMpTaskJobCallerContentProvider»
+				«jccOMPTask.getDAG(irRoot.main)»
+				«FOR jc : EcoreUtil2.getAllContentsOfType(it, JobCaller)»
+
+					«jccOMPTask.getDAG(jc)»
+				«ENDFOR»
+
+				exit(EXIT_SUCCESS);
+			«ELSE»
+			std::cerr << __RED__ "Tracing the DAG is not supported with this backend\n";
+			abort();
+			«ENDIF»
+		}
+	}
 
 	int main(int argc, char* argv[]) 
 	{

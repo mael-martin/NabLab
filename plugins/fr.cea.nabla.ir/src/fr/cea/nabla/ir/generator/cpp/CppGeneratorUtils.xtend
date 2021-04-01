@@ -30,6 +30,7 @@ import fr.cea.nabla.ir.ir.ItemIndex
 import java.util.stream.IntStream
 import java.util.Iterator
 import java.util.HashSet
+import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 
 class CppGeneratorUtils
 {
@@ -184,12 +185,12 @@ class CppGeneratorUtils
 		eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].filter[!isOption].toSet
 	}
 	static def getInVars(Job it) {
-		val allouts = caller.calls.map[outVarsInternal].flatten.toSet
+		val allouts = caller.calls.filter[j|! (j instanceof ExecuteTimeLoopJob)].map[outVarsInternal].flatten.toSet
 		val ins     = inVarsInternal.filter[v|allouts.contains(v)]
 		return ins.toSet
 	}
 	static def getOutVars(Job it) {
-		val allins = caller.calls.map[inVarsInternal].flatten.toSet
+		val allins = caller.calls.filter[j|! (j instanceof ExecuteTimeLoopJob)].map[inVarsInternal].flatten.toSet
 		val outs   = outVarsInternal.filter[v|allins.contains(v)]
 		return outs.toSet
 	}

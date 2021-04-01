@@ -52,6 +52,16 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 
 	'''
 	}
+
+	def getDAG(JobCaller it)
+	'''
+		puts("# DAG «name»");
+		«FOR j : calls»
+		puts("(\"T«j.name»@«j.at»\", [«
+			FOR d : j.inVars SEPARATOR ', '»\"«d.name»\"«ENDFOR»], [«
+			FOR d : j.outVars SEPARATOR ', '»\"«d.name»\"«ENDFOR»])");
+		«ENDFOR»
+	'''
 }
 
 class KokkosTeamThreadJobCallerContentProvider extends JobCallerContentProvider
