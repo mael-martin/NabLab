@@ -80,6 +80,9 @@ class CppGeneratorUtils
 	static def getVariableName(Variable it) { isOption ? '''options.«name»''' : '''this->«name»''' }
 	static def isVariableRange(Variable it)
 	{
+		if (isOption)
+			return false
+
 		val type = (it as ArgOrVar).type;
 		switch (type) {
 			ConnectivityType: return true
@@ -108,12 +111,12 @@ class CppGeneratorUtils
 		/* All ranges, with the neighbors */
 		if (need_ranges && needNeighbors)
 			ret = ''' depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '»(«
-				getVariableName(v)»«getVariableRange(v, '''«taskPartition», «i»''')»)«ENDFOR»«ENDFOR»)'''
+				getVariableName(v)»[«getVariableRange(v, '''«taskPartition», «i»''')»])«ENDFOR»«ENDFOR»)'''
 		
 		/* All ranges, but without neighbors */
 		else if (need_ranges)
 			ret = ''' depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»(«
-				getVariableName(v)»«getVariableRange(v, '''«taskPartition»''')»)«ENDFOR»)'''
+				getVariableName(v)»[«getVariableRange(v, '''«taskPartition»''')»])«ENDFOR»)'''
 
 		/* All simple values */
 		if (need_simple)
@@ -128,7 +131,7 @@ class CppGeneratorUtils
 		val dep = deps.filter(v | v.isVariableRange).toSet // Simple and stupid algorithm to choose which variable is important
 		if (dep.length == 0) return ''''''
 		dep.removeAll(falseIns)
-		return ''' affinity(this->«dep.head.name»«getVariableRange(dep.head, taskPartition)»)'''
+		return ''' affinity(this->«dep.head.name»[«getVariableRange(dep.head, taskPartition)»])'''
 	}
 
 	static def getDependenciesAll(Job it, String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
@@ -150,7 +153,7 @@ class CppGeneratorUtils
 			/* All ranges */
 			val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
 			ret = ''' depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '»(«
-			getVariableName(v)»«getVariableRange(v, '''«i»''')»)«ENDFOR»«ENDFOR»)'''
+			getVariableName(v)»[«getVariableRange(v, '''«i»''')»])«ENDFOR»«ENDFOR»)'''
 		}
 
 		if (need_simple)
@@ -162,6 +165,19 @@ class CppGeneratorUtils
 		return ret
 	}
 	
+	static def printVariableRange(Variable it, CharSequence taskCurrent, boolean needNeighbors)
+	{
+		if (!isVariableRange)
+			return '''«name»'''
+
+		if (!needNeighbors)
+			return '''«name»[«getVariableRange('''«taskCurrent»''')»'''
+
+		/* Need the neighbors */
+		val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
+		return '''«FOR i : iterator SEPARATOR ', '»(«name»[«getVariableRange('''«taskCurrent», «i»''')»])«ENDFOR»'''
+	}
+	
 	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''___partition->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
 	static def getVariableRange(Variable it, CharSequence taskCurrent)
 	{
@@ -169,7 +185,7 @@ class CppGeneratorUtils
 		switch (type) {
 			ConnectivityType: {
 				val connectivites = (type as ConnectivityType).connectivities.map[name].head;
-				return '''[(___partition->PIN_«connectivites»FromPartition(«taskCurrent»))]'''
+				return '''___partition->PIN_«connectivites»FromPartition(«taskCurrent»)'''
 			}
 			LinearAlgebraType: return '''''' /* This is an opaque type, don't know what to do with it */
 			BaseType: return '''''' /* An integer, etc => the name is the dependency */

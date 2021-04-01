@@ -42,6 +42,7 @@ import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
+import java.util.stream.IntStream
 
 @Data
 abstract class InstructionContentProvider
@@ -458,10 +459,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	'''
 		«IF OMPTraces»
 		«val parentJob = EcoreUtil2.getContainerOfType(it, Job)»
-		static uint64_t ___task_id = 0;
-		++ ___task_id;
+		// static uint64_t ___task_id = 0;
+		// ++ ___task_id;
 		// (UNIQ_task_id, ['in', 'in', ...], ['out', 'out', ...], start, duration) // with DAG-dot
-		fprintf(stderr, "('R«parentJob.name»@«parentJob.at»:l«counters.get("Loop"+parentJob.name)»:t%ld', [«
+		// fprintf(stderr, "('R«parentJob.name»@«parentJob.at»:l«counters.get("Loop"+parentJob.name)»:t%ld', [«
 			FOR v : ins SEPARATOR ', '»'«v.name»'«ENDFOR»], [«
 			FOR v : outs SEPARATOR ', '»'«v.name»'«ENDFOR»], 0, 0)\n", ___task_id);
 		«ENDIF»
