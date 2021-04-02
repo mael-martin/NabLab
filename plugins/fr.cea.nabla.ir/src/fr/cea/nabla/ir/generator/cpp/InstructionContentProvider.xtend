@@ -363,10 +363,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		«val outs           = parentJob.outVars»
 		for (size_t task = 0; task < («OMPTaskMaxNumber»); ++task)
 		{
-		«takeOMPTraces(ins, outs, '''task''')»
-		#pragma omp task«getDependencies(parentJob, 'in',  ins,  '''task''', need_neighbors)»«
-						 getDependencies(parentJob, 'out', outs, '''task''', false)»
+		#pragma omp task firstprivate(task)«getDependencies(parentJob, 'in',  ins,  '''task''', need_neighbors)»«
+						                    getDependencies(parentJob, 'out', outs, '''task''', false)»
 		{ // BEGIN OF SUPER TASK
+		«takeOMPTraces(ins, outs, '''task''')»
 		«ENDIF»
 		«val isReduction = (instructions.size == 2) &&
 		                   (instructions.toList.head instanceof ReductionInstruction) &&
@@ -404,13 +404,17 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				«IF ! super_task»
-				«takeOMPTraces(ins, outs, null)»
 				#pragma omp task«getDependenciesAll(parentJob, 'in',  ins,  0, OMPTaskMaxNumber)»«
 				                 getDependenciesAll(parentJob, 'out', outs, 0, OMPTaskMaxNumber)»
+				{
+				«takeOMPTraces(ins, outs, null)»
 				«ELSE»
 				// REFUSE TO LAUNCH NEASTED TASK HERE
 				«ENDIF»
 				«left.content» = «right.content»;
+				«IF ! super_task»
+				}
+				«ENDIF»
 			'''
 			if (!super_task) endTASK()
 			return ret
@@ -431,9 +435,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«IF ! super_task»
-			«takeOMPTraces(ins, outs, null)»
 			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)«
 				getDependenciesAll(parentJob, 'in', ins, 0, OMPTaskMaxNumber)» depend(out: this->«out.name»)
+			{
+			«takeOMPTraces(ins, outs, null)»
 			«ELSE»
 			// REFUSE TO LAUNCH NEASTED TASK HERE
 			«ENDIF»
@@ -442,6 +447,9 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
 				«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
 			''')»
+			«IF ! super_task»
+			}
+			«ENDIF»
 		'''
 
 		if (! super_task) endTASK()
@@ -647,9 +655,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ret = '''
 		{
 			«IF ! super_task»
+			#pragma omp task firstprivate(task)«getDependencies(parentJob, 'in',  ins,  partitionId, need_neighbors)»«
+			                                    getDependencies(parentJob, 'out', outs, partitionId, false)»
+			{
 			«takeOMPTraces(ins, outs, partitionId)»
-			#pragma omp task«getDependencies(parentJob, 'in',  ins,  partitionId, need_neighbors)»«
-			                 getDependencies(parentJob, 'out', outs, partitionId, false)»
 			«ELSE»
 			// REFUSE TO LAUNCH NEASTED TASK HERE
 			«ENDIF»
@@ -657,6 +666,9 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			{
 				«body.innerContent»
 			}
+			«IF ! super_task»
+			}
+			«ENDIF»
 		}
 		'''
 
