@@ -241,29 +241,19 @@ class CppGeneratorUtils
 	}
 	
 	/* Get DF */
-	/*
-	static private def getInVarsInternal(Job it) {
-		eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].filter[!isOption].toSet
-	}
-	static private def getOutVarsInternal(Job it) {
-		eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].filter[!isOption].toSet
-	}
-	static def getInVars(Job it) {
-		val allouts = caller.calls.filter[j|! (j instanceof ExecuteTimeLoopJob)].map[outVarsInternal].flatten.toSet
-		val ins     = inVarsInternal.filter[v|allouts.contains(v)]
-		return ins.toSet
-	}
-	static def getOutVars(Job it) {
-		val allins = caller.calls.filter[j|! (j instanceof ExecuteTimeLoopJob)].map[inVarsInternal].flatten.toSet
-		val outs   = outVarsInternal.filter[v|allins.contains(v)]
-		return outs.toSet
-	}
-	*/
-
 	static def getInVars(Job it) {
 		eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet
 	}
 	static def getOutVars(Job it) {
 		eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet
+	}
+	static def getSharedVars(Job it) {
+		val ins = caller.calls.map[inVars.filter[!isOption]].flatten.toSet;
+		ins.addAll(outVars.filter[!isOption])
+		return ins
+	}
+	static def getSharedVarsClause(Job it) {
+		val shared = sharedVars
+		'''default(none) shared(stderr, ___partition«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v.variableName»«ENDFOR»«ENDIF»)'''
 	}
 }
