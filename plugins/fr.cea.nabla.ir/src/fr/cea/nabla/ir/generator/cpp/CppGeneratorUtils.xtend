@@ -171,19 +171,19 @@ class CppGeneratorUtils
 	static def printVariableRangeFmt(Variable it, CharSequence taskCurrent, boolean needNeighbors)
 	{
 		if (!isVariableRange)
-			return '''«name»<%s>'''
+			return '''\"«name»_%s\"'''
 
 		if (!needNeighbors && taskCurrent !== null)
-			return '''«name»[%ld]'''
+			return '''\"«name»_%ld\"'''
 
 		/* Need the neighbors, or just get all for the getDependencies /
 		 * getDependenciesAll cases. Here it's the same, but keep the if / else
 		 * to have the same logic has in the printVariableRangeValue function. */
 		val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
 		if (taskCurrent !== null)
-			return '''«FOR i : iterator SEPARATOR ' '»«name»[%ld]«ENDFOR»'''
+			return '''«FOR i : iterator SEPARATOR ', '»\"«name»_%ld\"«ENDFOR»'''
 		else
-			return '''«FOR i : iterator SEPARATOR ' '»«name»[%ld]«ENDFOR»'''
+			return '''«FOR i : iterator SEPARATOR ', '»\"«name»_%ld\"«ENDFOR»'''
 	}
 	
 	static def printVariableRangeValue(Variable it, CharSequence taskCurrent, boolean needNeighbors)

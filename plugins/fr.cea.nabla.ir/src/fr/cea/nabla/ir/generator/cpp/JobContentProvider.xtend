@@ -207,7 +207,7 @@ class OpenMpTaskJobContentProvider extends JobContentProvider
 			«ENDIF»
 			«traceContentProvider.getBeginOfLoopTrace(irModule, itVar, caller.main)»
 			«IF OMPTraces»
-			fputs("### New Loop ###\n", stderr);
+			fprintf(stderr, "### New Loop DAG: %d\n", «itVar»);
 			«ENDIF»
 
 			«callsContent»

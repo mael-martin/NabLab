@@ -544,42 +544,20 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 	private def takeOMPTraces(IrAnnotable it, Set<Variable> ins, Set<Variable> outs, CharSequence partitionId) {
 		if (OMPTraces) {
-			val parentJob = EcoreUtil2.getContainerOfType(it, Job)
+			val parentJob      = EcoreUtil2.getContainerOfType(it, Job)
+			val need_neighbors = canDetectDependencies && (dataShift.size > 0) || detectDependencies
+			val ins_fmt        = ins.map[printVariableRangeFmt(partitionId, need_neighbors)]
+			val outs_fmt       = outs.map[printVariableRangeFmt(partitionId, false)]
+			val printf_values  = ins.map[printVariableRangeValue(partitionId, need_neighbors)].toList
+			printf_values.addAll(outs.map[printVariableRangeValue(partitionId, false)])
 
-			// Partial, a partition and the neighbors
-			if (partitionId !== null && canDetectDependencies) {
-				val need_neighbors = (dataShift.size > 0) || detectDependencies
-				val ins_printf     = ins.map[printVariableRangeValue(partitionId, need_neighbors)].toList
-				val ins_fmt        = ins.map[printVariableRangeFmt(partitionId, need_neighbors)].toList
-				ins_printf.addAll(#["\"=>\"", "\"OUT\""]);
-				ins_fmt.addAll(#["%s", "%s"]);
-				ins_printf.addAll(outs.map[printVariableRangeValue(partitionId, false)])
-				ins_fmt.addAll(outs.map[printVariableRangeFmt(partitionId, false)])
-				'''
-				«IF ins.size > 0»
-				fprintf(stderr, "«parentJob.name»@«parentJob.at»:%ld IN «
-					FOR v : ins_fmt    SEPARATOR ' ' »«v»«ENDFOR»\n", «partitionId», «
-					FOR v : ins_printf SEPARATOR ', '»«v»«ENDFOR»);
-				«ENDIF»
-				'''
-			}
-			
-			// All, all the partitions
-			else if (partitionId === null) {
-				val ins_printf = ins.map[printVariableRangeValue(null, false)].toList
-				val ins_fmt    = ins.map[printVariableRangeFmt(null, false)].toList
-				ins_printf.addAll(#["\"=>\"", "\"OUT\""]);
-				ins_fmt.addAll(#["%s", "%s"]);
-				ins_printf.addAll(outs.map[printVariableRangeValue(null, false)])
-				ins_fmt.addAll(outs.map[printVariableRangeFmt(null, false)])
-				'''
-				«IF ins.size > 0»
-				fprintf(stderr, "«parentJob.name»@«parentJob.at»:ALL IN «
-					FOR v : ins_fmt    SEPARATOR ' ' »«v»«ENDFOR»\n", «
-					FOR v : ins_printf SEPARATOR ', '»«v»«ENDFOR»);
-				«ENDIF»
-				'''
-			}
+			'''
+			fprintf(stderr, "(\"T«parentJob.name»@«parentJob.at»«IF partitionId !== null»:%ld«ENDIF»\", [«
+				FOR v : ins_fmt  SEPARATOR ', '»«v»«ENDFOR»], [«
+				FOR v : outs_fmt SEPARATOR ', '»«v»«ENDFOR»])\n"«
+				IF partitionId !== null», «partitionId»«ENDIF»«
+				IF printf_values.size > 0», «FOR v : printf_values SEPARATOR ', '»«v»«ENDFOR»«ENDIF»);
+			'''
 		}
 		else ''''''
 	}
