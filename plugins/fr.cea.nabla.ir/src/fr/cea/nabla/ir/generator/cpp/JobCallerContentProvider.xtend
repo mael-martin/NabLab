@@ -14,6 +14,7 @@ import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import fr.cea.nabla.ir.ir.JobCaller
+import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 
 class JobCallerContentProvider
 {
@@ -36,19 +37,26 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 	override getCallsContent(JobCaller it)
 	{
 		val allouts = calls.map[outVars].flatten
-	'''
+		'''
 		// Launch all tasks for this loop...
 		«IF allouts.toList.size != allouts.toSet.size»
 		// XXX: There are duplicate out dependencies
 		«ENDIF»
 		
+		«IF OMPTraces»
+		fprintf(stderr, "### New Loop DAG: «name» %zu\n", ___DAG_loops);
+		++___DAG_loops;
+		«ENDIF»
 		«FOR j : calls»
-		«j.callName.replace('.', '->')»(); // @«j.at»
+			«IF j instanceof ExecuteTimeLoopJob»
+			#pragma omp taskwait
+			«ENDIF»
+			«j.callName.replace('.', '->')»(); // @«j.at»
 		«ENDFOR»
 		// Wait for this loop tasks to be done...
 		#pragma omp taskwait
 
-	'''
+		'''
 	}
 
 	def getDAG(JobCaller it)

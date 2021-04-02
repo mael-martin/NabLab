@@ -216,6 +216,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«IF isOpenMpTask»
 	/* Global partitionner, for the OpenMPTask backend */
 	static CartesianPartition2D<«OMPTaskMaxNumber», «OMPTaskMaxNumber»> *___partition = nullptr;
+	static size_t ___DAG_loops = 0;
 	«ENDIF»
 
 	«val internFunctions = functions.filter(InternFunction)»
