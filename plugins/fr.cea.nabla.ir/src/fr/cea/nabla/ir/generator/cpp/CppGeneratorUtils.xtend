@@ -31,6 +31,9 @@ import java.util.stream.IntStream
 import java.util.Iterator
 import java.util.HashSet
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
+import fr.cea.nabla.ir.ir.IrAnnotable
+import java.util.Set
+import org.eclipse.xtext.EcoreUtil2
 
 class CppGeneratorUtils
 {
@@ -168,6 +171,26 @@ class CppGeneratorUtils
 		return ret
 	}
 
+	static def takeOMPTraces(IrAnnotable it, Set<Variable> ins, Set<Variable> outs, CharSequence partitionId, boolean need_neighbors) {
+		if (OMPTraces) {
+			val parentJob      = EcoreUtil2.getContainerOfType(it, Job)
+			val ins_fmt        = ins.map[printVariableRangeFmt(partitionId, need_neighbors)]
+			val outs_fmt       = outs.map[printVariableRangeFmt(partitionId, false)]
+			val printf_values  = ins.map[printVariableRangeValue(partitionId, need_neighbors)].toList
+			printf_values.addAll(outs.map[printVariableRangeValue(partitionId, false)])
+
+			'''
+			fprintf(stderr, "(\"T«parentJob.name»@«parentJob.at»«IF partitionId !== null»:%ld«ENDIF»\", [«
+				FOR v : ins_fmt  SEPARATOR ', '»«v»«ENDFOR»], [«
+				FOR v : outs_fmt SEPARATOR ', '»«v»«ENDFOR»])\n"«
+				IF partitionId !== null», «partitionId»«ENDIF»«
+				IF printf_values.size > 0», «FOR v : printf_values SEPARATOR ', '»«v»«ENDFOR»«ENDIF»);
+			'''
+		}
+		else ''''''
+	}
+	
+
 	static def printVariableRangeFmt(Variable it, CharSequence taskCurrent, boolean needNeighbors)
 	{
 		if (!isVariableRange)
@@ -218,6 +241,7 @@ class CppGeneratorUtils
 	}
 	
 	/* Get DF */
+	/*
 	static private def getInVarsInternal(Job it) {
 		eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].filter[!isOption].toSet
 	}
@@ -233,5 +257,13 @@ class CppGeneratorUtils
 		val allins = caller.calls.filter[j|! (j instanceof ExecuteTimeLoopJob)].map[inVarsInternal].flatten.toSet
 		val outs   = outVarsInternal.filter[v|allins.contains(v)]
 		return outs.toSet
+	}
+	*/
+
+	static def getInVars(Job it) {
+		eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet
+	}
+	static def getOutVars(Job it) {
+		eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet
 	}
 }

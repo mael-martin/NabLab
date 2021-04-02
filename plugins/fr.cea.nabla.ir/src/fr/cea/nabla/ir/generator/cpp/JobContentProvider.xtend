@@ -178,9 +178,12 @@ class OpenMpTaskJobContentProvider extends JobContentProvider
 
 	override protected dispatch CharSequence getInnerContent(TimeLoopJob it)
 	'''
-		#pragma omp task«getDependenciesAll('in',  copies.map[source],      0, OMPTaskMaxNumber)»«
-						 getDependenciesAll('out', copies.map[destination], 0, OMPTaskMaxNumber)»
+		«val ins  = copies.map[source]»
+		«val outs = copies.map[destination]»
+		#pragma omp task«getDependenciesAll('in',  ins,  0, OMPTaskMaxNumber)»«
+						 getDependenciesAll('out', outs, 0, OMPTaskMaxNumber)»
 		{
+		«takeOMPTraces(ins.toSet, outs.toSet, null, false)»
 		«FOR c : copies»
 			«c.content»
 		«ENDFOR»
