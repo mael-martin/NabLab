@@ -42,7 +42,6 @@ import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
-import java.util.stream.IntStream
 import fr.cea.nabla.ir.ir.IterableInstruction
 
 @Data
@@ -324,9 +323,34 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	HashMap<String, Pair<Integer, Integer>> dataShift = new HashMap(); /* item name => iterator shift    */
 	HashMap<String, String> dataConnectivity          = new HashMap(); /* item name => connectivity type */
 	HashMap<String, Integer> counters                 = new HashMap();
+	HashMap<String, CharSequence> auxString           = new HashMap();
+	
+	private def void levelINC() { counters.put("Level", counters.getOrDefault('Level', 0) + 1) }
+	private def void levelDEC() { counters.put("Level", Math::max(counters.get('Level') - 1, 0)) }
+
+	private def void endTASK() { counters.put("Task", 0) }
+	private def void beginTASK(CharSequence taskId) {
+		counters.put("Task", 1)
+		auxString.put("TaskId", taskId)
+	}
+	
+	private def int getCurrentLevel() { return counters.getOrDefault('Level', 0); }
+	private def CharSequence getCurrentTASK() 
+	{
+		if (counters.getOrDefault('Task', 0) == 1) {
+			return auxString.get('TaskId')
+		} else
+			return null
+	}
 
 	override dispatch getInnerContent(InstructionBlock it)
-	'''
+	{
+		levelINC();
+		val ret = '''
+		«IF counters.get('Level') == 1 && (eAllContents.filter(Loop).filter[multithreadable].size + eAllContents.filter(ReductionInstruction).size) > 1»
+		// XXX There are multiple loops in this job, this is bad
+		«ENDIF»
+		// Level is «getCurrentLevel()»
 		«val isReduction = (instructions.size == 2) &&
 		                   (instructions.toList.head instanceof ReductionInstruction) &&
 		                   (instructions.toList.last instanceof Affectation)»
@@ -337,7 +361,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		«IF isReduction»
 		}
 		«ENDIF»
-	'''
+		'''
+		levelDEC();
+		return ret
+	}
 
 	override dispatch CharSequence getContent(Affectation it)
 	{
@@ -349,7 +376,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		{
 			val ins = parentJob.inVars
 			val outs = parentJob.outVars
-			'''
+			beginTASK(getAllOMPTasksAsCharSequence)
+			val ret = '''
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				«takeOMPTraces(ins, outs, null)»
@@ -358,6 +386,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 					getDependenciesAll(parentJob, 'out', outs, 0, OMPTaskMaxNumber)»
 					«left.content» = «right.content»;
 			'''
+			endTASK()
+			return ret
 		}
 		else
 			'''«left.content» = «right.content»;'''
@@ -369,7 +399,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ins  = parentJob.getInVars  /* Need to be computed before, consumed */
 		val outs = parentJob.getOutVars /* Produced, unlock jobs that need them */
 		val out  = outs.head            /* Produced, unlock jobs that need them */
-		'''
+		beginTASK(getAllOMPTasksAsCharSequence)
+		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«takeOMPTraces(ins, outs, null)»
 			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)«
@@ -380,11 +411,29 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
 			''')»
 		'''
+		endTASK()
+		return ret
+	}
+
+	protected override CharSequence getSequentialLoopContent(Loop it)
+	{
+		val currentTask = getCurrentTASK()
+		val ret = '''
+		«IF currentTask !== null»
+		// INSIDE TASK, id will be stored in '«currentTask»' at run time
+		«ENDIF»
+		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
+		{
+			«body.innerContent»
+		}
+		'''
+		return ret
 	}
 
 	/* Slice the loop in chunks and feed it to the tasks. */
 	override getParallelLoopContent(Loop it)
 	{
+		levelINC();
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
 		counters.put("Loop"+parentJob.name, counters.getOrDefault('Loop'+parentJob.name, 0) + 1)
 		dataShift.clear()
@@ -393,9 +442,11 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			if (item instanceof ItemIdValueIterator)
 				addDataShift(item.id.itemName, item.value as ItemIdValueIterator)
 		]
-		'''
+		val ret = '''
 		«launchTasks(OMPTaskMaxNumber) /* TODO: Add a way for a task to take care of multiple partitions. */»
 		'''
+		levelDEC();
+		return ret
 	}
 	
 	/* Compute the shift pair, the first element is the negative shift, the second the positive shift. */
@@ -547,7 +598,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		
 		val parentJob      = EcoreUtil2.getContainerOfType(it, Job)
 		val need_neighbors = (dataShift.size > 0) || detectDependencies
-	'''
+		beginTASK(partitionId)
+		val ret = '''
 		{
 			«takeOMPTraces(ins, outs, partitionId)»
 			#pragma omp task«
@@ -558,7 +610,9 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				«body.innerContent»
 			}
 		}
-	'''
+		'''
+		endTASK()
+		return ret
 	}
 	
 	private def launchTasks(Loop it, int taskN)

@@ -44,6 +44,9 @@ class CppGeneratorUtils
 	static public int OMPTaskMaxNumber = 4
 	static public boolean OMPTraces = false
 	
+	static def getAllOMPTasks() { iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) }
+	static def getAllOMPTasksAsCharSequence() '''{«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', '»«i»«ENDFOR»}'''
+	
 	/* False 'in' variables */
 	static private def getFalseInVariableForJob(Job it)
 	{
