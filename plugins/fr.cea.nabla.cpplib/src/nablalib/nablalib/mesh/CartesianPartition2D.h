@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iomanip>
+#include <stdio.h>
 #include "metis-5.1.0/include/metis.h"
 #include "nablalib/types/Types.h"
 #include "nablalib/mesh/CartesianMesh2D.h"

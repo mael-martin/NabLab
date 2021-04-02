@@ -164,18 +164,39 @@ class CppGeneratorUtils
 
 		return ret
 	}
-	
-	static def printVariableRange(Variable it, CharSequence taskCurrent, boolean needNeighbors)
+
+	static def printVariableRangeFmt(Variable it, CharSequence taskCurrent, boolean needNeighbors)
 	{
 		if (!isVariableRange)
-			return '''«name»'''
+			return '''«name»<%s>'''
 
-		if (!needNeighbors)
-			return '''«name»[«getVariableRange('''«taskCurrent»''')»'''
+		if (!needNeighbors && taskCurrent !== null)
+			return '''«name»[%ld]'''
 
-		/* Need the neighbors */
+		/* Need the neighbors, or just get all for the getDependencies /
+		 * getDependenciesAll cases. Here it's the same, but keep the if / else
+		 * to have the same logic has in the printVariableRangeValue function. */
 		val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
-		return '''«FOR i : iterator SEPARATOR ', '»(«name»[«getVariableRange('''«taskCurrent», «i»''')»])«ENDFOR»'''
+		if (taskCurrent !== null)
+			return '''«FOR i : iterator SEPARATOR ', '»«name»[%ld]«ENDFOR»'''
+		else
+			return '''«FOR i : iterator SEPARATOR ', '»«name»[%ld]«ENDFOR»'''
+	}
+	
+	static def printVariableRangeValue(Variable it, CharSequence taskCurrent, boolean needNeighbors)
+	{
+		if (!isVariableRange)
+			return '''"simple"'''
+
+		if (!needNeighbors && taskCurrent !== null)
+			return '''«getVariableRange('''«taskCurrent»''')»'''
+
+		/* Need the neighbors, or just get all for the getDependencies/getDependenciesAll cases */
+		val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
+		if (taskCurrent !== null)
+			return '''«FOR i : iterator SEPARATOR ', '»«getVariableRange('''«taskCurrent», «i»''')»«ENDFOR»'''
+		else
+			return '''«FOR i : iterator SEPARATOR ', '»«getVariableRange('''«i»''')»«ENDFOR»'''
 	}
 	
 	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''___partition->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
