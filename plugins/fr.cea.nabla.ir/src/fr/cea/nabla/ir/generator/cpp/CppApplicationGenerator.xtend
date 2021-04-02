@@ -487,26 +487,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	}
 	«ENDIF»
 
-	extern "C" __attribute__((constructor)) void ___getDAG(void)
-	{
-		if (getenv("N_TRACE_DAG"))
-		{
-			«IF jobCallerContentProvider instanceof OpenMpTaskJobCallerContentProvider»
-				«val jccOMPTask = jobCallerContentProvider as OpenMpTaskJobCallerContentProvider»
-				«jccOMPTask.getDAG(irRoot.main)»
-				«FOR jc : EcoreUtil2.getAllContentsOfType(it, JobCaller)»
-
-					«jccOMPTask.getDAG(jc)»
-				«ENDFOR»
-
-				exit(EXIT_SUCCESS);
-			«ELSE»
-			std::cerr << __RED__ "Tracing the DAG is not supported with this backend\n";
-			abort();
-			«ENDIF»
-		}
-	}
-
 	int main(int argc, char* argv[]) 
 	{
 		int ret = EXIT_SUCCESS;

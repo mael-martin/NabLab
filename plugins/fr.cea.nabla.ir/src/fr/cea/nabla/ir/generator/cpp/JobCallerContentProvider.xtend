@@ -63,7 +63,7 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 	'''
 		puts("# DAG «name»");
 		«FOR j : calls»
-		puts("(\"R«j.name»@«j.at»\", [«
+		puts("(\"T«j.name»@«j.at»\", [«
 			FOR d : j.inVars SEPARATOR ', '»\"«d.name»\"«ENDFOR»], [«
 			FOR d : j.outVars SEPARATOR ', '»\"«d.name»\"«ENDFOR»])");
 		«ENDFOR»
