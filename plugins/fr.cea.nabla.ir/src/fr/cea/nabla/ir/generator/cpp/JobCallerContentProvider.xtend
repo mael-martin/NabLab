@@ -35,18 +35,16 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 
 	override getCallsContent(JobCaller it)
 	{
-		/* Will be used to compute unnecessary dependencies */
-		var allouts = calls.map[outVars.filter[!isOption]].flatten.toSet
-		var allins  = calls.map[inVars.filter[!isOption]].flatten.toSet
-		allins.removeAll(allouts)
+		val allouts = calls.map[outVars].flatten
 	'''
 		// Launch all tasks for this loop...
-		«IF allins.size > 0»
-		// XXX: We will have problems with the following dependencies:
-		// «FOR v : allins SEPARATOR ', '»«v.name»«ENDFOR»
+		«IF allouts.toList.size != allouts.toSet.size»
+		// XXX: There are duplicate out dependencies
 		«ENDIF»
 		
-		«super.getCallsContent(it)»
+		«FOR j : calls»
+		«j.callName.replace('.', '->')»(); // @«j.at»
+		«ENDFOR»
 		// Wait for this loop tasks to be done...
 		#pragma omp taskwait
 

@@ -178,9 +178,9 @@ class CppGeneratorUtils
 		 * to have the same logic has in the printVariableRangeValue function. */
 		val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
 		if (taskCurrent !== null)
-			return '''«FOR i : iterator SEPARATOR ', '»«name»[%ld]«ENDFOR»'''
+			return '''«FOR i : iterator SEPARATOR ' '»«name»[%ld]«ENDFOR»'''
 		else
-			return '''«FOR i : iterator SEPARATOR ', '»«name»[%ld]«ENDFOR»'''
+			return '''«FOR i : iterator SEPARATOR ' '»«name»[%ld]«ENDFOR»'''
 	}
 	
 	static def printVariableRangeValue(Variable it, CharSequence taskCurrent, boolean needNeighbors)

@@ -395,17 +395,18 @@ private:
             std::cout << "\n";
         }
 
-        std::cout << "Totals: \n\t" << m_mesh->getNbCells()                << " cells, "
-                                    << m_mesh->getNbNodes()                << " nodes, "
-                                    << m_mesh->getNbFaces()                << " faces\n\t"
-                                    << m_mesh->getNbTopFaces()             << " T faces, "
-                                    << m_mesh->getNbBottomFaces()          << " B faces, "
-                                    << m_mesh->getNbRightFaces()           << " R faces, "
-                                    << m_mesh->getNbLeftFaces()            << " L faces, "
-                                    << m_mesh->getNbInnerFaces()           << " I faces, "
-                                    << m_mesh->getNbInnerHorizontalFaces() << " IH faces, "
-                                    << m_mesh->getNbInnerVerticalFaces()   << " IV faces, "
-                                    << m_mesh->getNbOuterFaces()           << " O faces\n";
+        std::cout << "Totals: \n\t"
+                  << m_mesh->getNbCells()                << " cells, "
+                  << m_mesh->getNbNodes()                << " nodes, "
+                  << m_mesh->getNbFaces()                << " faces\n\t"
+                  << m_mesh->getNbTopFaces()             << " T faces, "
+                  << m_mesh->getNbBottomFaces()          << " B faces, "
+                  << m_mesh->getNbRightFaces()           << " R faces, "
+                  << m_mesh->getNbLeftFaces()            << " L faces, "
+                  << m_mesh->getNbInnerFaces()           << " I faces, "
+                  << m_mesh->getNbInnerHorizontalFaces() << " IH faces, "
+                  << m_mesh->getNbInnerVerticalFaces()   << " IV faces, "
+                  << m_mesh->getNbOuterFaces()           << " O faces\n";
     }
 
     inline idx_t*
@@ -437,8 +438,8 @@ private:
         /* multi partitions case */
         CSR_Matrix matrix     = CSR_Matrix::createFrom2DCartesianMesh(m_problem_x, m_problem_y);
         idx_t num_partition   = PartitionNumber;
-        idx_t num_constraints = 1; // Number of balancing constraints, which must be at least 1.
-        idx_t objval; // On return, the edge cut volume of the partitioning solution.
+        idx_t num_constraints = 1;  // Number of balancing constraints, which must be at least 1.
+        idx_t objval;               // On return, the edge cut volume of the partitioning solution.
         idx_t *metis_partition_cell = new idx_t[matrix.xadj_len]();
         idx_t metis_options[METIS_NOPTIONS];
         int ret;

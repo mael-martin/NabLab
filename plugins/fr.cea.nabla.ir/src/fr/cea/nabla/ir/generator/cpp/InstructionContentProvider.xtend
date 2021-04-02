@@ -458,8 +458,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 	private def takeOMPTraces(IrAnnotable it, Set<Variable> ins, Set<Variable> outs, CharSequence partitionId)
 	{
-		if (OMPTraces)
-		{
+		if (OMPTraces) {
 			val parentJob = EcoreUtil2.getContainerOfType(it, Job)
 			if (partitionId !== null && it instanceof IterableInstruction) {
 				// Partial, a partition and the neighbors
