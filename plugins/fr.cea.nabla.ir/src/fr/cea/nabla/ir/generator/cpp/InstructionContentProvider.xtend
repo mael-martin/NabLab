@@ -36,13 +36,14 @@ import fr.cea.nabla.ir.ir.Variable
 import fr.cea.nabla.ir.ir.ItemIdValueIterator
 import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.IrAnnotable
+import fr.cea.nabla.ir.ir.IterableInstruction
+import fr.cea.nabla.ir.ir.Function
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
-import fr.cea.nabla.ir.ir.IterableInstruction
 
 @Data
 abstract class InstructionContentProvider
@@ -342,15 +343,31 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		} else
 			return null
 	}
+	private def getChildTasks(InstructionBlock it) { return eAllContents.filter(Loop).filter[multithreadable].size + eAllContents.filter(ReductionInstruction).size }
+	private def isInsideAJob(IrAnnotable it) {
+		return (null !== EcoreUtil2.getContainerOfType(it, Job)) &&
+			(EcoreUtil2.getContainerOfType(it, Function) === null);
+	}
 
 	override dispatch getInnerContent(InstructionBlock it)
 	{
 		levelINC();
+		val launch_super_task = (insideAJob && (currentLevel == 1) && (childTasks > 1))
+		if (launch_super_task) { beginTASK('''task'''); }
+
 		val ret = '''
-		«IF counters.get('Level') == 1 && (eAllContents.filter(Loop).filter[multithreadable].size + eAllContents.filter(ReductionInstruction).size) > 1»
-		// XXX There are multiple loops in this job, this is bad
+		«IF launch_super_task»
+		«val parentJob      = EcoreUtil2.getContainerOfType(it, Job)»
+		«val need_neighbors = (dataShift.size > 0) || detectDependencies(it)»
+		«val ins            = parentJob.inVars»
+		«val outs           = parentJob.outVars»
+		for (size_t task = 0; task < («OMPTaskMaxNumber»); ++task)
+		{
+		«takeOMPTraces(ins, outs, '''task''')»
+		#pragma omp task«getDependencies(parentJob, 'in',  ins,  '''task''', need_neighbors)»«
+						 getDependencies(parentJob, 'out', outs, '''task''', false)»
+		{ // BEGIN OF SUPER TASK
 		«ENDIF»
-		// Level is «getCurrentLevel()»
 		«val isReduction = (instructions.size == 2) &&
 		                   (instructions.toList.head instanceof ReductionInstruction) &&
 		                   (instructions.toList.last instanceof Affectation)»
@@ -361,7 +378,12 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		«IF isReduction»
 		}
 		«ENDIF»
+		«IF launch_super_task»
+		}} // END OF SUPER TASK
+		«ENDIF»
 		'''
+
+		if (launch_super_task) { endTASK(); }
 		levelDEC();
 		return ret
 	}
@@ -376,17 +398,21 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		{
 			val ins = parentJob.inVars
 			val outs = parentJob.outVars
-			beginTASK(getAllOMPTasksAsCharSequence)
+			val super_task = (currentTASK !== null)
+			if (!super_task) beginTASK(getAllOMPTasksAsCharSequence)
 			val ret = '''
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
+				«IF ! super_task»
 				«takeOMPTraces(ins, outs, null)»
-				#pragma omp task«
-					getDependenciesAll(parentJob, 'in',  ins,  0, OMPTaskMaxNumber)»«
-					getDependenciesAll(parentJob, 'out', outs, 0, OMPTaskMaxNumber)»
-					«left.content» = «right.content»;
+				#pragma omp task«getDependenciesAll(parentJob, 'in',  ins,  0, OMPTaskMaxNumber)»«
+				                 getDependenciesAll(parentJob, 'out', outs, 0, OMPTaskMaxNumber)»
+				«ELSE»
+				// REFUSE TO LAUNCH NEASTED TASK HERE
+				«ENDIF»
+				«left.content» = «right.content»;
 			'''
-			endTASK()
+			if (!super_task) endTASK()
 			return ret
 		}
 		else
@@ -399,24 +425,33 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ins  = parentJob.getInVars  /* Need to be computed before, consumed */
 		val outs = parentJob.getOutVars /* Produced, unlock jobs that need them */
 		val out  = outs.head            /* Produced, unlock jobs that need them */
-		beginTASK(getAllOMPTasksAsCharSequence)
+		val super_task = (currentTASK !== null)
+		if (! super_task) beginTASK(getAllOMPTasksAsCharSequence)
+
 		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
+			«IF ! super_task»
 			«takeOMPTraces(ins, outs, null)»
 			#pragma omp task firstprivate(«result.name», «iterationBlock.nbElems»)«
 				getDependenciesAll(parentJob, 'in', ins, 0, OMPTaskMaxNumber)» depend(out: this->«out.name»)
+			«ELSE»
+			// REFUSE TO LAUNCH NEASTED TASK HERE
+			«ENDIF»
 			{
 			«iterationBlock.defineInterval('''
 			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
 				«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
 			''')»
 		'''
-		endTASK()
+
+		if (! super_task) endTASK()
 		return ret
 	}
 
 	protected override CharSequence getSequentialLoopContent(Loop it)
 	{
+		/* TODO: if inside a task and need a connectivity, use the «currentTask»
+		 * value to get the right thing. Also see if it's necessary */
 		val currentTask = getCurrentTASK()
 		val ret = '''
 		«IF currentTask !== null»
@@ -443,7 +478,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				addDataShift(item.id.itemName, item.value as ItemIdValueIterator)
 		]
 		val ret = '''
-		«launchTasks(OMPTaskMaxNumber) /* TODO: Add a way for a task to take care of multiple partitions. */»
+		«launchTasks»
 		'''
 		levelDEC();
 		return ret
@@ -507,13 +542,13 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
 	}
 
-	private def takeOMPTraces(IrAnnotable it, Set<Variable> ins, Set<Variable> outs, CharSequence partitionId)
-	{
+	private def takeOMPTraces(IrAnnotable it, Set<Variable> ins, Set<Variable> outs, CharSequence partitionId) {
 		if (OMPTraces) {
 			val parentJob = EcoreUtil2.getContainerOfType(it, Job)
-			if (partitionId !== null && it instanceof IterableInstruction) {
-				// Partial, a partition and the neighbors
-				val need_neighbors = (dataShift.size > 0) || (it as IterableInstruction).detectDependencies
+
+			// Partial, a partition and the neighbors
+			if (partitionId !== null && canDetectDependencies) {
+				val need_neighbors = (dataShift.size > 0) || detectDependencies
 				val ins_printf     = ins.map[printVariableRangeValue(partitionId, need_neighbors)].toList
 				val ins_fmt        = ins.map[printVariableRangeFmt(partitionId, need_neighbors)].toList
 				ins_printf.addAll(#["\"=>\"", "\"OUT\""]);
@@ -527,8 +562,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 					FOR v : ins_printf SEPARATOR ', '»«v»«ENDFOR»);
 				«ENDIF»
 				'''
-			} else if (partitionId === null) {
-				// All, all the partitions
+			}
+			
+			// All, all the partitions
+			else if (partitionId === null) {
 				val ins_printf = ins.map[printVariableRangeValue(null, false)].toList
 				val ins_fmt    = ins.map[printVariableRangeFmt(null, false)].toList
 				ins_printf.addAll(#["\"=>\"", "\"OUT\""]);
@@ -550,46 +587,74 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	/* Return a list of dependencies between potential partitions generated by a loop.
 	 * TODO: Generate the direction, to take only neighbors in that direction
 	 * and reduce dependencies, but for that OpenMP iterators need to work... */
-	private def detectDependencies(IterableInstruction it)
-	{
-		for (itblock : iteratorToIterable(eAllContents.filter(IterationBlock)))
-		{
-			val name = itblock.indexName.toString
+	private def detectDependencies(IterationBlock it) {
+		val name = indexName.toString
 
-			/* Cell => outer Cell */
-			if (name.contains("NeighborCells") || name.contains("NeighbourCells") || // In all directions
-				name.contains("TopCell") || name.contains("BottomCell") || name.contains("RightCell") || name.contains("LeftCell") // Do better with dir
-			) return true
+		/* Cell => outer Cell */
+		if (name.contains("NeighborCells") || name.contains("NeighbourCells") || // In all directions
+			name.contains("TopCell") || name.contains("BottomCell") || name.contains("RightCell") || name.contains("LeftCell") // Do better with dir
+		) return true
 
-			/* Node => outer Cell */
-			if (name.contains("CellsOfNode"))
-				return true
+		/* Node => outer Cell */
+		if (name.contains("CellsOfNode"))
+			return true
 
-			/* Cell => outer Face */
-			if (name.contains("FaceOfCell") || name.contains("FacesOfCell"))
-				return true
+		/* Cell => outer Face */
+		if (name.contains("FaceOfCell") || name.contains("FacesOfCell"))
+			return true
 
-			/* Face => outer Cell */
-			if (name.contains("CellsOfFaces") || name.contains("BackCell") || name.contains("FrontCell"))
-				return true
+		/* Face => outer Cell */
+		if (name.contains("CellsOfFaces") || name.contains("BackCell") || name.contains("FrontCell"))
+			return true
 
-			/* Cell => outer Node */
-			if (name.contains("NodesOfCell"))
-				return true
+		/* Cell => outer Node */
+		if (name.contains("NodesOfCell"))
+			return true
 
-			/* Face => outer Node */
-			if (name.contains("NodesOfFace") || name.contains("NodeOfFace"))
-				return true
-				
-			/* Face => outer Face */
-			if (name.contains("BottomFaceNeighbour") || name.contains("BottomLeftFaceNeighbour") || name.contains("BottomRightFaceNeighbour") ||
-				name.contains("TopFaceNeighbour")    || name.contains("TopLeftFaceNeighbour")    || name.contains("TopRightFaceNeighbour")    ||
-				name.contains("RightFaceNeighbour")  || name.contains("LeftFaceNeighbour")
-			)
+		/* Face => outer Node */
+		if (name.contains("NodesOfFace") || name.contains("NodeOfFace"))
+			return true
+			
+		/* Face => outer Face */
+		if (name.contains("BottomFaceNeighbour") || name.contains("BottomLeftFaceNeighbour") || name.contains("BottomRightFaceNeighbour") ||
+			name.contains("TopFaceNeighbour")    || name.contains("TopLeftFaceNeighbour")    || name.contains("TopRightFaceNeighbour")    ||
+			name.contains("RightFaceNeighbour")  || name.contains("LeftFaceNeighbour")
+		)
+			return true
+	 
+	 	return false
+	}
+	private def detectDependencies(IterableInstruction it) {
+		for (itblock : iteratorToIterable(eAllContents.filter(IterationBlock))) {
+			if (detectDependencies(itblock))
 				return true
 		}
 		return false
 	}
+	private def detectDependencies(InstructionBlock it) {
+		for (itblock : iteratorToIterable(eAllContents.filter(IterationBlock))) {
+			if (detectDependencies(itblock))
+				return true
+		}
+		return false
+	}
+	private def detectDependencies(IrAnnotable it) {
+		switch it {
+			IterationBlock:      return detectDependencies(it as IterationBlock)
+			IterableInstruction: return detectDependencies(it as IterableInstruction)
+			InstructionBlock:    return detectDependencies(it as InstructionBlock)
+			default:             return false
+		}
+	}
+	private def canDetectDependencies(IrAnnotable it) {
+		switch it {
+			IterationBlock:      return true
+			IterableInstruction: return true
+			InstructionBlock:    return true
+			default:             return false
+		}
+	}
+	
 	
 	/* TODO: Take into account which directions are used (to only pin 1 or 2
 	 * partitions, not all the neighbors). */
@@ -598,24 +663,30 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		
 		val parentJob      = EcoreUtil2.getContainerOfType(it, Job)
 		val need_neighbors = (dataShift.size > 0) || detectDependencies
-		beginTASK(partitionId)
+		val super_task     = (currentTASK !== null)
+		if (!super_task) beginTASK(partitionId)
+
 		val ret = '''
 		{
+			«IF ! super_task»
 			«takeOMPTraces(ins, outs, partitionId)»
-			#pragma omp task«
-			getDependencies(parentJob, 'in',  ins,  partitionId, need_neighbors) /* Consumed by the task */»«
-			getDependencies(parentJob, 'out', outs, partitionId, false)          /* Produced by the task */»
+			#pragma omp task«getDependencies(parentJob, 'in',  ins,  partitionId, need_neighbors)»«
+			                 getDependencies(parentJob, 'out', outs, partitionId, false)»
+			«ELSE»
+			// REFUSE TO LAUNCH NEASTED TASK HERE
+			«ENDIF»
 			for (const size_t «iterationBlock.indexName» : «getLoopRange(connectivityType, partitionId.toString)»)
 			{
 				«body.innerContent»
 			}
 		}
 		'''
-		endTASK()
+
+		if (!super_task) endTASK()
 		return ret
 	}
 	
-	private def launchTasks(Loop it, int taskN)
+	private def launchTasks(Loop it)
 	{
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
 		val ins       = parentJob.inVars  /* Need to be computed before, consumed. */
@@ -644,8 +715,11 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			
 			else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
 		}
+		val super_task = (currentTASK !== null)
 		'''
-			for (size_t task = 0; task < («taskN»); ++task)
+			«IF ! super_task»
+			for (size_t task = 0; task < («OMPTaskMaxNumber»); ++task)
+			«ENDIF»
 			«launchSingleTaskForPartition(it, '''task''', ins, outs)»
 		'''
 	}
