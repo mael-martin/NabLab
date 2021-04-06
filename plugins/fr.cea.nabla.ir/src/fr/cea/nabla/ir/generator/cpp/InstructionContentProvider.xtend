@@ -184,7 +184,7 @@ abstract class InstructionContentProvider
 	protected def dispatch getNbElems(Iterator it) { container.nbElemsVar }
 	protected def dispatch getNbElems(Interval it) { nbElems.content }
 
-	private def getSetDefinitionContent(String setName, ConnectivityCall call)
+	protected def getSetDefinitionContent(String setName, ConnectivityCall call)
 	'''
 		const auto «setName»(mesh->«call.accessor»);
 	'''
@@ -329,21 +329,14 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	
 	private def void levelINC() { counters.put("Level", counters.getOrDefault('Level', 0) + 1) }
 	private def void levelDEC() { counters.put("Level", Math::max(counters.get('Level') - 1, 0)) }
-
-	private def void endTASK() { counters.put("Task", 0) }
+	private def void endTASK()  { counters.put("Task", 0) }
 	private def void beginTASK(CharSequence taskId) {
 		counters.put("Task", 1)
 		auxString.put("TaskId", taskId)
 	}
 	
 	private def int getCurrentLevel() { return counters.getOrDefault('Level', 0); }
-	private def CharSequence getCurrentTASK() 
-	{
-		if (counters.getOrDefault('Task', 0) == 1) {
-			return auxString.get('TaskId')
-		} else
-			return null
-	}
+	private def CharSequence getCurrentTASK() { return (counters.getOrDefault('Task', 0) == 1) ? auxString.get('TaskId') : null }
 	private def getChildTasks(InstructionBlock it) { return eAllContents.filter(Loop).filter[multithreadable].size + eAllContents.filter(ReductionInstruction).size }
 	private def isInsideAJob(IrAnnotable it) {
 		return (null !== EcoreUtil2.getContainerOfType(it, Job)) &&
@@ -693,4 +686,38 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			«launchSingleTaskForPartition(it, '''task''', ins, outs)»
 		'''
 	}
+	
+	private def autoDetectConnectivity(String itemname)
+	{
+		if      (itemname.contains("Cells") || itemname.contains("cells")) { return "Cell" }
+		else if (itemname.contains("Nodes") || itemname.contains("nodes")) { return "Node" }
+		else if (itemname.contains("Faces") || itemname.contains("faces")) { return "Face"; }
+		else { throw new Exception("Unknown iterator " + itemname + ", could not auto detect dataConnectivity for " + itemname) }
+	}
+	
+	override dispatch CharSequence getContent(ItemIdDefinition it)
+	{
+		val itemnames = EcoreUtil2.getContainerOfType(it, Job).eAllContents.filter(ItemIndexDefinition)
+		                .filter[t|t.index.itemName == id.itemName].toList
+		val item = itemnames.size > 0 ? autoDetectConnectivity(itemnames.head.index.name) : null
+		if (item === null)
+		'''
+			const Id «id.name» = «value.content»; // Id of the element, don't need to get the partition
+		'''
+		else
+		'''
+			const Id «id.name»          = «value.content»; // Id of the element
+			const Id «id.name»Partition = mesh->getPartitionOf«item»(«value.content»); // Partition of the element
+		'''
+	}
+
+	override dispatch CharSequence getContent(ItemIndexDefinition it)
+	'''
+		const size_t «index.name» = «value.content»;
+	'''
+
+	override getSetDefinitionContent(String setName, ConnectivityCall call)
+	'''
+		const auto «setName» = mesh->«call.accessor»;
+	'''
 }
