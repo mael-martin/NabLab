@@ -242,13 +242,18 @@ public:
     size_t NEIGHBOR_getNumberForPartition(size_t partition) const noexcept;
     size_t NEIGHBOR_getForPartition(size_t partition, size_t neighbor_index) const noexcept;
 
-    inline auto RANGE_cellsFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_cells.at(partition); }
-    inline auto RANGE_nodesFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_nodes.at(partition); }
-    inline auto RANGE_facesFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_faces.at(partition); }
+    inline size_t getPartitionOfNode(It node) const noexcept { return m_nodes_to_partitions[node]; }
+    inline size_t getPartitionOfCell(It cell) const noexcept { return m_cells_to_partitions[cell]; }
+    inline size_t getPartitionOfFace(It face) const noexcept { return m_faces_to_partitions[face]; }
 
 #define ___DEFINE_RANGE_FOR_SIDE(what, Type, type) \
     inline const vector<Id>& RANGE_##what##Type##FromPartition(const size_t partition) const noexcept \
     { return m_partitions_##what##_##type.at(partition); }
+
+    inline auto RANGE_cellsFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_cells.at(partition); }
+    inline auto RANGE_nodesFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_nodes.at(partition); }
+    inline auto RANGE_facesFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_faces.at(partition); }
+
     ___DEFINE_RANGE_FOR_SIDE(top,       Nodes, nodes)
     ___DEFINE_RANGE_FOR_SIDE(bottom,    Nodes, nodes)
     ___DEFINE_RANGE_FOR_SIDE(left,      Nodes, nodes)
@@ -359,6 +364,11 @@ private:
     map<Id, vector<Id>> m_partitions_outer_faces;
     map<Id, vector<Id>> m_partitions_innerVertical_faces;
     map<Id, vector<Id>> m_partitions_innerHorizontal_faces;
+
+    /* For reverse operations */
+    vector<Id> m_cells_to_partitions;
+    vector<Id> m_nodes_to_partitions;
+    vector<Id> m_faces_to_partitions;
 
     /* Neighbors for partitions */
     vector<vector<Id>> m_partitions_neighbors;

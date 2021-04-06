@@ -621,6 +621,10 @@ namespace nablalib::mesh
 
         std::cout << "Edge cut is: " << objval << "\n";
 
+        m_cells_to_partitions.resize(getNbNodes());
+        m_nodes_to_partitions.resize(getNbCells());
+        m_faces_to_partitions.resize(getNbFaces());
+
         for (idx_t i = 0; i < matrix.xadj_len; ++i) {
             m_partitions_cells[metis_partition_cell[i]].emplace_back(i);
 
@@ -635,6 +639,21 @@ namespace nablalib::mesh
             m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[1]);
             m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[2]);
             m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[3]);
+
+            /* Add in revere links.
+             * FIXME: What to do if a node is in multiple partitions? */
+
+            m_cells_to_partitions[i] = metis_partition_cell[i];
+
+            m_nodes_to_partitions[nodes[0]] = metis_partition_cell[i];
+            m_nodes_to_partitions[nodes[1]] = metis_partition_cell[i];
+            m_nodes_to_partitions[nodes[2]] = metis_partition_cell[i];
+            m_nodes_to_partitions[nodes[3]] = metis_partition_cell[i];
+
+            m_faces_to_partitions[faces[0]] = metis_partition_cell[i];
+            m_faces_to_partitions[faces[1]] = metis_partition_cell[i];
+            m_faces_to_partitions[faces[2]] = metis_partition_cell[i];
+            m_faces_to_partitions[faces[3]] = metis_partition_cell[i];
         }
 
         CSR_Matrix::free(matrix);
