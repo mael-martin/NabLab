@@ -31,6 +31,19 @@ abstract class TypeContentProvider
 	protected abstract def CharSequence getCppType(BaseType baseType, Iterable<Connectivity> connectivities)
 	protected abstract def CharSequence getCstrInit(String name, BaseType baseType, Iterable<Connectivity> connectivities)
 	protected abstract def CharSequence formatIterators(ConnectivityType type, Iterable<String> iterators)
+	
+	def getCppTypeCanBePartitionized(IrType it)
+	{
+		switch it
+		{
+			case null: false
+			BaseType case sizes.empty: false
+			BaseType: true
+			ConnectivityType: true
+			LinearAlgebraType: false
+			default: throw new RuntimeException("Unexpected type: " + class.name)
+		}
+	}
 
 	def getCppType(IrType it)
 	{

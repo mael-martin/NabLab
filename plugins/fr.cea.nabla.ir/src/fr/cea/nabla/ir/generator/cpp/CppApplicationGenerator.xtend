@@ -39,6 +39,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 {
 	val String levelDBPath
 	val cMakeVars = new LinkedHashSet<Pair<String, String>>
+	public static var boolean createPartitions = false
 
 	new(Backend backend, String wsPath, String levelDBPath, Iterable<Pair<String, String>> cMakeVars)
 	{
@@ -97,6 +98,20 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDFOR»
 	}
 	«ENDIF»
+	«IF createPartitions»
+
+	/******************** Partition declaration ********************/
+	
+	struct «className»Partition
+	{
+		const size_t ___partition_id; /* For debug */
+		
+		/* Global variables that must be placed inside partitions from the «className» class */
+		«FOR v : variables.filter[!option].filter[t|typeContentProvider.getCppTypeCanBePartitionized(t.type)]»
+			«v.variableDeclaration»
+		«ENDFOR»
+	};
+	«ENDIF»
 
 	/******************** Module declaration ********************/
 
@@ -122,7 +137,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		};
 
 		«className»(«meshClassName»* aMesh, Options& aOptions);
-		~«className»();
+		~«className»() = default;
 		«IF main»
 			«IF irRoot.modules.size > 1»
 
@@ -189,14 +204,35 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		Timer ioTimer;
 
 	public:
-		// Global variables
-		«FOR v : variables.filter[!option]»
-			«v.variableDeclaration»
-		«ENDFOR»
+		«globalVariableDeclarations»
 	};
 
 	#endif
 	'''
+	
+	/* Get the global variables that will be used in the compute methods */
+	private def getGlobalVariableDeclarations(IrModule it)
+	{
+		if (createPartitions)
+		'''
+			// Global not partitionable variables
+			«FOR v : variables.filter[!option].filter[t|!typeContentProvider.getCppTypeCanBePartitionized(t.type)]»
+				«v.variableDeclaration»
+			«ENDFOR»
+
+			// Partitions for variables that can be partitionized
+			std::vector<«className»Partition> partitions;
+		'''
+		
+		else
+		'''
+			// Global variables
+			«FOR v : variables.filter[!option]»
+				«v.variableDeclaration»
+			«ENDFOR»
+		'''
+		
+	}
 
 	private def getSourceFileContent(IrModule it)
 	'''
@@ -281,36 +317,59 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDFOR»
 	, options(aOptions)
 	«IF postProcessing !== null», writer("«irRoot.name»", options.«Utils.OutputPathNameAndValue.key»)«ENDIF»
-	«FOR v : variablesWithDefaultValue.filter[x | !x.constExpr]»
-	, «v.name»(«expressionContentProvider.getContent(v.defaultValue)»)
-	«ENDFOR»
-	«FOR v : variables.filter[needStaticAllocation]»
-	, «v.name»(«typeContentProvider.getCstrInit(v.type, v.name)»)
-	«ENDFOR»
+	«IF ! createPartitions»
+		«FOR v : variablesWithDefaultValue.filter[x | !x.constExpr]»
+		, «v.name»(«expressionContentProvider.getContent(v.defaultValue)»)
+		«ENDFOR»
+		«FOR v : variables.filter[needStaticAllocation]»
+		, «v.name»(«typeContentProvider.getCstrInit(v.type, v.name)»)
+		«ENDFOR»
+	«ELSE»
+		, partitions(«meshClassName»::getPartitionNumber())
+	«ENDIF»
 	{
 		«val dynamicArrayVariables = variables.filter[needDynamicAllocation]»
 		«IF !dynamicArrayVariables.empty»
 			// Allocate dynamic arrays (RealArrays with at least a dynamic dimension)
+			#error "Not handled for the moment (OMP Task Backend)"
 			«FOR v : dynamicArrayVariables»
 				«typeContentProvider.initCppTypeContent(v.name, v.type)»
 			«ENDFOR»
 
 		«ENDIF»
 		«IF main»
-		// Copy node coordinates
 		const auto& gNodes = mesh->getGeometry()->getNodes();
-		«val iterator = backend.typeContentProvider.formatIterators(irRoot.initNodeCoordVariable.type as ConnectivityType, #["rNodes"])»
-		for (size_t rNodes=0; rNodes<nbNodes; rNodes++)
-		{
-			«irRoot.initNodeCoordVariable.name»«iterator»[0] = gNodes[rNodes][0];
-			«irRoot.initNodeCoordVariable.name»«iterator»[1] = gNodes[rNodes][1];
-		}
+		«IF createPartitions /* FIXME */»
+			// FIXME: first touch for NUMA effects
+			«val iterator = backend.typeContentProvider.formatIterators(irRoot.initNodeCoordVariable.type as ConnectivityType, #["rNodes"])»
+			for (size_t part = 0; part < «OMPTaskMaxNumber»; ++part)
+			{
+				«FOR v : variablesWithDefaultValue.filter[x | !x.constExpr]»
+				partitions[part].«v.name» = «typeContentProvider.getCppType(v.type)»(«expressionContentProvider.getContent(v.defaultValue)»);
+				«ENDFOR»
+				«FOR v : variables.filter[needStaticAllocation]»
+				partitions[part].«v.name» = «typeContentProvider.getCppType(v.type)»(«typeContentProvider.getCstrInit(v.type, v.name)»);
+				«ENDFOR»
+				
+				// Copy node coordinates
+				for (const size_t rNodes : mesh->RANGE_nodesFromPartition(part))
+				{
+					partitions[part].«irRoot.initNodeCoordVariable.name»«iterator»[0] = gNodes[rNodes][0];
+					partitions[part].«irRoot.initNodeCoordVariable.name»«iterator»[1] = gNodes[rNodes][1];
+				}
+			}
+		«ELSE»
+			// Copy node coordinates
+			«val iterator = backend.typeContentProvider.formatIterators(irRoot.initNodeCoordVariable.type as ConnectivityType, #["rNodes"])»
+			for (size_t rNodes=0; rNodes<nbNodes; rNodes++)
+			{
+				«irRoot.initNodeCoordVariable.name»«iterator»[0] = gNodes[rNodes][0];
+				«irRoot.initNodeCoordVariable.name»«iterator»[1] = gNodes[rNodes][1];
+			}
+			«ENDIF»
 		«ENDIF»
 	}
 
-	«className»::~«className»()
-	{
-	}
 	«IF kokkosTeamThread»
 
 	const std::pair<size_t, size_t> «className»::computeTeamWorkRange(const member_type& thread, const size_t& nb_elmt) noexcept

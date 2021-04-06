@@ -140,6 +140,7 @@ class OpenMpTaskBackend extends Backend
 	{
 		OMPTraces = false
 		OMPTaskMaxNumber = 4
+		CppApplicationGenerator::createPartitions = true
 		name = 'OpenMPTask'
 		cmakeContentProvider = new OpenMpCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
