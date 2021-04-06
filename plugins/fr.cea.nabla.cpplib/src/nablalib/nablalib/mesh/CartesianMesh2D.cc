@@ -12,6 +12,13 @@
 #include <sstream>
 #include <cassert>
 
+template<typename T> static inline void
+vector_uniq(vector<T> &vec)
+{
+    std::sort(vec.begin(), vec.end());
+    vec.resize(distance(vec.begin(), unique(vec.begin(), vec.end())));
+}
+
 namespace nablalib::mesh
 {
 
@@ -671,7 +678,7 @@ namespace nablalib::mesh
                 ___CHECK_NEIGHBOR_CELL(WEST);
             }
 
-            utils::vector_uniq(m_partitions_neighbors[i]);
+            vector_uniq(m_partitions_neighbors[i]);
         }
 
         #undef ___CHECK_NEIGHBOR_CELL
@@ -697,8 +704,8 @@ namespace nablalib::mesh
         /* Quick and dirty parallelisation for independent loop's body */
         #pragma omp parallel for
         for (size_t i = 0; i < CartesianMesh2D::PartitionNumber; ++i) {
-            utils::vector_uniq(m_partitions_nodes[i]);
-            utils::vector_uniq(m_partitions_faces[i]);
+            vector_uniq(m_partitions_nodes[i]);
+            vector_uniq(m_partitions_faces[i]);
             ___POPULATE_PARTITIONS(cells, top,    TopCells);
             ___POPULATE_PARTITIONS(cells, bottom, BottomCells);
             ___POPULATE_PARTITIONS(cells, left,   LeftCells);

@@ -33,28 +33,6 @@
  *   0----1----2----3----4
  */
 
-/* Math namespace */
-namespace nablalib::mesh::math
-{
-static inline constexpr std::size_t
-isqrt_impl(std::size_t sq, std::size_t dlt, std::size_t value)
-{
-    return sq <= value ? isqrt_impl(sq+dlt, dlt+2, value) : (dlt >> 1) - 1;
-}
-static inline constexpr std::size_t isqrt(std::size_t value) { return isqrt_impl(1, 3, value); }
-template<typename T> static inline T min(const T a, const T b) { return a < b ? a : b; }
-}
-
-namespace nablalib::utils
-{
-template<typename T> static inline void
-vector_uniq(vector<T> &vec)
-{
-    std::sort(vec.begin(), vec.end());
-    vec.resize(distance(vec.begin(), unique(vec.begin(), vec.end())));
-}
-}
-
 using namespace std;
 
 /* Mesh namespace */
