@@ -20,14 +20,14 @@ class CartesianMesh2D;
 class CartesianMesh2DFactory
 {
 public:
-	void jsonInit(const char* jsonContent);
-	CartesianMesh2D* create();
+    void jsonInit(const char* jsonContent);
+    CartesianMesh2D* create();
 
-public: /*easy to get, this is ugly*/
-	size_t nbXQuads;
-	size_t nbYQuads;
-	double xSize;
-	double ySize;
+private:
+    size_t nbXQuads;
+    size_t nbYQuads;
+    double xSize;
+    double ySize;
 };
 
 }

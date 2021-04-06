@@ -225,14 +225,14 @@ class CppGeneratorUtils
 			return '''«FOR i : iterator SEPARATOR ', '»«getVariableRange('''«i»''')»«ENDFOR»'''
 	}
 	
-	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''___partition->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
+	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''mesh->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
 	static def getVariableRange(Variable it, CharSequence taskCurrent)
 	{
 		val type = (it as ArgOrVar).type;
 		switch (type) {
 			ConnectivityType: {
 				val connectivites = (type as ConnectivityType).connectivities.map[name].head;
-				return '''___partition->PIN_«connectivites»FromPartition(«taskCurrent»)'''
+				return '''mesh->PIN_«connectivites»FromPartition(«taskCurrent»)'''
 			}
 			LinearAlgebraType: return '''''' /* This is an opaque type, don't know what to do with it */
 			BaseType: return '''''' /* An integer, etc => the name is the dependency */
@@ -254,6 +254,6 @@ class CppGeneratorUtils
 	}
 	static def getSharedVarsClause(Job it) {
 		val shared = sharedVars
-		'''default(none) shared(stderr, ___partition«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v.variableName»«ENDFOR»«ENDIF»)'''
+		'''default(none) shared(stderr, mesh«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v.variableName»«ENDFOR»«ENDIF»)'''
 	}
 }

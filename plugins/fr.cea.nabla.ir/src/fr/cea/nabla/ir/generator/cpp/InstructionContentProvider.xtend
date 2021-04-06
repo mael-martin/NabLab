@@ -38,6 +38,7 @@ import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.IrAnnotable
 import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.Function
+import fr.cea.nabla.ir.ir.ArgOrVarRef
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.ContainerExtensions.*

@@ -67,10 +67,10 @@ CartesianMesh2DFactory::create()
     vector<Id> left_node_ids_(nbYQuads + 1);
     vector<Id> right_node_ids_(nbYQuads + 1);
 
-  size_t nb_inner_cells(nbXQuads>1&&nbYQuads>1?(nbXQuads-2)*(nbYQuads-2):0);  // 0 for mesh with only 1 cell
-  size_t nb_outer_cells(nbXQuads * nbYQuads - nb_inner_cells);
-  vector<Id> inner_cells_ids_(nb_inner_cells);
-  vector<Id> outer_cells_ids_(nb_outer_cells);
+    size_t nb_inner_cells((nbXQuads>1&&nbYQuads>1) ? (nbXQuads-2)*(nbYQuads-2) : 0); // 0 for mesh with only 1 cell
+    size_t nb_outer_cells(nbXQuads * nbYQuads - nb_inner_cells);
+    vector<Id> inner_cells_ids_(nb_inner_cells);
+    vector<Id> outer_cells_ids_(nb_outer_cells);
 
     // node creation
     Id node_id_(0);
@@ -89,16 +89,15 @@ CartesianMesh2DFactory::create()
             nodes_[node_id_] = RealArray1D<2>{{xSize * i, ySize * j}};
             if (i!=0 && j!=0 && i!=nbXQuads && j!=nbYQuads)
                 inner_node_ids_[inner_node_id_++] = node_id_;
-            else
-            {
-                if (j==0) bottom_node_ids_[bottom_node_id_++] = node_id_;
-                if (j==nbYQuads) top_node_ids_[top_node_id_++] = node_id_;
-                if (i==0) left_node_ids_[left_node_id_++] = node_id_;
-                if (i==nbXQuads) right_node_ids_[right_node_id_++] = node_id_;
-                if (i==0 && j==0) bottom_left_node_id_ = node_id_;
-                if (i==nbXQuads && j==0) bottom_right_node_id_ = node_id_;
-                if (i==0 && j==nbYQuads) top_left_node_id_ = node_id_;
-                if (i==nbXQuads && j==nbYQuads) top_right_node_id_ = node_id_;
+            else {
+                if (j==0)                       bottom_node_ids_[bottom_node_id_++] = node_id_;
+                if (j==nbYQuads)                top_node_ids_[top_node_id_++]       = node_id_;
+                if (i==0)                       left_node_ids_[left_node_id_++]     = node_id_;
+                if (i==nbXQuads)                right_node_ids_[right_node_id_++]   = node_id_;
+                if (i==0 && j==0)               bottom_left_node_id_                = node_id_;
+                if (i==nbXQuads && j==0)        bottom_right_node_id_               = node_id_;
+                if (i==0 && j==nbYQuads)        top_left_node_id_                   = node_id_;
+                if (i==nbXQuads && j==nbYQuads) top_right_node_id_                  = node_id_;
             }
             ++node_id_;
         }
@@ -139,11 +138,12 @@ CartesianMesh2DFactory::create()
 
     auto mesh_geometry = new MeshGeometry<2>(nodes_, edges_, quads_);
     return new CartesianMesh2D(mesh_geometry, inner_node_ids_,
-                                 top_node_ids_, bottom_node_ids_,
-                                 left_node_ids_, right_node_ids_,
-                                 top_left_node_id_, top_right_node_id_,
-                                 bottom_left_node_id_, bottom_right_node_id_,
-                     inner_cells_ids_, outer_cells_ids_);
+                               top_node_ids_, bottom_node_ids_,
+                               left_node_ids_, right_node_ids_,
+                               top_left_node_id_, top_right_node_id_,
+                               bottom_left_node_id_, bottom_right_node_id_,
+                               inner_cells_ids_, outer_cells_ids_,
+                               nbXQuads, nbYQuads);
 }
 
 }

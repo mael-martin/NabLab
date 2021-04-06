@@ -54,8 +54,8 @@ class MainContentProvider
 			d["mesh"].Accept(writer);
 			meshFactory.jsonInit(strbuf.GetString());
 		}
-		«meshClassName»* mesh = meshFactory.create();
 		«getPartitionCreation()»
+		«meshClassName»* mesh = meshFactory.create();
 
 		// Module instanciation(s)
 		«FOR m : irRoot.modules»
@@ -115,14 +115,11 @@ class OpenMpTaskMainContentProvider extends MainContentProvider
 	override protected getPartitionCreation(IrModule it)
 	'''
 		/* Global variable for the partitions */
-		CartesianPartition2D<«OMPTaskMaxNumber», «OMPTaskMaxNumber»>::setMaxDataShift(«eAllContents.filter(ItemIdValueIterator).map[shift].max»);
-		___partition = new CartesianPartition2D<«OMPTaskMaxNumber», «OMPTaskMaxNumber»>(meshFactory.nbXQuads, meshFactory.nbYQuads, mesh);
+		CartesianMesh2D::setPartitionNumber(«OMPTaskMaxNumber»);
+		CartesianMesh2D::setMaxDataShift(«eAllContents.filter(ItemIdValueIterator).map[shift].max»);
 	'''
 	
-	override protected getPartitionDestruction(IrModule it)
-	'''
-		delete ___partition;
-	'''
+	override protected getPartitionDestruction(IrModule it) ''''''
 
 	override protected getSimulationCall(IrModule it)
 	'''
