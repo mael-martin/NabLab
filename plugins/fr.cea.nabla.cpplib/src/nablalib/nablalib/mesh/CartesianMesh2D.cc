@@ -50,10 +50,11 @@ namespace nablalib::mesh
           , m_problem_x(problem_x)
           , m_problem_y(problem_y)
     {
-        if (CartesianMesh2D::PartitionNumber == 0)
-            abort();
-        if ((math::min<uint64_t>(problem_x, problem_x) / CartesianMesh2D::PartitionNumber) <= MAX_SHIFT)
-            abort();
+        if (CartesianMesh2D::PartitionNumber != 0) {
+            /* Care aboit the partitions here */
+            if ((math::min<uint64_t>(problem_x, problem_x) / CartesianMesh2D::PartitionNumber) <= MAX_SHIFT)
+                abort();
+        }
 
         // faces partitionment
         const auto& edges = m_geometry->getEdges();
@@ -98,11 +99,13 @@ namespace nablalib::mesh
             if (j == m_nb_x_quads - 1) m_right_cells.emplace_back(cellId);
         }
 
-        /* Create the partitions */
-        idx_t *metis_partition_cell = createPartitions();
-        computePartialPartitions();
-        computeNeighborPartitions(metis_partition_cell);
-        printPartialPartitions();
+        if (CartesianMesh2D::PartitionNumber != 0) {
+            /* Create the partitions because we care about them here */
+            idx_t *metis_partition_cell = createPartitions();
+            computePartialPartitions();
+            computeNeighborPartitions(metis_partition_cell);
+            printPartialPartitions();
+        }
     }
 
     const array<Id, 4>&

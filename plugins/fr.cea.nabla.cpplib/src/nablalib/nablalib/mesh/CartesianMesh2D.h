@@ -228,13 +228,16 @@ public:
     Id PIN_facesFromPartition(size_t partition, size_t neighbor_index) const noexcept;
 
     /* HOWTO:
-     * #pragma omp task                                                                             \
-     *     depend(iterator(neighbor_index=0:___partition->NEIGHBOR_getNumberForPartition(task)),    \
-     *            in: this->F[___partition->PIN_cellsFromPartition(task, neighbor_index)])          \
-     *     ... ... ...                                                                              \
-     *     depend(out: this->uj_nplus1[___partition->PIN_cellsFromPartition(task)])
+     * #pragma omp task                                                                     \
+     *     depend(iterator(neighbor_index=0:mesh->NEIGHBOR_getNumberForPartition(task)),    \
+     *            in: this->partitions[neighbor_index].F)                                   \
+     *     ... ... ...                                                                      \
+     *     depend(out: this->uj_nplus1)
      * { ... }
-     * NOTE: the neighbor_index 0 is always the partition itself.
+     * NOTE:
+     * - the neighbor_index 0 is always the partition itself.
+     * - this->partition[idx].var_name  <- partitioned variable.
+     * - this->var_name                 <- unpartitioned variable.
      */
     size_t NEIGHBOR_getNumberForPartition(size_t partition) const noexcept;
     size_t NEIGHBOR_getForPartition(size_t partition, size_t neighbor_index) const noexcept;
