@@ -138,7 +138,7 @@ class OpenMpTaskBackend extends Backend
 {
 	new()
 	{
-		OMPTraces = true
+		OMPTraces = false
 		OMPTaskMaxNumber = 4
 		name = 'OpenMPTask'
 		cmakeContentProvider = new OpenMpCMakeContentProvider

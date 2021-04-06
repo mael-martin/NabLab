@@ -354,6 +354,9 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		levelINC();
 		val launch_super_task = (insideAJob && (currentLevel == 1) && (childTasks > 1))
 		if (launch_super_task) { beginTASK('''task'''); }
+		val isReduction = (instructions.size == 2) &&
+		                  (instructions.toList.head instanceof ReductionInstruction) &&
+		                  (instructions.toList.last instanceof Affectation)
 
 		val ret = '''
 		«IF launch_super_task»
@@ -369,9 +372,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		{ // BEGIN OF SUPER TASK
 		«takeOMPTraces(ins, outs, '''task''', need_neighbors)»
 		«ENDIF»
-		«val isReduction = (instructions.size == 2) &&
-		                   (instructions.toList.head instanceof ReductionInstruction) &&
-		                   (instructions.toList.last instanceof Affectation)»
 		«FOR i : instructions»
 		«i.content»
 		«ENDFOR»
@@ -401,6 +401,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			val outs = parentJob.outVars
 			val super_task = (currentTASK !== null)
 			if (!super_task) beginTASK(getAllOMPTasksAsCharSequence)
+
 			val ret = '''
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
@@ -462,11 +463,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	{
 		/* TODO: if inside a task and need a connectivity, use the «currentTask»
 		 * value to get the right thing. Also see if it's necessary */
-		val currentTask = getCurrentTASK()
 		val ret = '''
-		«IF currentTask !== null»
-		// INSIDE TASK, id will be stored in '«currentTask»' at run time
-		«ENDIF»
 		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
 		{
 			«body.innerContent»
@@ -622,7 +619,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			default:             return false
 		}
 	}
-	
 	
 	/* TODO: Take into account which directions are used (to only pin 1 or 2
 	 * partitions, not all the neighbors). */
