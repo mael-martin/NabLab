@@ -83,6 +83,7 @@ public:
     /* For the partitions, set before calling the construcor */
     static void setPartitionNumber(size_t num)      noexcept { PartitionNumber = num; }
     static void setMaxDataShift(uint32_t max_shift) noexcept { MAX_SHIFT = max_shift; }
+    static void getPartitionNumber() noexcept { return PartitionNumber; }
 
     CartesianMesh2D(MeshGeometry<2>* geometry, const vector<Id>& inner_nodes_ids,
                   const vector<Id>& top_nodes_ids, const vector<Id>& bottom_nodes_ids,
@@ -236,6 +237,7 @@ public:
      * NOTE: the neighbor_index 0 is always the partition itself.
      */
     size_t NEIGHBOR_getNumberForPartition(size_t partition) const noexcept;
+    size_t NEIGHBOR_getForPartition(size_t partition, size_t neighbor_index) const noexcept;
 
     inline auto RANGE_cellsFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_cells.at(partition); }
     inline auto RANGE_nodesFromPartition(const size_t partition) const noexcept -> const vector<Id>& { return m_partitions_nodes.at(partition); }

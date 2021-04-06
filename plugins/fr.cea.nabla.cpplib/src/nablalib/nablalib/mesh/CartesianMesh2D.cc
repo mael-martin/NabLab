@@ -794,9 +794,7 @@ namespace nablalib::mesh
     Id
     CartesianMesh2D::PIN_cellsFromPartition(size_t partition, size_t neighbor_index) const noexcept
     {
-        ___SANITIZE_PARTITION_INDEX(partition);
-        ___SANITIZE_NEIGHBOR_INDEX(partition, neighbor_index);
-        size_t neighbor_partition = m_partitions_neighbors.at(partition).at(neighbor_index);
+        size_t neighbor_partition = NEIGHBOR_getForPartition(partition, neighbor_partition);
         ___SANITIZE_PARTITION_INDEX(neighbor_partition);
         return m_partitions_cells.at(neighbor_index)[0];
     }
@@ -804,9 +802,7 @@ namespace nablalib::mesh
     Id
     CartesianMesh2D::PIN_nodesFromPartition(size_t partition, size_t neighbor_index) const noexcept
     {
-        ___SANITIZE_PARTITION_INDEX(partition);
-        ___SANITIZE_NEIGHBOR_INDEX(partition, neighbor_index);
-        size_t neighbor_partition = m_partitions_neighbors.at(partition).at(neighbor_index);
+        size_t neighbor_partition = NEIGHBOR_getForPartition(partition, neighbor_partition);
         ___SANITIZE_PARTITION_INDEX(neighbor_partition);
         return PIN_nodesFromCells(PIN_cellsFromPartition(neighbor_partition));
     }
@@ -814,9 +810,7 @@ namespace nablalib::mesh
     Id
     CartesianMesh2D::PIN_facesFromPartition(size_t partition, size_t neighbor_index) const noexcept
     {
-        ___SANITIZE_PARTITION_INDEX(partition);
-        ___SANITIZE_NEIGHBOR_INDEX(partition, neighbor_index);
-        size_t neighbor_partition = m_partitions_neighbors.at(partition).at(neighbor_index);
+        size_t neighbor_partition = NEIGHBOR_getForPartition(partition, neighbor_partition);
         ___SANITIZE_PARTITION_INDEX(neighbor_partition);
         return PIN_facesFromCells(PIN_cellsFromPartition(neighbor_partition));
     }
@@ -826,6 +820,14 @@ namespace nablalib::mesh
     {
         ___SANITIZE_PARTITION_INDEX(partition);
         return m_partitions_neighbors.at(partition).size();
+    }
+
+    size_t
+    CartesianMesh2D::NEIGHBOR_getForPartition(size_t partition, size_t neighbor_index) const noexcept
+    {
+        ___SANITIZE_PARTITION_INDEX(partition);
+        ___SANITIZE_NEIGHBOR_INDEX(partition, neighbor_index);
+        return m_partitions_neighbors.at(partition).at(neighbor_index);
     }
 #undef ___SANITIZE_PARTITION_INDEX
 
