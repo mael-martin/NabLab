@@ -702,13 +702,15 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val item = itemnames.size > 0 ? autoDetectConnectivity(itemnames.head.index.name) : null
 		if (item === null)
 		'''
-			const Id «id.name» = «value.content»; // Id of the element, don't need to get the partition
+			const Id «id.name» = «value.content»;
 		'''
-		else
+		else {
+			OpenMpTaskExpressionContentProvider::registerPartitionIdForIndexType(item.toUpperCase + "S", id.name + "Partition")
 		'''
-			const Id «id.name»          = «value.content»; // Id of the element
-			const Id «id.name»Partition = mesh->getPartitionOf«item»(«value.content»); // Partition of the element
+			const Id «id.name»          = «value.content»;
+			const Id «id.name»Partition = mesh->getPartitionOf«item»(«value.content»); // Indexes on «item.toUpperCase»S => partition «id.name»Partition
 		'''
+		}
 	}
 
 	override dispatch CharSequence getContent(ItemIndexDefinition it)

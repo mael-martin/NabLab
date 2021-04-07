@@ -26,14 +26,14 @@ import fr.cea.nabla.ir.ir.PrimitiveType
 import fr.cea.nabla.ir.ir.RealConstant
 import fr.cea.nabla.ir.ir.UnaryExpression
 import fr.cea.nabla.ir.ir.VectorConstant
-import org.eclipse.xtend.lib.annotations.Data
-
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.IrTypeExtensions.*
 import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+import org.eclipse.xtend.lib.annotations.Data
+import java.util.HashMap
 
 @Data
 class ExpressionContentProvider
@@ -170,6 +170,12 @@ class ExpressionContentProvider
 class OpenMpTaskExpressionContentProvider extends ExpressionContentProvider
 {
 	val extension TypeContentProvider typeContentProvider = super.typeContentProvider
+	
+	static val HashMap<String, String> IndexTypeToIdPartition = new HashMap();
+	static def void registerPartitionIdForIndexType(String INDEX_TYPE, String partitionId)
+	{
+		IndexTypeToIdPartition.put(INDEX_TYPE, partitionId)
+	}
 
 	override dispatch CharSequence getContent(ArgOrVarRef it)
 	{
@@ -181,9 +187,8 @@ class OpenMpTaskExpressionContentProvider extends ExpressionContentProvider
 
 	override CharSequence getCodeName(ArgOrVarRef it)
 	{
-		val partition_prefix = '''/*partition_prefix for '«target.codeName»[«getGlobalVariableType(target.codeName)»]'*/'''
-		
 		val index_type = getGlobalVariableType(target.codeName);
+		val partition_prefix = '''partitions[«IndexTypeToIdPartition.get(index_type.toString)»].'''
 		if (index_type == INDEX_TYPE::NULL) {
 			super.getCodeName(it)
 		}
