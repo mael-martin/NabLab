@@ -152,7 +152,7 @@ class OpenMpTaskBackend extends Backend
 		includesContentProvider = new OpenMpIncludesContentProvider
 		jsonContentProvider = new JsonContentProvider(expressionContentProvider)
 		jobCallerContentProvider = new OpenMpTaskJobCallerContentProvider
-		jobContentProvider = new OpenMpTaskJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
+		jobContentProvider = new OpenMpTaskJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider, typeContentProvider)
 		mainContentProvider = new OpenMpTaskMainContentProvider(jsonContentProvider)
 		registerTypeContentProvider(typeContentProvider)
 	}

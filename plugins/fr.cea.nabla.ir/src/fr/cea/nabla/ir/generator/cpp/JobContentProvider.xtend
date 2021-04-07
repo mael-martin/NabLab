@@ -9,6 +9,13 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
+import static extension fr.cea.nabla.ir.IrModuleExtensions.*
+import static extension fr.cea.nabla.ir.JobCallerExtensions.*
+import static extension fr.cea.nabla.ir.JobExtensions.*
+import static extension fr.cea.nabla.ir.Utils.*
+import static extension fr.cea.nabla.ir.generator.Utils.*
+import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+
 import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
@@ -17,16 +24,10 @@ import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.TimeLoopCopy
 import fr.cea.nabla.ir.ir.TimeLoopJob
+import org.eclipse.xtend.lib.annotations.Data
 import java.util.ArrayList
 import java.util.List
-import org.eclipse.xtend.lib.annotations.Data
-
-import static extension fr.cea.nabla.ir.IrModuleExtensions.*
-import static extension fr.cea.nabla.ir.JobCallerExtensions.*
-import static extension fr.cea.nabla.ir.JobExtensions.*
-import static extension fr.cea.nabla.ir.Utils.*
-import static extension fr.cea.nabla.ir.generator.Utils.*
-import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+import java.util.stream.IntStream
 
 @Data
 abstract class JobContentProvider
@@ -171,6 +172,8 @@ class StlThreadJobContentProvider extends JobContentProvider
 @Data
 class OpenMpTaskJobContentProvider extends JobContentProvider
 {
+	protected val extension TypeContentProvider
+
 	override protected copyConnectivityType(String leftName, String rightName, int dimension, List<CharSequence> indexNames)
 	{
 		'''
@@ -258,7 +261,13 @@ class OpenMpTaskJobContentProvider extends JobContentProvider
 			{
 				// Switch variables to prepare next iteration
 				«FOR copy : copies»
+				«IF getCppTypeCanBePartitionized(copy.source.type)»
+					«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)»
+						std::swap(partitions[«i»].«copy.source.name», partitions[«i»].«copy.destination.name»);
+					«ENDFOR»
+				«ELSE»
 					std::swap(«copy.source.name», «copy.destination.name»);
+				«ENDIF»
 				«ENDFOR»
 			}
 			«IF caller.main»
