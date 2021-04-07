@@ -126,8 +126,17 @@ class CppGeneratorUtils
 			default: return false
 		}
 	}
-
+	
 	/* Construct OpenMP clauses */
+	static def getPriority(Job it)
+	{
+		if (it !== null)
+		{
+			val max_at = caller.calls.map[at].max
+			''' priority(«(max_at - at + 1.0).intValue»)'''
+		} else ''''''
+	}
+	
 	static def getDependencies(Job it, String inout, Iterable<Variable> deps, CharSequence taskPartition, boolean needNeighbors)
 	{
 		/* Construct the OpenMP clause */
@@ -170,7 +179,8 @@ class CppGeneratorUtils
 		val dep = deps.filter(v | v.isVariableRange).toSet // Simple and stupid algorithm to choose which variable is important
 		if (dep.length == 0) return ''''''
 		dep.removeAll(falseIns)
-		return ''' affinity(this->«dep.head.name»[«getVariableRange(dep.head, taskPartition)»])'''
+		// return ''' affinity(this->«dep.head.name»[«getVariableRange(dep.head, taskPartition)»])'''
+		return ''''''
 	}
 
 	static def getDependenciesAll(Job it, String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
@@ -260,19 +270,6 @@ class CppGeneratorUtils
 	}
 	
 	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''mesh->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
-	static def getVariableRange(Variable it, CharSequence taskCurrent)
-	{
-		val type = (it as ArgOrVar).type;
-		switch (type) {
-			ConnectivityType: {
-				val connectivites = (type as ConnectivityType).connectivities.map[name].head;
-				return '''mesh->PIN_«connectivites»FromPartition(«taskCurrent»)'''
-			}
-			LinearAlgebraType: return '''''' /* This is an opaque type, don't know what to do with it */
-			BaseType: return '''''' /* An integer, etc => the name is the dependency */
-			default: return '''''' /* Don't know => pin all the variable */
-		}
-	}
 	
 	/* Get DF */
 	static def getInVars(Job it) {

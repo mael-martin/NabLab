@@ -360,7 +360,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		«val outs           = parentJob.outVars»
 		for (size_t task = 0; task < («OMPTaskMaxNumber»); ++task)
 		{
-		#pragma omp task firstprivate(task) «parentJob.sharedVarsClause»«
+		#pragma omp task firstprivate(task) «parentJob.sharedVarsClause»«parentJob.priority»«
 		                                     getDependencies(parentJob, 'in',  ins,  '''task''', need_neighbors)»«
 						                     getDependencies(parentJob, 'out', outs, '''task''', false)»
 		{ // BEGIN OF SUPER TASK
@@ -400,7 +400,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				«IF ! super_task»
-				#pragma omp task «parentJob.sharedVarsClause»«
+				#pragma omp task «parentJob.sharedVarsClause»«parentJob.priority»«
 				                 getDependenciesAll(parentJob, 'in',  ins,  0, OMPTaskMaxNumber)»«
 				                 getDependenciesAll(parentJob, 'out', outs, 0, OMPTaskMaxNumber)»
 				{
@@ -432,7 +432,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«IF ! super_task»
-			#pragma omp task «parentJob.sharedVarsClause» firstprivate(«result.name», «iterationBlock.nbElems»)«
+			#pragma omp task «parentJob.sharedVarsClause»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
 				getDependenciesAll(parentJob, 'in', ins, 0, OMPTaskMaxNumber)» depend(out: this->«out.name»)
 			{
 			«takeOMPTraces(ins, outs, null, false)»
@@ -652,7 +652,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ret = '''
 		{
 			«IF ! super_task»
-			#pragma omp task firstprivate(task) «parentJob.sharedVarsClause»«
+			#pragma omp task firstprivate(task) «parentJob.sharedVarsClause»«parentJob.priority»«
 			                                     getDependencies(parentJob, 'in',  ins,  partitionId, need_neighbors)»«
 			                                     getDependencies(parentJob, 'out', outs, partitionId, false)»
 			{

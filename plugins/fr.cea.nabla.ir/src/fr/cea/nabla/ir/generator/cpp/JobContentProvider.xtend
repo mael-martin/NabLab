@@ -221,7 +221,7 @@ class OpenMpTaskJobContentProvider extends JobContentProvider
 	'''
 		«val ins  = copies.map[source]»
 		«val outs = copies.map[destination]»
-		#pragma omp task «sharedVarsClause»«
+		#pragma omp task «sharedVarsClause»«priority»«
 		                  getDependenciesAll('in',  ins,  0, OMPTaskMaxNumber)»«
 		                  getDependenciesAll('out', outs, 0, OMPTaskMaxNumber)»
 		{
