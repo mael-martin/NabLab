@@ -19,6 +19,12 @@ vector_uniq(vector<T> &vec)
     vec.resize(distance(vec.begin(), unique(vec.begin(), vec.end())));
 }
 
+namespace math
+{
+template<typename T> static inline T min(T a, T b) { return a < b ? a : b; }
+template<typename T> static inline T max(T a, T b) { return a > b ? a : b; }
+}
+
 namespace nablalib::mesh
 {
 

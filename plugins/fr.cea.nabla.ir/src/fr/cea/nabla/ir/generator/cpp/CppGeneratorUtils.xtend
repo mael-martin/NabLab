@@ -149,7 +149,7 @@ class CppGeneratorUtils
 		if (need_ranges && needNeighbors)
 			ret = ''' \
 /* dep */ depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '
-»this->partitions[mesh->NEIGHBOR_getForPartition(«taskPartition», «i»)].«v.name»)«ENDFOR»«ENDFOR»'''
+»this->partitions[mesh->NEIGHBOR_getForPartition(«taskPartition», «i»)].«v.name»«ENDFOR»«ENDFOR»)'''
 		
 		/* All ranges, but without neighbors */
 		else if (need_ranges)
@@ -193,7 +193,7 @@ class CppGeneratorUtils
 			val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
 			ret = ''' \
 /* dep all */ depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '
-»this->partitions[mesh->NEIGHBOR_getForPartition(«i»)].«v.name»«ENDFOR»«ENDFOR»)'''
+»this->partitions[«i»].«v.name»«ENDFOR»«ENDFOR»)'''
 		}
 
 		if (need_simple)
@@ -281,13 +281,15 @@ class CppGeneratorUtils
 	static def getOutVars(Job it) {
 		eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet
 	}
-	static def getSharedVars(Job it) {
-		val ins = caller.calls.map[inVars.filter[!isOption]].flatten.toSet;
-		ins.addAll(outVars.filter[!isOption])
-		return ins
+	static def getSharedVarsNames(Job it) {
+		val ins = caller.calls.map[inVars.filter[!isOption].filter[t|!typeContentProvider.getCppTypeCanBePartitionized(t.type)]].flatten.toSet;
+		ins.addAll(outVars.filter[!isOption].filter[t|!typeContentProvider.getCppTypeCanBePartitionized(t.type)])
+		val ret = ins.map["this->" + name].toSet
+		ret.add("this->partitions")
+		return ret
 	}
 	static def getSharedVarsClause(Job it) {
-		val shared = sharedVars
-		'''default(none) shared(stderr, mesh«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v.variableName»«ENDFOR»«ENDIF»)'''
+		val shared = sharedVarsNames
+		'''default(none) shared(stderr, mesh«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
 	}
 }

@@ -173,7 +173,45 @@ class OpenMpTaskJobContentProvider extends JobContentProvider
 {
 	override protected copyConnectivityType(String leftName, String rightName, int dimension, List<CharSequence> indexNames)
 	{
-		copyBaseType(leftName, rightName, dimension, indexNames)
+		'''
+		for (size_t partition_number = 0; partition_number < «OMPTaskMaxNumber»; ++partition_number) {
+			«copyBaseType(
+				'''partitions[partition_number].«leftName»''',
+				'''partitions[partition_number].«rightName»''',
+				dimension,
+				indexNames
+			)»
+		}
+		'''
+	}
+
+	override CharSequence copyBaseType(String leftName, String rightName, int dimension, List<CharSequence> indexNames)
+	{
+		if (dimension == 0)
+			'''«leftName»«FOR i : indexNames»[«i»]«ENDFOR» = «rightName»«FOR i : indexNames»[«i»]«ENDFOR»;'''
+		else
+		{
+			val length = '''«leftName»«FOR i : indexNames»[«i»]«ENDFOR».size()'''
+			var indexName = '''i«indexNames.size + 1»'''
+			indexNames += indexName
+			'''
+				for (size_t «indexName»(0) ; «indexName»<«length» ; «indexName»++)
+					«copyBaseType(leftName, rightName, dimension-1, indexNames)»
+			'''
+		}
+	}
+
+
+	override getContent(TimeLoopCopy it)
+	{
+		// c.destination.type == c.source.type
+		val t = source.type
+		switch t
+		{
+			BaseType: copyBaseType(destination.name, source.name, t.sizes.size, new ArrayList<CharSequence>())
+			ConnectivityType: copyConnectivityType(destination.name, source.name, t.connectivities.size + t.base.sizes.size, new ArrayList<CharSequence>())
+			LinearAlgebraType: copyLinearAlgebraType(destination.name, source.name, t.sizes.size, new ArrayList<CharSequence>())
+		}
 	}
 
 	override protected dispatch CharSequence getInnerContent(TimeLoopJob it)
