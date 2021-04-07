@@ -701,10 +701,30 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val itemnames = EcoreUtil2.getContainerOfType(it, Job).eAllContents.filter(ItemIndex)
 		                .filter[t|t.itemName == id.itemName].toList
 		val item = itemnames.size > 0 ? autoDetectConnectivity(itemnames.head.name) : null
-		if (item === null)
-		'''
-			const Id «id.name» = «value.content»;
-		'''
+		
+		/* Can't do anything with the ItemIndex, try ItemIndexDefinition */
+		if (item === null) {
+			val itemdefnames = EcoreUtil2.getContainerOfType(it, Job).eAllContents.filter(ItemIndexDefinition)
+							.filter[t|t.index.itemName == id.itemName].toList
+			val itemdef = itemdefnames.size > 0 ? autoDetectConnectivity(itemnames.head.name) : null
+			
+			/* Can't do anything with ItemIndexDefinition either */
+			if (itemdef === null)
+			'''
+				const Id «id.name» = «value.content»;
+			'''
+			
+			/* Can do something with the ItemIndexDefinition */
+			else {
+			OpenMpTaskExpressionContentProvider::registerPartitionIdForIndexType(itemdef.toUpperCase + "S", id.name + "Partition")
+			'''
+				const Id «id.name»          = «value.content»;
+				const Id «id.name»Partition = mesh->getPartitionOf«item»(«value.content»); // Indexes on «itemdef.toUpperCase»S => partition «id.name»Partition
+			'''
+			}
+		}
+		
+		/* Can do something with the ItemIndex */
 		else {
 			OpenMpTaskExpressionContentProvider::registerPartitionIdForIndexType(item.toUpperCase + "S", id.name + "Partition")
 		'''
