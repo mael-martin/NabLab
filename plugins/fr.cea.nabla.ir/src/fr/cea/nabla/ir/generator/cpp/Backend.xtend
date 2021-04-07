@@ -11,6 +11,7 @@ package fr.cea.nabla.ir.generator.cpp
 
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.OMPTraces
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.OMPTaskMaxNumber
+import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.registerTypeContentProvider
 import fr.cea.nabla.ir.transformers.IrTransformationStep
 import fr.cea.nabla.ir.transformers.ReplaceReductions
 import org.eclipse.xtend.lib.annotations.Accessors
@@ -144,7 +145,7 @@ class OpenMpTaskBackend extends Backend
 		name = 'OpenMPTask'
 		cmakeContentProvider = new OpenMpCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
-		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
+		expressionContentProvider = new OpenMpTaskExpressionContentProvider(typeContentProvider)
 		instructionContentProvider = new OpenMpTaskInstructionContentProvider(typeContentProvider, expressionContentProvider)
 		functionContentProvider = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
 		traceContentProvider = new TraceContentProvider
@@ -153,5 +154,6 @@ class OpenMpTaskBackend extends Backend
 		jobCallerContentProvider = new OpenMpTaskJobCallerContentProvider
 		jobContentProvider = new OpenMpTaskJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
 		mainContentProvider = new OpenMpTaskMainContentProvider(jsonContentProvider)
+		registerTypeContentProvider(typeContentProvider)
 	}
 }

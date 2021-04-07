@@ -13,8 +13,10 @@ import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+import org.eclipse.xtext.EcoreUtil2
 import fr.cea.nabla.ir.ir.JobCaller
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
+import fr.cea.nabla.ir.ir.IrModule
 
 class JobCallerContentProvider
 {
@@ -37,6 +39,9 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 	override getCallsContent(JobCaller it)
 	{
 		val allouts = calls.map[outVars].flatten
+		val module  = EcoreUtil2.getContainerOfType(it, IrModule)
+		if (module !== null)
+			registerGlobalVariable(module)
 		'''
 		// Launch all tasks for this loop...
 		«IF allouts.toList.size != allouts.toSet.size»

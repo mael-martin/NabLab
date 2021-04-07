@@ -27,13 +27,16 @@ import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.ItemIndex
+import fr.cea.nabla.ir.ir.IrAnnotable
+import fr.cea.nabla.ir.generator.cpp.TypeContentProvider
+import org.eclipse.xtext.EcoreUtil2
 import java.util.stream.IntStream
 import java.util.Iterator
 import java.util.HashSet
-import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
-import fr.cea.nabla.ir.ir.IrAnnotable
 import java.util.Set
-import org.eclipse.xtext.EcoreUtil2
+import java.util.HashMap
+
+enum INDEX_TYPE { NODES, CELLS, FACES, NULL }
 
 class CppGeneratorUtils
 {
@@ -42,6 +45,9 @@ class CppGeneratorUtils
 	static def getFreeFunctionNs(IrModule it) { className.toLowerCase + "freefuncs" }
 	static def dispatch getCodeName(InternFunction it) { irModule.freeFunctionNs + '::' + name }
 	static def getHDefineName(String name) { '__' + name.toUpperCase + '_H_' }
+
+	static TypeContentProvider typeContentProvider;
+	static def void registerTypeContentProvider(TypeContentProvider typeCtxProv) { typeContentProvider = typeCtxProv; }
 	
 	/* FIXME: Those two need to be specified in the NGEN file */
 	static public int OMPTaskMaxNumber = 4
@@ -49,6 +55,31 @@ class CppGeneratorUtils
 	
 	static def getAllOMPTasks() { iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) }
 	static def getAllOMPTasksAsCharSequence() '''{«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', '»«i»«ENDFOR»}'''
+	
+	/* Global variable => index type */
+	static HashMap<String, INDEX_TYPE> GlobalVariableIndexTypes = new HashMap();
+	static def void registerGlobalVariable(String varName, INDEX_TYPE type) {
+		if (type !== null && type != INDEX_TYPE::NULL)
+			GlobalVariableIndexTypes.put(varName, type);
+	}
+	static def void registerGlobalVariable(String varName, String type) {
+		if (type !== null && type != INDEX_TYPE::NULL) {
+			switch type {
+				case "nodes": GlobalVariableIndexTypes.put(varName, INDEX_TYPE::NODES)
+				case "cells": GlobalVariableIndexTypes.put(varName, INDEX_TYPE::CELLS)
+				case "faces": GlobalVariableIndexTypes.put(varName, INDEX_TYPE::FACES)
+			}
+		}
+	}
+	static def void registerGlobalVariable(IrModule it) {
+		for (v : variables.filter[!option].filter[ t |
+			typeContentProvider.getCppTypeCanBePartitionized(t.type) &&
+			typeContentProvider.getCppTypeEnum(t.type) == CPP_TYPE::CONNECTIVITY
+		]) { registerGlobalVariable(v.name, (v.type as ConnectivityType).connectivities.head.name) }
+	}
+	static def INDEX_TYPE getGlobalVariableType(String varName) {
+		return GlobalVariableIndexTypes.getOrDefault(varName, INDEX_TYPE::NULL);
+	}
 	
 	/* False 'in' variables */
 	static private def getFalseInVariableForJob(Job it)

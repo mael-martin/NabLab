@@ -165,3 +165,30 @@ class ExpressionContentProvider
 		}
 	}
 }
+
+@Data
+class OpenMpTaskExpressionContentProvider extends ExpressionContentProvider
+{
+	val extension TypeContentProvider typeContentProvider = super.typeContentProvider
+
+	override dispatch CharSequence getContent(ArgOrVarRef it)
+	{
+		if (target.linearAlgebra && !(iterators.empty && indices.empty))
+			'''«codeName».getValue(«formatIteratorsAndIndices(target.type, iterators, indices)»)'''
+		else
+			'''«codeName»«formatIteratorsAndIndices(target.type, iterators, indices)»'''
+	}
+
+	override CharSequence getCodeName(ArgOrVarRef it)
+	{
+		val partition_prefix = '''/*partition_prefix for '«target.codeName»[«getGlobalVariableType(target.codeName)»]'*/'''
+		
+		val index_type = getGlobalVariableType(target.codeName);
+		if (index_type == INDEX_TYPE::NULL) {
+			super.getCodeName(it)
+		}
+		
+		else if (irModule === target.irModule) '''«partition_prefix»«target.codeName»'''
+		else '''«partition_prefix»mainModule->«target.codeName»'''
+	}
+}

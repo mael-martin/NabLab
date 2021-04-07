@@ -24,6 +24,8 @@ import org.eclipse.xtend.lib.annotations.Accessors
 
 import static extension fr.cea.nabla.ir.ContainerExtensions.*
 
+enum CPP_TYPE { BASE, ARRAY, CONNECTIVITY, LINEARALGEBRA, NULL }
+
 abstract class TypeContentProvider
 {
 	@Accessors extension ExpressionContentProvider expressionContentProvider
@@ -31,6 +33,19 @@ abstract class TypeContentProvider
 	protected abstract def CharSequence getCppType(BaseType baseType, Iterable<Connectivity> connectivities)
 	protected abstract def CharSequence getCstrInit(String name, BaseType baseType, Iterable<Connectivity> connectivities)
 	protected abstract def CharSequence formatIterators(ConnectivityType type, Iterable<String> iterators)
+	
+	def getCppTypeEnum(IrType it)
+	{
+		switch it
+		{
+			case null: CPP_TYPE::NULL
+			BaseType case sizes.empty: CPP_TYPE::BASE
+			BaseType: CPP_TYPE::ARRAY
+			ConnectivityType: CPP_TYPE::CONNECTIVITY
+			LinearAlgebraType: CPP_TYPE::LINEARALGEBRA
+			default: CPP_TYPE::NULL
+		}
+	}
 	
 	def getCppTypeCanBePartitionized(IrType it)
 	{
