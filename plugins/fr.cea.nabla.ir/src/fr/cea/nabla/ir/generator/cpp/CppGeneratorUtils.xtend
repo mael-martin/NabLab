@@ -147,17 +147,19 @@ class CppGeneratorUtils
 
 		/* All ranges, with the neighbors */
 		if (need_ranges && needNeighbors)
-			ret = ''' depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '»(«
-				getVariableName(v)»[«getVariableRange(v, '''«taskPartition», «i»''')»])«ENDFOR»«ENDFOR»)'''
+			ret = ''' \
+/* dep */ depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '
+»this->partitions[mesh->NEIGHBOR_getForPartition(«taskPartition», «i»)].«v.name»)«ENDFOR»«ENDFOR»'''
 		
 		/* All ranges, but without neighbors */
 		else if (need_ranges)
-			ret = ''' depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»(«
-				getVariableName(v)»[«getVariableRange(v, '''«taskPartition»''')»])«ENDFOR»)'''
+			ret = ''' \
+/* dep */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»this->partitions[«taskPartition»].«v.name»«ENDFOR»)'''
 
 		/* All simple values */
 		if (need_simple)
-			ret = '''«ret» depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»(«getVariableName(v)»)«ENDFOR»)'''
+			ret = '''«ret» \
+/* dep */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»«getVariableName(v)»«ENDFOR»)'''
 		
 		return ret
 	}
@@ -189,14 +191,16 @@ class CppGeneratorUtils
 		{
 			/* All ranges */
 			val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
-			ret = ''' depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '»(«
-			getVariableName(v)»[«getVariableRange(v, '''«i»''')»])«ENDFOR»«ENDFOR»)'''
+			ret = ''' \
+/* dep all */ depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '
+»this->partitions[mesh->NEIGHBOR_getForPartition(«i»)].«v.name»«ENDFOR»«ENDFOR»)'''
 		}
 
 		if (need_simple)
 		{
 			/* All simple values */
-			ret = '''«ret» depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»(«getVariableName(v)»)«ENDFOR»)'''
+			ret = '''«ret» \
+/* dep all */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»«getVariableName(v)»«ENDFOR»)'''
 		}
 
 		return ret
@@ -221,7 +225,6 @@ class CppGeneratorUtils
 		else ''''''
 	}
 	
-
 	static def printVariableRangeFmt(Variable it, CharSequence taskCurrent, boolean needNeighbors)
 	{
 		if (!isVariableRange)
