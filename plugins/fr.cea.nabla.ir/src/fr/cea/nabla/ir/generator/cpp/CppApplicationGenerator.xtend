@@ -344,10 +344,10 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			«val iterator = backend.typeContentProvider.formatIterators(irRoot.initNodeCoordVariable.type as ConnectivityType, #["rNodes"])»
 			for (size_t part = 0; part < «OMPTaskMaxNumber»; ++part)
 			{
-				«FOR v : variablesWithDefaultValue.filter[x | !x.constExpr]»
+				«FOR v : variablesWithDefaultValue.filter[x | !x.constExpr].filter[typeContentProvider.getCppTypeCanBePartitionized(type)]»
 				partitions[part].«v.name» = «typeContentProvider.getCppType(v.type)»(«expressionContentProvider.getContent(v.defaultValue)»);
 				«ENDFOR»
-				«FOR v : variables.filter[needStaticAllocation]»
+				«FOR v : variables.filter[needStaticAllocation].filter[typeContentProvider.getCppTypeCanBePartitionized(type)]»
 				partitions[part].«v.name» = «typeContentProvider.getCppType(v.type)»(«typeContentProvider.getCstrInit(v.type, v.name)»);
 				«ENDFOR»
 				
@@ -413,11 +413,12 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			}
 			auto quads = mesh->getGeometry()->getQuads();
 			«IF createPartitions»
-				«irRoot.nodeCoordVariable.variableDeclaration»
-				«val coo_var = irRoot.nodeCoordVariable.name»
+				«val coo_var_name = irRoot.nodeCoordVariable.name»
+				«val coo_var_type = irRoot.nodeCoordVariable.type»
+				«typeContentProvider.getCppType(coo_var_type)» «coo_var_name» = «typeContentProvider.getCppType(coo_var_type)»(«typeContentProvider.getCstrInit(coo_var_type, coo_var_name)»);
 				«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)»
 					«val index_type = "nodes"»
-					for (const size_t index : mesh->RANGE_«index_type»FromPartition(«i»)) «coo_var»[index] = partitions[«i»].«coo_var»[index]; // partitions[«i»].«coo_var» => «coo_var»
+					for (const size_t index : mesh->RANGE_«index_type»FromPartition(«i»)) «coo_var_name»[index] = partitions[«i»].«coo_var_name»[index];
 				«ENDFOR»
 			«ENDIF»
 			writer.startVtpFile(iteration, «irRoot.timeVariable.name», nbNodes, «irRoot.nodeCoordVariable.name».data(), nbCells, quads.data());
