@@ -104,8 +104,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	
 	struct «className»Partition
 	{
-		const size_t ___partition_id; /* For debug */
-		
 		/* Global variables that must be placed inside partitions from the «className» class */
 		«FOR v : variables.filter[!option].filter[t|typeContentProvider.getCppTypeCanBePartitionized(t.type)]»
 			«v.variableDeclaration»
