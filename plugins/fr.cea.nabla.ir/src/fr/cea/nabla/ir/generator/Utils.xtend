@@ -86,19 +86,13 @@ class Utils
 	}
 
 	static def getComment(Job it)
-	{
-		val allouts   = caller.calls.map[outVars.filter[!isOption]].flatten.toSet
-		val allins    = caller.calls.map[inVars.filter[!isOption]].flatten.toSet
-		val ins  = inVars.filter[v|allouts.contains(v)]
-		val outs = outVars.filter[v|allins.contains(v)]
 	'''
 		/**
 		 * Job «getCodeName» called @«at» in «caller.codeName» method.
-		 * In variables: «FOR v : ins.sortBy[name] SEPARATOR ', '»«v.getName»«ENDFOR»
-		 * Out variables: «FOR v : outs.sortBy[name] SEPARATOR ', '»«v.getName»«ENDFOR»
+		 * In variables: «FOR v : inVars.sortBy[name] SEPARATOR ', '»«v.getName»«ENDFOR»
+		 * Out variables: «FOR v : outVars.sortBy[name] SEPARATOR ', '»«v.getName»«ENDFOR»
 		 */
 	'''
-	}
 
 	static def boolean isParallelLoop(Loop it)
 	{
