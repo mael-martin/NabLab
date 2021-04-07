@@ -44,7 +44,6 @@ import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.IrAnnotable
 import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.Function
-import fr.cea.nabla.ir.ir.ArgOrVarRef
 import fr.cea.nabla.ir.ir.ItemIndex
 
 @Data
@@ -445,7 +444,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			«val connectivity = getConnectivityType(iterationBlock.indexName).toFirstUpper»
 			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
 			{
-				const Id «iterationBlock.indexName.split(connectivity).head»IdPartition = «iterationBlock.indexName»;
+				const Id «iterationBlock.indexName.split(connectivity).head»IdPartition = mesh->getPartitionOf«connectivity.connectivityFamily»(«iterationBlock.indexName»);
 				«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
 			}
 			''')»
@@ -506,6 +505,39 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		dataConnectivity.put(itemName, value.iterator.container.connectivityCall.connectivity.name)
 	}
 
+	private def getConnectivityFamily(String connectivity)
+	{
+		if      ("BottomNodes" == connectivity) { return "Node" }
+		else if ("TopNodes"    == connectivity) { return "Node" }
+		else if ("RightNodes"  == connectivity) { return "Node" }
+		else if ("LeftNodes"   == connectivity) { return "Node" }
+		else if ("InnerNodes"  == connectivity) { return "Node" }
+		else if ("OuterNodes"  == connectivity) { return "Node" }
+		else if ("Nodes"       == connectivity) { return "Node" }
+
+		/* Check for cell connectivities */
+		else if ("BottomCells" == connectivity) { return "Cell" }
+		else if ("TopCells"    == connectivity) { return "Cell" }
+		else if ("RightCells"  == connectivity) { return "Cell" }
+		else if ("LeftCells"   == connectivity) { return "Cell" }
+		else if ("InnerCells"  == connectivity) { return "Cell" }
+		else if ("OuterCells"  == connectivity) { return "Cell" }
+		else if ("Cells"       == connectivity) { return "Cell" }
+		
+		/* Check for face connectivities */
+		else if ("InnerHorizontalFaces" == connectivity) { return "Face" }
+		else if ("InnerVerticalFaces"   == connectivity) { return "Face" }
+		else if ("BottomFaces"          == connectivity) { return "Face" }
+		else if ("TopFaces"             == connectivity) { return "Face" }
+		else if ("RightFaces"           == connectivity) { return "Face" }
+		else if ("LeftFaces"            == connectivity) { return "Face" }
+		else if ("InnerFaces"           == connectivity) { return "Face" }
+		else if ("OuterFaces"           == connectivity) { return "Face" }
+		else if ("Faces"                == connectivity) { return "Face" }
+		
+		else throw new Exception("Unknown connectivity " + connectivity)
+		
+	}
 	private def getConnectivityType(String itemname)
 	{
 		/* Check for node connectivities */
@@ -649,7 +681,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			return '''''';
 		val connectivity = getConnectivityType(it).toFirstUpper
 		'''
-		const Id «iterationBlock.indexName.split(connectivity).head»IdPartition = «iterationBlock.indexName»;
+		const Id «iterationBlock.indexName.split(connectivity).head»IdPartition = mesh->getPartitionOf«connectivity.connectivityFamily»(«iterationBlock.indexName»);
 		'''
 	}
 	
