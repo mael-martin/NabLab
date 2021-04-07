@@ -649,7 +649,10 @@ namespace nablalib::mesh
             m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[3]);
 
             /* Add in revere links.
-             * FIXME: What to do if a node is in multiple partitions? */
+             * What to do if a node is in multiple partitions?
+             * => In case of multiple links, link to the partition with the
+             *    higher ID number.
+             */
 
             m_cells_to_partitions[i] = metis_partition_cell[i];
 
@@ -799,51 +802,6 @@ namespace nablalib::mesh
 
 #define ___SANITIZE_PARTITION_INDEX(index)      { if (index >= CartesianMesh2D::PartitionNumber) abort(); }
 #define ___SANITIZE_NEIGHBOR_INDEX(part, index) { if (m_partitions_neighbors.at(part).size() <= (index)) index = 0; }
-    Id
-    CartesianMesh2D::PIN_cellsFromPartition(size_t partition) const noexcept
-    {
-        ___SANITIZE_PARTITION_INDEX(partition);
-        return m_partitions_cells.at(partition)[0];
-    }
-
-    Id
-    CartesianMesh2D::PIN_nodesFromPartition(size_t partition) const noexcept
-    {
-        ___SANITIZE_PARTITION_INDEX(partition);
-        return PIN_nodesFromCells(PIN_cellsFromPartition(partition));
-    }
-
-    Id
-    CartesianMesh2D::PIN_facesFromPartition(size_t partition) const noexcept
-    {
-        ___SANITIZE_PARTITION_INDEX(partition);
-        return PIN_facesFromCells(PIN_cellsFromPartition(partition));
-    }
-
-    Id
-    CartesianMesh2D::PIN_cellsFromPartition(size_t partition, size_t neighbor_index) const noexcept
-    {
-        size_t neighbor_partition = NEIGHBOR_getForPartition(partition, neighbor_index);
-        ___SANITIZE_PARTITION_INDEX(neighbor_partition);
-        return m_partitions_cells.at(neighbor_partition)[0];
-    }
-
-    Id
-    CartesianMesh2D::PIN_nodesFromPartition(size_t partition, size_t neighbor_index) const noexcept
-    {
-        size_t neighbor_partition = NEIGHBOR_getForPartition(partition, neighbor_index);
-        ___SANITIZE_PARTITION_INDEX(neighbor_partition);
-        return PIN_nodesFromCells(PIN_cellsFromPartition(neighbor_partition));
-    }
-
-    Id
-    CartesianMesh2D::PIN_facesFromPartition(size_t partition, size_t neighbor_index) const noexcept
-    {
-        size_t neighbor_partition = NEIGHBOR_getForPartition(partition, neighbor_index);
-        ___SANITIZE_PARTITION_INDEX(neighbor_partition);
-        return PIN_facesFromCells(PIN_cellsFromPartition(neighbor_partition));
-    }
-
     size_t
     CartesianMesh2D::NEIGHBOR_getNumberForPartition(size_t partition) const noexcept
     {

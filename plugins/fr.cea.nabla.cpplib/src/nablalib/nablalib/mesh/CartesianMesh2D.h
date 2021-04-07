@@ -193,16 +193,6 @@ public:
  * Partition methods *
  *********************/
 public:
-    /* Pin functions, from a partition get always the same id for the
-     * node/cell/face to mark it as a dependency with OpenMP.
-     * Pin the first node from a partition. */
-    Id PIN_cellsFromPartition(size_t partition) const noexcept;
-    Id PIN_nodesFromPartition(size_t partition) const noexcept;
-    Id PIN_facesFromPartition(size_t partition) const noexcept;
-    Id PIN_cellsFromPartition(size_t partition, size_t neighbor_index) const noexcept;
-    Id PIN_nodesFromPartition(size_t partition, size_t neighbor_index) const noexcept;
-    Id PIN_facesFromPartition(size_t partition, size_t neighbor_index) const noexcept;
-
     /* HOWTO:
      * #pragma omp task                                                                     \
      *     depend(iterator(neighbor_index=0:mesh->NEIGHBOR_getNumberForPartition(task)),    \
