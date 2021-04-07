@@ -17,6 +17,7 @@
 #include <map>
 #include <cstdlib>
 #include <iomanip>
+#include <memory>
 #include <stdio.h>
 #include "metis-5.1.0/include/metis.h"
 #include "nablalib/types/Types.h"
@@ -60,10 +61,10 @@ Id getCellIdFromCoordinate(const size_t X, const size_t Y, const pair<Id, Id> &c
 /* Create CSR matrix from a 2D cartesian mesh */
 struct CSR_Matrix
 {
-    idx_t *xadj;
-    idx_t *adjncy;
-    idx_t xadj_len;
-    idx_t adjncy_len;
+    idx_t* xadj      { nullptr };
+    idx_t* adjncy    { nullptr };
+    idx_t xadj_len   { 0 };
+    idx_t adjncy_len { 0 };
 
     static CSR_Matrix createFrom2DCartesianMesh(size_t X, size_t Y) noexcept;
     static void free(CSR_Matrix &matrix) noexcept;
@@ -72,6 +73,7 @@ struct CSR_Matrix
 /* The cartesian mesh 2D class */
 class CartesianMesh2D
 {
+/* Constructor and global things */
 public:
     static constexpr int MaxNbNodesOfCell = 4;
     static constexpr int MaxNbNodesOfFace = 2;
@@ -95,10 +97,10 @@ public:
 
     MeshGeometry<2>* getGeometry() noexcept { return m_geometry; }
 
-    /****************
-     * Mesh methods *
-     ****************/
-
+/****************
+ * Mesh methods *
+ ****************/
+public:
     size_t getNbNodes() const noexcept { return m_geometry->getNodes().size(); }
     size_t getNbCells() const noexcept { return m_geometry->getQuads().size(); }
     size_t getNbFaces() const noexcept { return m_geometry->getEdges().size(); }
@@ -187,35 +189,9 @@ public:
     Id getRightFaceNeighbour(const Id& faceId) const;
     Id getLeftFaceNeighbour(const Id& faceId) const;
 
- private:
-    Id index2IdCell(const size_t& i, const size_t& j) const noexcept;
-    Id index2IdNode(const size_t& i, const size_t& j) const noexcept;
-    pair<size_t, size_t> id2IndexCell(const Id& k) const noexcept;
-    pair<size_t, size_t> id2IndexNode(const Id& k) const noexcept;
-
-    bool isInnerEdge(const Edge& e) const noexcept;
-    bool isVerticalEdge(const Edge& e) const noexcept;
-    bool isHorizontalEdge(const Edge& e) const noexcept;
-    bool isInnerVerticalEdge(const Edge& e) const noexcept;
-    bool isInnerHorizontalEdge(const Edge& e) const noexcept;
-
-    size_t getNbCommonIds(const vector<Id>& a, const vector<Id>& b) const noexcept;
-    template <size_t N, size_t M> size_t
-    getNbCommonIds(const array<Id, N>& as, const array<Id, M>& bs) const noexcept
-    {
-        size_t nbCommonIds(0);
-        for (const auto& a : as)
-            if (find(bs.begin(), bs.end(), a) != bs.end())
-                ++nbCommonIds;
-        return nbCommonIds;
-    }
-
-    inline vector<Id> cellsOfNodeCollection(const vector<Id>& nodes);
-
-    /*********************
-     * Partition methods *
-     *********************/
-
+/*********************
+ * Partition methods *
+ *********************/
 public:
     /* Pin functions, from a partition get always the same id for the
      * node/cell/face to mark it as a dependency with OpenMP.
@@ -277,13 +253,37 @@ public:
     ___DEFINE_RANGE_FOR_SIDE(innerHorizontal, Faces, faces)
 #undef ___DEFINE_RANGE_FOR_SIDE
 
+/* Internal functions */
 private:
     /* Don't move it around */
     CartesianMesh2D(const CartesianMesh2D &)      = delete;
     CartesianMesh2D(CartesianMesh2D &&)           = delete;
     CartesianMesh2D& operator=(CartesianMesh2D &) = delete;
 
-    /* Helpers */
+    Id index2IdCell(const size_t& i, const size_t& j) const noexcept;
+    Id index2IdNode(const size_t& i, const size_t& j) const noexcept;
+    pair<size_t, size_t> id2IndexCell(const Id& k) const noexcept;
+    pair<size_t, size_t> id2IndexNode(const Id& k) const noexcept;
+
+    bool isInnerEdge(const Edge& e) const noexcept;
+    bool isVerticalEdge(const Edge& e) const noexcept;
+    bool isHorizontalEdge(const Edge& e) const noexcept;
+    bool isInnerVerticalEdge(const Edge& e) const noexcept;
+    bool isInnerHorizontalEdge(const Edge& e) const noexcept;
+
+    size_t getNbCommonIds(const vector<Id>& a, const vector<Id>& b) const noexcept;
+    template <size_t N, size_t M> size_t
+    getNbCommonIds(const array<Id, N>& as, const array<Id, M>& bs) const noexcept
+    {
+        size_t nbCommonIds(0);
+        for (const auto& a : as)
+            if (find(bs.begin(), bs.end(), a) != bs.end())
+                ++nbCommonIds;
+        return nbCommonIds;
+    }
+
+    inline vector<Id> cellsOfNodeCollection(const vector<Id>& nodes);
+
     inline Id PIN_nodesFromCells(const Id cell) const noexcept { return RANGE_nodesFromCells(cell)[0]; }
     inline Id PIN_facesFromCells(const Id cell) const noexcept { return RANGE_facesFromCells(cell)[0]; }
     const array<Id, 4> RANGE_facesFromCells(const Id cell) const noexcept;
@@ -295,7 +295,8 @@ private:
     void computeNeighborPartitions(idx_t *metis_partition_cell) noexcept;
     void computePartialPartitions() noexcept;
 
-    /* Members */
+/* Members */
+private:
     MeshGeometry<2>* m_geometry;
 
     vector<Id> m_inner_nodes;

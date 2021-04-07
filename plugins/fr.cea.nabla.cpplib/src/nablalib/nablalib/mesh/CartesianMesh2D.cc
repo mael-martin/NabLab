@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <cassert>
+#include <cstdlib>
 
 template<typename T> static inline void
 vector_uniq(vector<T> &vec)
@@ -598,7 +599,7 @@ namespace nablalib::mesh
         idx_t num_partition   = CartesianMesh2D::PartitionNumber;
         idx_t num_constraints = 1;  // Number of balancing constraints, which must be at least 1.
         idx_t objval;               // On return, the edge cut volume of the partitioning solution.
-        idx_t *metis_partition_cell = new idx_t[matrix.xadj_len]();
+        idx_t *metis_partition_cell = (idx_t *) malloc(sizeof(idx_t) * (matrix.xadj_len));
         idx_t metis_options[METIS_NOPTIONS];
         int ret;
 
@@ -620,6 +621,7 @@ namespace nablalib::mesh
         ret = METIS_PartGraphKway(&matrix.xadj_len, &num_constraints, matrix.xadj, matrix.adjncy,
                                   NULL, NULL, NULL, &num_partition, NULL, NULL,
                                   metis_options, &objval, metis_partition_cell);
+        CSR_Matrix::free(matrix);
         if (METIS_OK != ret) {
             std::cerr << "Invalid return from metis\n";
             abort();
@@ -627,9 +629,9 @@ namespace nablalib::mesh
 
         std::cout << "Edge cut is: " << objval << "\n";
 
-        m_cells_to_partitions.resize(getNbNodes());
-        m_nodes_to_partitions.resize(getNbCells());
-        m_faces_to_partitions.resize(getNbFaces());
+        m_cells_to_partitions.resize(getNbNodes() + 1);
+        m_nodes_to_partitions.resize(getNbCells() + 1);
+        m_faces_to_partitions.resize(getNbFaces() + 1);
 
         for (idx_t i = 0; i < matrix.xadj_len; ++i) {
             m_partitions_cells[metis_partition_cell[i]].emplace_back(i);
@@ -662,7 +664,6 @@ namespace nablalib::mesh
             m_faces_to_partitions[faces[3]] = metis_partition_cell[i];
         }
 
-        CSR_Matrix::free(matrix);
         return metis_partition_cell;
     }
 
@@ -711,7 +712,7 @@ namespace nablalib::mesh
 
         #undef ___CHECK_NEIGHBOR_CELL
 
-        delete[] metis_partition_cell;
+        std::free(metis_partition_cell);
     }
 
     void
@@ -822,15 +823,15 @@ namespace nablalib::mesh
     Id
     CartesianMesh2D::PIN_cellsFromPartition(size_t partition, size_t neighbor_index) const noexcept
     {
-        size_t neighbor_partition = NEIGHBOR_getForPartition(partition, neighbor_partition);
+        size_t neighbor_partition = NEIGHBOR_getForPartition(partition, neighbor_index);
         ___SANITIZE_PARTITION_INDEX(neighbor_partition);
-        return m_partitions_cells.at(neighbor_index)[0];
+        return m_partitions_cells.at(neighbor_partition)[0];
     }
 
     Id
     CartesianMesh2D::PIN_nodesFromPartition(size_t partition, size_t neighbor_index) const noexcept
     {
-        size_t neighbor_partition = NEIGHBOR_getForPartition(partition, neighbor_partition);
+        size_t neighbor_partition = NEIGHBOR_getForPartition(partition, neighbor_index);
         ___SANITIZE_PARTITION_INDEX(neighbor_partition);
         return PIN_nodesFromCells(PIN_cellsFromPartition(neighbor_partition));
     }
@@ -838,7 +839,7 @@ namespace nablalib::mesh
     Id
     CartesianMesh2D::PIN_facesFromPartition(size_t partition, size_t neighbor_index) const noexcept
     {
-        size_t neighbor_partition = NEIGHBOR_getForPartition(partition, neighbor_partition);
+        size_t neighbor_partition = NEIGHBOR_getForPartition(partition, neighbor_index);
         ___SANITIZE_PARTITION_INDEX(neighbor_partition);
         return PIN_facesFromCells(PIN_cellsFromPartition(neighbor_partition));
     }
@@ -870,8 +871,8 @@ namespace nablalib::mesh
         ret.adjncy_len = (4 * 2)                                // Corners
                        + (2 * (X - 2) * 3) + (2 * (Y - 2) * 3)  // Border
                        + (4 * (X - 2) * (Y - 2));               // Inner
-        ret.xadj       = new idx_t[ret.xadj_len + 1]();
-        ret.adjncy     = new idx_t[ret.adjncy_len]();
+        ret.xadj       = (idx_t *) malloc(sizeof(idx_t) * (ret.xadj_len + 1));
+        ret.adjncy     = (idx_t *) malloc(sizeof(idx_t) * (ret.adjncy_len));
 
         pair<Id, Id> neighbor_{};
     #define ___ADD_NEIGHBOR(dir)                                             \
@@ -900,10 +901,8 @@ namespace nablalib::mesh
     void
     CSR_Matrix::free(CSR_Matrix &matrix) noexcept
     {
-        if (matrix.xadj)   { delete[] matrix.xadj;   }
-        if (matrix.adjncy) { delete[] matrix.adjncy; }
-        matrix.xadj       = nullptr;
-        matrix.adjncy     = nullptr;
+        if (matrix.xadj)    std::free((void *) matrix.xadj);
+        if (matrix.adjncy)  std::free((void *) matrix.adjncy);
         matrix.xadj_len   = 0;
         matrix.adjncy_len = 0;
     }
