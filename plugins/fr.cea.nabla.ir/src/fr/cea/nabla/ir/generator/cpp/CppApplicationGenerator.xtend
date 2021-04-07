@@ -34,6 +34,7 @@ import static extension fr.cea.nabla.ir.IrRootExtensions.*
 import static extension fr.cea.nabla.ir.IrTypeExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+import java.util.stream.IntStream
 
 class CppApplicationGenerator extends CppGenerator implements ApplicationGenerator
 {
@@ -54,6 +55,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 	override getGenerationContents(IrRoot ir)
 	{
+		ir.modules.filter[t|t!==null].forEach[registerGlobalVariable]
 		val fileContents = new ArrayList<GenerationContent>
 		for (module : ir.modules)
 		{
@@ -410,16 +412,33 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				ioTimer.start();
 			}
 			auto quads = mesh->getGeometry()->getQuads();
+			«IF createPartitions»
+				«irRoot.nodeCoordVariable.variableDeclaration»
+				«val coo_var = irRoot.nodeCoordVariable.name»
+				«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)»
+					«val index_type = "nodes"»
+					for (const size_t index : mesh->RANGE_«index_type»FromPartition(«i»)) «coo_var»[index] = partitions[«i»].«coo_var»[index]; // partitions[«i»].«coo_var» => «coo_var»
+				«ENDFOR»
+			«ENDIF»
 			writer.startVtpFile(iteration, «irRoot.timeVariable.name», nbNodes, «irRoot.nodeCoordVariable.name».data(), nbCells, quads.data());
 			«val outputVarsByConnectivities = irRoot.postProcessing.outputVariables.groupBy(x | x.support.name)»
 			writer.openNodeData();
 			«val nodeVariables = outputVarsByConnectivities.get("node")»
 			«IF !nodeVariables.nullOrEmpty»
 				«FOR v : nodeVariables»
+				{
+					«IF createPartitions»
+					«typeContentProvider.getCppType(v.target.type)» «v.target.name» = «typeContentProvider.getCppType(v.target.type)»(«typeContentProvider.getCstrInit(v.target.type, v.target.name)»);
+					«val node_var_name = v.target.name»
+					«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)»
+						for (const size_t index : mesh->RANGE_cellsFromPartition(«i»)) «node_var_name»[index] = partitions[«i»].«node_var_name»[index];
+					«ENDFOR»
+					«ENDIF»
 					writer.openNodeArray("«v.outputName»", «v.target.type.sizesSize»);
 					for (size_t i=0 ; i<nbNodes ; ++i)
 						writer.write(«v.target.writeCallContent»);
 					writer.closeNodeArray();
+				}
 				«ENDFOR»
 			«ENDIF»
 			writer.closeNodeData();
@@ -427,10 +446,19 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			«val cellVariables = outputVarsByConnectivities.get("cell")»
 			«IF !cellVariables.nullOrEmpty»
 				«FOR v : cellVariables»
+				{
+					«IF createPartitions»
+					«val node_var_name = v.target.name»
+					«typeContentProvider.getCppType(v.target.type)» «node_var_name» = «typeContentProvider.getCppType(v.target.type)»(«typeContentProvider.getCstrInit(v.target.type, node_var_name)»);
+					«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)»
+						for (const size_t index : mesh->RANGE_nodesFromPartition(«i»)) «node_var_name»[index] = partitions[«i»].«node_var_name»[index];
+					«ENDFOR»
+					«ENDIF»
 					writer.openCellArray("«v.outputName»", «v.target.type.sizesSize»);
 					for (size_t i=0 ; i<nbCells ; ++i)
 						writer.write(«v.target.writeCallContent»);
 					writer.closeCellArray();
+				}
 				«ENDFOR»
 			«ENDIF»
 			writer.closeCellData();

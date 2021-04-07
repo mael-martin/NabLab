@@ -46,7 +46,7 @@ class CppGeneratorUtils
 	static def dispatch getCodeName(InternFunction it) { irModule.freeFunctionNs + '::' + name }
 	static def getHDefineName(String name) { '__' + name.toUpperCase + '_H_' }
 
-	static TypeContentProvider typeContentProvider;
+	static TypeContentProvider typeContentProvider = new StlThreadTypeContentProvider();
 	static def void registerTypeContentProvider(TypeContentProvider typeCtxProv) { typeContentProvider = typeCtxProv; }
 	
 	/* FIXME: Those two need to be specified in the NGEN file */
@@ -240,7 +240,7 @@ class CppGeneratorUtils
 		if (taskCurrent !== null)
 			return '''«FOR i : iterator SEPARATOR ', '»\"«name»_%ld\"«ENDFOR»'''
 		else
-			return '''«FOR i : iterator SEPARATOR ', '»\"«name»_%ld\"«ENDFOR»'''
+			return '''«FOR i : iterator SEPARATOR ', '»\"«name»_%d\"«ENDFOR»'''
 	}
 	
 	static def printVariableRangeValue(Variable it, CharSequence taskCurrent, boolean needNeighbors)
