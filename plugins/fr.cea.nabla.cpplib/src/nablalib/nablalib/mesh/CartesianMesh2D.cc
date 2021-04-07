@@ -510,7 +510,7 @@ namespace nablalib::mesh
     }
 
     /*********************************
-     * Partution constructor methods *
+     * Partition constructor methods *
      *********************************/
 
     void
@@ -566,6 +566,16 @@ namespace nablalib::mesh
                   << getNbInnerHorizontalFaces() << " IH faces, "
                   << getNbInnerVerticalFaces()   << " IV faces, "
                   << getNbOuterFaces()           << " O faces\n";
+
+        std::cout << "Reverse links (for " << CartesianMesh2D::PartitionNumber << " partitions): \n";
+        for (size_t i = 0; i < CartesianMesh2D::PartitionNumber; ++i) {
+            std::cout << "\tPartition " << i << ":"
+                      << "\tcells " << std::count(m_cells_to_partitions.begin(), m_cells_to_partitions.end(), i)
+                      << "\tnodes " << std::count(m_nodes_to_partitions.begin(), m_nodes_to_partitions.end(), i)
+                      << "\tfaces " << std::count(m_faces_to_partitions.begin(), m_faces_to_partitions.end(), i)
+                      << "\n";
+        }
+        std::cout << "PARTITIONS MESSAGES END\n" << std::endl;
     }
 
     idx_t*
@@ -590,6 +600,19 @@ namespace nablalib::mesh
                 m_partitions_faces[0].emplace_back(faces[3]);
 
                 metis_partition_cell[i] = 0;
+
+                /* Reverse links */
+                m_cells_to_partitions[i] = 0;
+
+                m_nodes_to_partitions[nodes[0]] = 0;
+                m_nodes_to_partitions[nodes[1]] = 0;
+                m_nodes_to_partitions[nodes[2]] = 0;
+                m_nodes_to_partitions[nodes[3]] = 0;
+
+                m_faces_to_partitions[faces[0]] = 0;
+                m_faces_to_partitions[faces[1]] = 0;
+                m_faces_to_partitions[faces[2]] = 0;
+                m_faces_to_partitions[faces[3]] = 0;
             }
             return metis_partition_cell;
         }
@@ -629,9 +652,9 @@ namespace nablalib::mesh
 
         std::cout << "Edge cut is: " << objval << "\n";
 
-        m_cells_to_partitions.resize(getNbNodes() + 1);
-        m_nodes_to_partitions.resize(getNbCells() + 1);
-        m_faces_to_partitions.resize(getNbFaces() + 1);
+        m_cells_to_partitions.resize(getNbNodes());
+        m_nodes_to_partitions.resize(getNbCells());
+        m_faces_to_partitions.resize(getNbFaces());
 
         for (idx_t i = 0; i < matrix.xadj_len; ++i) {
             m_partitions_cells[metis_partition_cell[i]].emplace_back(i);
@@ -652,6 +675,8 @@ namespace nablalib::mesh
              * What to do if a node is in multiple partitions?
              * => In case of multiple links, link to the partition with the
              *    higher ID number.
+             * TODO: Verify that the following insturctions are doing the right
+             *       thing, i.e. verify reverse links.
              */
 
             m_cells_to_partitions[i] = metis_partition_cell[i];
