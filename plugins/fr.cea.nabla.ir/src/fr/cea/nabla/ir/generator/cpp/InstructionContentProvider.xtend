@@ -9,6 +9,12 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
+import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
+import static extension fr.cea.nabla.ir.ContainerExtensions.*
+import static extension fr.cea.nabla.ir.generator.Utils.*
+import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
+
 import org.eclipse.xtext.EcoreUtil2
 import org.eclipse.xtend.lib.annotations.Data
 
@@ -39,12 +45,7 @@ import fr.cea.nabla.ir.ir.IrAnnotable
 import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.Function
 import fr.cea.nabla.ir.ir.ArgOrVarRef
-
-import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
-import static extension fr.cea.nabla.ir.ContainerExtensions.*
-import static extension fr.cea.nabla.ir.generator.Utils.*
-import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
-import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
+import fr.cea.nabla.ir.ir.ItemIndex
 
 @Data
 abstract class InstructionContentProvider
@@ -697,9 +698,9 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	
 	override dispatch CharSequence getContent(ItemIdDefinition it)
 	{
-		val itemnames = EcoreUtil2.getContainerOfType(it, Job).eAllContents.filter(ItemIndexDefinition)
-		                .filter[t|t.index.itemName == id.itemName].toList
-		val item = itemnames.size > 0 ? autoDetectConnectivity(itemnames.head.index.name) : null
+		val itemnames = EcoreUtil2.getContainerOfType(it, Job).eAllContents.filter(ItemIndex)
+		                .filter[t|t.itemName == id.itemName].toList
+		val item = itemnames.size > 0 ? autoDetectConnectivity(itemnames.head.name) : null
 		if (item === null)
 		'''
 			const Id «id.name» = «value.content»;
