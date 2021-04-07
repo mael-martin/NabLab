@@ -26,6 +26,7 @@ import fr.cea.nabla.ir.ir.PrimitiveType
 import fr.cea.nabla.ir.ir.RealConstant
 import fr.cea.nabla.ir.ir.UnaryExpression
 import fr.cea.nabla.ir.ir.VectorConstant
+import fr.cea.nabla.ir.ir.Job
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.IrTypeExtensions.*
@@ -33,6 +34,7 @@ import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import org.eclipse.xtend.lib.annotations.Data
+import org.eclipse.xtext.EcoreUtil2
 import java.util.HashMap
 
 @Data
@@ -187,9 +189,10 @@ class OpenMpTaskExpressionContentProvider extends ExpressionContentProvider
 
 	override CharSequence getCodeName(ArgOrVarRef it)
 	{
-		val index_type = getGlobalVariableType(target.codeName);
+		val insideJob        = EcoreUtil2.getContainerOfType(it, Job) !== null
+		val index_type       = getGlobalVariableType(target.codeName);
 		val partition_prefix = '''partitions[«IndexTypeToIdPartition.get(index_type.toString)»].'''
-		if (index_type == INDEX_TYPE::NULL) {
+		if (index_type == INDEX_TYPE::NULL || !insideJob) {
 			super.getCodeName(it)
 		}
 		
