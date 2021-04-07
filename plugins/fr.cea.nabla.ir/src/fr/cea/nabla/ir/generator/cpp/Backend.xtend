@@ -139,7 +139,7 @@ class OpenMpTaskBackend extends Backend
 {
 	new()
 	{
-		OMPTraces = false
+		OMPTraces = true
 		OMPTaskMaxNumber = 4
 		CppApplicationGenerator::createPartitions = true
 		name = 'OpenMPTask'

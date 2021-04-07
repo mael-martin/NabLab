@@ -249,14 +249,14 @@ class CppGeneratorUtils
 			return '''"simple"'''
 
 		if (!needNeighbors && taskCurrent !== null)
-			return '''«getVariableRange('''«taskCurrent»''')»'''
+			return '''«taskCurrent»'''
 
 		/* Need the neighbors, or just get all for the getDependencies/getDependenciesAll cases */
 		val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
 		if (taskCurrent !== null)
-			return '''«FOR i : iterator SEPARATOR ', '»«getVariableRange('''«taskCurrent», «i»''')»«ENDFOR»'''
+			return '''«FOR i : iterator SEPARATOR ', '»mesh->NEIGHBOR_getForPartition(«taskCurrent», «i»)«ENDFOR»'''
 		else
-			return '''«FOR i : iterator SEPARATOR ', '»«getVariableRange('''«i»''')»«ENDFOR»'''
+			return '''«FOR i : iterator SEPARATOR ', '»«i»«ENDFOR»'''
 	}
 	
 	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''mesh->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
