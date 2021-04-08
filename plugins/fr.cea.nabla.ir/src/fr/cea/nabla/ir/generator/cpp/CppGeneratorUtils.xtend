@@ -137,6 +137,76 @@ class CppGeneratorUtils
 		} else ''''''
 	}
 	
+	static def getDependenciesFlush(Job it, CharSequence clause, Iterable<Variable> deps, CharSequence taskPartition, boolean needNeighbors)
+	{
+		/* Construct the OpenMP clause */
+		val falseIns = getFalseInVariableForJob(it);
+		val dependencies = deps.toSet;
+		if (dependencies.length == 0) return ''''''
+		dependencies.removeAll(falseIns)
+
+		val dep_ranges  = dependencies.filter(v|v.isVariableRange);
+		val dep_simple  = dependencies.filter(v|!v.isVariableRange);
+		val need_ranges = dep_ranges.length >= 1;
+		val need_simple = dep_simple.length >= 1;
+		var ret = ''''''
+
+		/* Only needed for ranges with neighbors */
+		val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
+
+		/* All ranges, with the neighbors */
+		if (need_ranges && needNeighbors)
+			ret = '''«FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '
+			»this->partitions[mesh->NEIGHBOR_getForPartition(«taskPartition», «i»)].«v.name»«
+			ENDFOR»«ENDFOR»'''
+		
+		/* All ranges, but without neighbors */
+		else if (need_ranges)
+			ret = '''«FOR v : dep_ranges SEPARATOR ', '»this->partitions[«taskPartition»].«v.name»«ENDFOR»'''
+
+		/* All simple values */
+		if (need_simple)
+			ret = '''«ret»«FOR v : dep_simple SEPARATOR ', '»«getVariableName(v)»«ENDFOR»'''
+		
+		return ret != '''''' ?
+		'''
+		#pragma omp flush«IF clause != ''''''» «clause» «ENDIF»(«ret»)
+		''' : ''''''
+	}
+
+	static def getDependenciesFlushAll(Job it, CharSequence clause, Iterable<Variable> deps, int fromTask, int taskLimit)
+	{
+		/* Construct the OpenMP clause(s) */
+		val falseIns = getFalseInVariableForJob(it);
+		val dependencies = deps.toSet;
+		if (dependencies.length == 0) return ''''''
+		dependencies.removeAll(falseIns)
+
+		val dep_ranges  = dependencies.filter(v|v.isVariableRange);
+		val dep_simple  = dependencies.filter(v|!v.isVariableRange);
+		val need_ranges = dep_ranges.length >= 1;
+		val need_simple = dep_simple.length >= 1;
+		var ret = ''''''
+
+		if (need_ranges)
+		{
+			/* All ranges */
+			val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
+			ret = '''«FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', ' »this->partitions[«i»].«v.name»«ENDFOR»«ENDFOR»'''
+		}
+
+		if (need_simple)
+		{
+			/* All simple values */
+			ret = '''«ret»«FOR v : dep_simple SEPARATOR ', '»«getVariableName(v)»«ENDFOR»'''
+		}
+
+		return ret != '''''' ?
+		'''
+		#pragma omp flush«IF clause != ''''''» «clause» «ENDIF»(«ret»)
+		''' : ''''''
+	}
+	
 	static def getDependencies(Job it, String inout, Iterable<Variable> deps, CharSequence taskPartition, boolean needNeighbors)
 	{
 		/* Construct the OpenMP clause */
@@ -273,10 +343,10 @@ class CppGeneratorUtils
 	
 	/* Get DF */
 	static def getInVars(Job it) {
-		eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet
+		(it === null) ? #[].toSet : eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet
 	}
 	static def getOutVars(Job it) {
-		eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet
+		(it === null) ? #[].toSet : eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet
 	}
 	static def getSharedVarsNames(Job it) {
 		val ins = caller.calls.map[inVars.filter[!isOption].filter[t|!typeContentProvider.getCppTypeCanBePartitionized(t.type)]].flatten.toSet;

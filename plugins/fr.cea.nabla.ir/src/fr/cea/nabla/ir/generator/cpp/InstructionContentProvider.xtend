@@ -351,13 +351,13 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val isReduction = (instructions.size == 2) &&
 		                  (instructions.toList.head instanceof ReductionInstruction) &&
 		                  (instructions.toList.last instanceof Affectation)
+		val parentJob      = EcoreUtil2.getContainerOfType(it, Job)
+		val need_neighbors = (dataShift.size > 0) || detectDependencies(it)
+		val ins            = parentJob.inVars
+		val outs           = parentJob.outVars
 
 		val ret = '''
 		«IF launch_super_task»
-		«val parentJob      = EcoreUtil2.getContainerOfType(it, Job)»
-		«val need_neighbors = (dataShift.size > 0) || detectDependencies(it)»
-		«val ins            = parentJob.inVars»
-		«val outs           = parentJob.outVars»
 		for (size_t task = 0; task < («OMPTaskMaxNumber»); ++task)
 		{
 		#pragma omp task firstprivate(task) «parentJob.sharedVarsClause»«parentJob.priority»«
