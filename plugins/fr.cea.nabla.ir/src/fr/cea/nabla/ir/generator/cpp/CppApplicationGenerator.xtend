@@ -110,6 +110,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«FOR v : variables.filter[!option].filter[t|typeContentProvider.getCppTypeCanBePartitionized(t.type)]»
 			«v.variableDeclaration»
 		«ENDFOR»
+
+		~«className»Partition() = default;
+		«className»Partition(«className»Partition &&) = delete;
+		«className»Partition(const «className»Partition &) = delete;
+		«className»Partition& operator=(«className»Partition &) = delete;
 	};
 	«ENDIF»
 
