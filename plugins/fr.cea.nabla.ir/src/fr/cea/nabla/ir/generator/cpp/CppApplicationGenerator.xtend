@@ -9,9 +9,6 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
-import org.eclipse.xtext.EcoreUtil2
-import fr.cea.nabla.ir.ir.JobCaller
-import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.UnzipHelper
 import fr.cea.nabla.ir.Utils
 import fr.cea.nabla.ir.generator.ApplicationGenerator
@@ -111,7 +108,10 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			«v.variableDeclaration»
 		«ENDFOR»
 
+		«className»Partition() = default;
 		~«className»Partition() = default;
+
+		/* Don't move this object around */
 		«className»Partition(«className»Partition &&) = delete;
 		«className»Partition(const «className»Partition &) = delete;
 		«className»Partition& operator=(«className»Partition &) = delete;
@@ -126,6 +126,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		typedef Kokkos::TeamPolicy<Kokkos::DefaultExecutionSpace::scratch_memory_space>::member_type member_type;
 
 		«ENDIF»
+		/* Don't move this object around */
+		«className»(«className» &&)           = delete;
+		«className»(const «className» &)      = delete;
+		«className»& operator=(«className» &) = delete;
+
 	public:
 		struct Options
 		{
@@ -142,7 +147,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		};
 
 		«className»(«meshClassName»* aMesh, Options& aOptions);
-		~«className»() = default;
+		~«className»();
 		«IF main»
 			«IF irRoot.modules.size > 1»
 
@@ -226,7 +231,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			«ENDFOR»
 
 			// Partitions for variables that can be partitionized
-			std::vector<«className»Partition> partitions;
+			«className»Partition *partitions;
 		'''
 		
 		else
@@ -314,6 +319,14 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	}
 
 	/******************** Module definition ********************/
+	
+	«className»::~«className»()
+	{
+		/* Delete all partitions */
+		for (size_t part = 0; part < «OMPTaskMaxNumber»; ++part)
+			(&partitions[part])->~«className»Partition();
+		std::free(partitions);
+	}
 
 	«className»::«className»(«meshClassName»* aMesh, Options& aOptions)
 	: mesh(aMesh)
@@ -329,8 +342,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«FOR v : variables.filter[needStaticAllocation]»
 		, «v.name»(«typeContentProvider.getCstrInit(v.type, v.name)»)
 		«ENDFOR»
-	«ELSE»
-		, partitions(«meshClassName»::getPartitionNumber())
 	«ENDIF»
 	{
 		«val dynamicArrayVariables = variables.filter[needDynamicAllocation]»
@@ -346,9 +357,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		const auto& gNodes = mesh->getGeometry()->getNodes();
 		«IF createPartitions /* FIXME */»
 			// FIXME: first touch for NUMA effects
+			partitions = («className»Partition *) std::malloc(«meshClassName»::getPartitionNumber() * sizeof(«className»Partition));
 			«val iterator = backend.typeContentProvider.formatIterators(irRoot.initNodeCoordVariable.type as ConnectivityType, #["rNodes"])»
 			for (size_t part = 0; part < «OMPTaskMaxNumber»; ++part)
 			{
+				new (&partitions[part]) «className»Partition();
 				«FOR v : variablesWithDefaultValue.filter[x | !x.constExpr].filter[typeContentProvider.getCppTypeCanBePartitionized(type)]»
 				partitions[part].«v.name» = «typeContentProvider.getCppType(v.type)»(«expressionContentProvider.getContent(v.defaultValue)»);
 				«ENDFOR»
