@@ -221,13 +221,11 @@ class CppGeneratorUtils
 		val need_simple = dep_simple.length >= 1;
 		var ret = ''''''
 
-		/* Only needed for ranges with neighbors */
-		val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
-
 		/* All ranges, with the neighbors */
 		if (need_ranges && needNeighbors)
 			ret = ''' \
-/* dep */ depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '
+/* dep */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»«
+FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', '
 »this->partitions[mesh->NEIGHBOR_getForPartition(«taskPartition», «i»)].«v.name»«ENDFOR»«ENDFOR»)'''
 		
 		/* All ranges, but without neighbors */
@@ -270,9 +268,9 @@ class CppGeneratorUtils
 		if (need_ranges)
 		{
 			/* All ranges */
-			val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
 			ret = ''' \
-/* dep all */ depend(«inout»: «FOR v : dep_ranges»«FOR i : iterator SEPARATOR ', '
+/* dep all */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»«
+FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', '
 »this->partitions[«i»].«v.name»«ENDFOR»«ENDFOR»)'''
 		}
 
@@ -343,11 +341,17 @@ class CppGeneratorUtils
 	
 	/* Get DF */
 	static def getInVars(Job it) {
-		(it === null) ? #[].toSet : eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet
+		(it === null)
+		? #[].toSet
+		: eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet
 	}
 	static def getOutVars(Job it) {
-		(it === null) ? #[].toSet : eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet
+		(it === null)
+		? #[].toSet
+		: eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet
 	}
+	
+	/* Shared variables, don't copy them into threads */
 	static def getSharedVarsNames(Job it) {
 		val ins = caller.calls.map[inVars.filter[!isOption].filter[t|!typeContentProvider.getCppTypeCanBePartitionized(t.type)]].flatten.toSet;
 		ins.addAll(outVars.filter[!isOption].filter[t|!typeContentProvider.getCppTypeCanBePartitionized(t.type)])
