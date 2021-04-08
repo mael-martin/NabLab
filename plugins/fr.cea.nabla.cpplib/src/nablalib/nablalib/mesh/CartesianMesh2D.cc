@@ -644,7 +644,6 @@ namespace nablalib::mesh
         ret = METIS_PartGraphKway(&matrix.xadj_len, &num_constraints, matrix.xadj, matrix.adjncy,
                                   NULL, NULL, NULL, &num_partition, NULL, NULL,
                                   metis_options, &objval, metis_partition_cell);
-        CSR_Matrix::free(matrix);
         if (METIS_OK != ret) {
             std::cerr << "Invalid return from metis\n";
             abort();
@@ -692,6 +691,7 @@ namespace nablalib::mesh
             m_faces_to_partitions[faces[3]] = metis_partition_cell[i];
         }
 
+        CSR_Matrix::free(matrix);
         return metis_partition_cell;
     }
 
