@@ -115,30 +115,6 @@ namespace nablalib::mesh
         }
     }
 
-    const array<Id, 4>&
-    CartesianMesh2D::getNodesOfCell(const Id& cellId) const noexcept
-    {
-        return m_geometry->getQuads()[cellId].getNodeIds();
-    }
-
-    const array<Id, 2>&
-    CartesianMesh2D::getNodesOfFace(const Id& faceId) const noexcept
-    {
-        return m_geometry->getEdges()[faceId].getNodeIds();
-    }
-
-    Id
-    CartesianMesh2D::getFirstNodeOfFace(const Id& faceId) const noexcept
-    {
-        return m_geometry->getEdges()[faceId].getNodeIds()[0];
-    }
-
-    Id
-    CartesianMesh2D::getSecondNodeOfFace(const Id& faceId) const noexcept
-    {
-        return m_geometry->getEdges()[faceId].getNodeIds()[1];
-    }
-
     vector<Id>
     CartesianMesh2D::getCellsOfNode(const Id& nodeId) const noexcept
     {
@@ -267,32 +243,6 @@ namespace nablalib::mesh
             return false;
         // else it's an inner one
         return true;
-    }
-
-    bool
-    CartesianMesh2D::isVerticalEdge(const Edge& e) const noexcept
-    {
-        return (e.getNodeIds()[0] == e.getNodeIds()[1] + m_nb_x_quads + 1 ||
-                e.getNodeIds()[1] == e.getNodeIds()[0] + m_nb_x_quads + 1);
-    }
-
-    bool
-    CartesianMesh2D::isHorizontalEdge(const Edge& e) const noexcept
-    {
-        return (e.getNodeIds()[0] == e.getNodeIds()[1] + 1 ||
-                e.getNodeIds()[1] == e.getNodeIds()[0] + 1);
-    }
-
-    bool
-    CartesianMesh2D::isInnerVerticalEdge(const Edge& e) const noexcept
-    {
-        return isInnerEdge(e) && isVerticalEdge(e);
-    }
-
-    bool
-    CartesianMesh2D::isInnerHorizontalEdge(const Edge& e) const noexcept
-    {
-        return isInnerEdge(e) && isHorizontalEdge(e);
     }
 
     Id
@@ -468,23 +418,12 @@ namespace nablalib::mesh
         return (faceId - 2);
     }
 
-    Id CartesianMesh2D::index2IdCell(const size_t& i, const size_t& j) const noexcept
-    {
-        return static_cast<Id>(i * m_nb_x_quads + j);
-    }
-
     pair<size_t, size_t>
     CartesianMesh2D::id2IndexCell(const Id& k) const noexcept
     {
         size_t i(static_cast<size_t>(k) / m_nb_x_quads);
         size_t j(static_cast<size_t>(k) - i * m_nb_x_quads);
         return make_pair(i, j);
-    }
-
-    Id
-    CartesianMesh2D::index2IdNode(const size_t& i, const size_t&j) const noexcept
-    {
-        return static_cast<Id>(i * (m_nb_x_quads + 1) + j);
     }
 
     pair<size_t, size_t>

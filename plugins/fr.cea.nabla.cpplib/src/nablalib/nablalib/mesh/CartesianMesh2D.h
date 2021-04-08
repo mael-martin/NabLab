@@ -151,15 +151,15 @@ public:
     vector<Id> getInnerHorizontalFaces() const noexcept { return m_inner_horizontal_faces;        }
     vector<Id> getInnerVerticalFaces()   const noexcept { return m_inner_vertical_faces;          }
 
-    Id getTopLeftNode()     const noexcept { return m_top_left_node;     }
-    Id getTopRightNode()    const noexcept { return m_top_right_node;    }
-    Id getBottomLeftNode()  const noexcept { return m_bottom_left_node;  }
-    Id getBottomRightNode() const noexcept { return m_bottom_right_node; }
+    inline Id getTopLeftNode()     const noexcept { return m_top_left_node;     }
+    inline Id getTopRightNode()    const noexcept { return m_top_right_node;    }
+    inline Id getBottomLeftNode()  const noexcept { return m_bottom_left_node;  }
+    inline Id getBottomRightNode() const noexcept { return m_bottom_right_node; }
 
-    const array<Id, 4>& getNodesOfCell(const Id& cellId) const noexcept;
-    const array<Id, 2>& getNodesOfFace(const Id& faceId) const noexcept;
-    Id getFirstNodeOfFace(const Id& faceId)  const noexcept;
-    Id getSecondNodeOfFace(const Id& faceId) const noexcept;
+    inline auto getNodesOfCell(const Id& cellId)    const noexcept -> const array<Id, 4>& { return m_geometry->getQuads()[cellId].getNodeIds(); }
+    inline auto getNodesOfFace(const Id& faceId)    const noexcept -> const array<Id, 2>& { return m_geometry->getEdges()[faceId].getNodeIds(); }
+    inline Id getFirstNodeOfFace(const Id& faceId)  const noexcept { return m_geometry->getEdges()[faceId].getNodeIds()[0]; }
+    inline Id getSecondNodeOfFace(const Id& faceId) const noexcept { return m_geometry->getEdges()[faceId].getNodeIds()[1]; }
 
     vector<Id> getCellsOfNode(const Id& nodeId) const noexcept;
     vector<Id> getCellsOfFace(const Id& faceId) const;
@@ -255,23 +255,25 @@ public:
     ___DEFINE_RANGE_FOR_SIDE(innerHorizontal, Faces, faces)
 #undef ___DEFINE_RANGE_FOR_SIDE
 
-/* Internal functions */
+/* Don't move it around */
 private:
-    /* Don't move it around */
     CartesianMesh2D(const CartesianMesh2D &)      = delete;
     CartesianMesh2D(CartesianMesh2D &&)           = delete;
     CartesianMesh2D& operator=(CartesianMesh2D &) = delete;
 
-    Id index2IdCell(const size_t& i, const size_t& j) const noexcept;
-    Id index2IdNode(const size_t& i, const size_t& j) const noexcept;
+/* Internal helper functions */
+private:
+    inline Id index2IdCell(const size_t& i, const size_t& j) const noexcept { return static_cast<Id>(i * m_nb_x_quads + j); }
+    inline Id index2IdNode(const size_t& i, const size_t& j) const noexcept { return static_cast<Id>(i * (m_nb_x_quads + 1) + j); }
     pair<size_t, size_t> id2IndexCell(const Id& k) const noexcept;
     pair<size_t, size_t> id2IndexNode(const Id& k) const noexcept;
 
     bool isInnerEdge(const Edge& e) const noexcept;
-    bool isVerticalEdge(const Edge& e) const noexcept;
-    bool isHorizontalEdge(const Edge& e) const noexcept;
-    bool isInnerVerticalEdge(const Edge& e) const noexcept;
-    bool isInnerHorizontalEdge(const Edge& e) const noexcept;
+    inline bool isVerticalEdge(const Edge& e) const noexcept { return (e.getNodeIds()[0] == e.getNodeIds()[1] + m_nb_x_quads + 1 || e.getNodeIds()[1] == e.getNodeIds()[0] + m_nb_x_quads + 1); }
+    inline bool isHorizontalEdge(const Edge& e) const noexcept { return (e.getNodeIds()[0] == e.getNodeIds()[1] + 1 || e.getNodeIds()[1] == e.getNodeIds()[0] + 1); }
+    inline bool isInnerVerticalEdge(const Edge& e) const noexcept { return isInnerEdge(e) && isVerticalEdge(e); }
+    inline bool isInnerHorizontalEdge(const Edge& e) const noexcept { return isInnerEdge(e) && isHorizontalEdge(e); }
+
 
     size_t getNbCommonIds(const vector<Id>& a, const vector<Id>& b) const noexcept;
     template <size_t N, size_t M> size_t
