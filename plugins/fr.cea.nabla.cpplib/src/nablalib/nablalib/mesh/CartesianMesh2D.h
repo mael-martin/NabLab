@@ -10,6 +10,11 @@
 #ifndef NABLALIB_MESH_CARTESIANMESH2D_H_
 #define NABLALIB_MESH_CARTESIANMESH2D_H_
 
+/* Need NABLALIB_DEBUG to be defined */
+#ifndef NABLALIB_DEBUG
+#define NABLALIB_DEBUG 0
+#endif
+
 #include <utility>
 #include <cstdint>
 #include <cmath>
@@ -210,11 +215,12 @@ public:
 
 #define ___DEFINE_REVERSE_LINK_ACCESSORS(what)                          \
     size_t partition = m_##what##s_to_partitions[what];                 \
+    if constexpr (NABLALIB_DEBUG) {                                     \
     if (std::find(m_partitions_##what##s[partition].begin(),            \
                   m_partitions_##what##s[partition].end(),              \
                   what) == m_partitions_##what##s[partition].end()) {   \
         abort();                                                        \
-    }                                                                   \
+    }}                                                                  \
     return partition;
 
     inline size_t getPartitionOfNode(Id node) noexcept { ___DEFINE_REVERSE_LINK_ACCESSORS(node) }

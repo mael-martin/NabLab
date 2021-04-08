@@ -246,6 +246,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 	private def getSourceFileContent(IrModule it)
 	'''
+	#define NABLALIB_DEBUG 0
 	«fileHeader»
 
 	#include "«className».h"
