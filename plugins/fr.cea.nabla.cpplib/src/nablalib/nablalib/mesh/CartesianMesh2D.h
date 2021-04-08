@@ -208,9 +208,19 @@ public:
     size_t NEIGHBOR_getNumberForPartition(size_t partition) const noexcept;
     size_t NEIGHBOR_getForPartition(size_t partition, size_t neighbor_index) const noexcept;
 
-    inline size_t getPartitionOfNode(Id node) const noexcept { return m_nodes_to_partitions[node]; }
-    inline size_t getPartitionOfCell(Id cell) const noexcept { return m_cells_to_partitions[cell]; }
-    inline size_t getPartitionOfFace(Id face) const noexcept { return m_faces_to_partitions[face]; }
+#define ___DEFINE_REVERSE_LINK_ACCESSORS(what)                          \
+    size_t partition = m_##what##s_to_partitions[what];                 \
+    if (std::find(m_partitions_##what##s[partition].begin(),            \
+                  m_partitions_##what##s[partition].end(),              \
+                  what) == m_partitions_##what##s[partition].end()) {   \
+        abort();                                                        \
+    }                                                                   \
+    return partition;
+
+    inline size_t getPartitionOfNode(Id node) noexcept { ___DEFINE_REVERSE_LINK_ACCESSORS(node) }
+    inline size_t getPartitionOfCell(Id cell) noexcept { ___DEFINE_REVERSE_LINK_ACCESSORS(cell) }
+    inline size_t getPartitionOfFace(Id face) noexcept { ___DEFINE_REVERSE_LINK_ACCESSORS(face) }
+#undef ___DEFINE_REVERSE_LINK_ACCESSORS
 
 #define ___DEFINE_RANGE_FOR_SIDE(what, Type, type) \
     inline const vector<Id>& RANGE_##what##Type##FromPartition(const size_t partition) const noexcept \
@@ -285,7 +295,7 @@ private:
     void computeNeighborPartitions(idx_t *metis_partition_cell) noexcept;
     void computePartialPartitions() noexcept;
 
-/* Members */
+/* Members from CartesianMesh2D */
 private:
     MeshGeometry<2>* m_geometry;
 
@@ -320,7 +330,8 @@ private:
     size_t m_nb_x_quads;
     size_t m_nb_y_quads;
 
-    /* From the CartesianPartition2D */
+/* Members from CartesianPartition2D */
+private:
     static inline uint32_t MAX_SHIFT     = 0; /* Detected at generation time */
     static inline size_t PartitionNumber = 0;
 

@@ -584,6 +584,10 @@ namespace nablalib::mesh
         /* 1 partition case */
         if (CartesianMesh2D::PartitionNumber == 1) {
             idx_t *metis_partition_cell = new idx_t[m_problem_x * m_problem_y]();
+            m_cells_to_partitions.resize(getNbCells());
+            m_nodes_to_partitions.resize(getNbNodes());
+            m_faces_to_partitions.resize(getNbFaces());
+
             for (size_t i = 0; i < m_problem_x * m_problem_y; ++i) {
                 m_partitions_cells[0].emplace_back(i);
 
@@ -670,12 +674,8 @@ namespace nablalib::mesh
             m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[2]);
             m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[3]);
 
-            /* Add in revere links.
-             * What to do if a node is in multiple partitions?
-             * => In case of multiple links, link to the partition with the
-             *    higher ID number.
-             * TODO: Verify that the following insturctions are doing the right
-             *       thing, i.e. verify reverse links.
+            /* Add in revere links. What to do if a node is in multiple partitions?
+             * => In case of multiple links, link to the partition with the higher ID number.
              */
 
             m_cells_to_partitions[i] = metis_partition_cell[i];
