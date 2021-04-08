@@ -102,9 +102,7 @@ public:
 
     MeshGeometry<2>* getGeometry() noexcept { return m_geometry; }
 
-/****************
- * Mesh methods *
- ****************/
+/* Mesh methods */
 public:
     size_t getNbNodes() const noexcept { return m_geometry->getNodes().size(); }
     size_t getNbCells() const noexcept { return m_geometry->getQuads().size(); }
@@ -194,9 +192,7 @@ public:
     Id getRightFaceNeighbour(const Id& faceId) const;
     Id getLeftFaceNeighbour(const Id& faceId) const;
 
-/*********************
- * Partition methods *
- *********************/
+/* Partition methods */
 public:
     /* HOWTO:
      * #pragma omp task                                                                     \
@@ -290,12 +286,11 @@ private:
 
     inline vector<Id> cellsOfNodeCollection(const vector<Id>& nodes);
 
-    inline Id PIN_nodesFromCells(const Id cell) const noexcept { return RANGE_nodesFromCells(cell)[0]; }
-    inline Id PIN_facesFromCells(const Id cell) const noexcept { return RANGE_facesFromCells(cell)[0]; }
     const array<Id, 4> RANGE_facesFromCells(const Id cell) const noexcept;
     const array<Id, 4> RANGE_nodesFromCells(const Id cell) const noexcept;
 
-    /* Partition constructor methods */
+/* Partition constructor methods */
+private:
     void printPartialPartitions() noexcept;
     idx_t* createPartitions() noexcept;
     void computeNeighborPartitions(idx_t *metis_partition_cell) noexcept;

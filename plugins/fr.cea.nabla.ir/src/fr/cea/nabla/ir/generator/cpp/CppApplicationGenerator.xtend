@@ -323,10 +323,12 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	
 	«className»::~«className»()
 	{
+		«IF createPartitions»
 		/* Delete all partitions */
 		for (size_t part = 0; part < «OMPTaskMaxNumber»; ++part)
 			(&partitions[part])->~«className»Partition();
 		std::free(partitions);
+		«ENDIF»
 	}
 
 	«className»::«className»(«meshClassName»* aMesh, Options& aOptions)

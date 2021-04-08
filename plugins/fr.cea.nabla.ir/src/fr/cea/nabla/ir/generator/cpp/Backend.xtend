@@ -120,6 +120,7 @@ class OpenMpBackend extends Backend
 	new()
 	{
 		name = 'OpenMP'
+		CppApplicationGenerator::createPartitions = false
 		cmakeContentProvider = new OpenMpCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)

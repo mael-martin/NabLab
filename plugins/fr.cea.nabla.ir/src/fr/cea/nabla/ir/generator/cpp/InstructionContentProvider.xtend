@@ -754,7 +754,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			OpenMpTaskExpressionContentProvider::registerPartitionIdForIndexType(itemdef.toUpperCase + "S", id.name + "Partition")
 			'''
 				const Id «id.name»          = «value.content»;
-				const Id «id.name»Partition = mesh->getPartitionOf«item»(«value.content»); // Indexes on «itemdef.toUpperCase»S => partition «id.name»Partition
+				const Id «id.name»Partition = mesh->getPartitionOf«item»(«id.name»); // Indexes on «itemdef.toUpperCase»S => partition «id.name»Partition
 			'''
 			}
 		}
@@ -764,7 +764,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			OpenMpTaskExpressionContentProvider::registerPartitionIdForIndexType(item.toUpperCase + "S", id.name + "Partition")
 		'''
 			const Id «id.name»          = «value.content»;
-			const Id «id.name»Partition = mesh->getPartitionOf«item»(«value.content»); // Indexes on «item.toUpperCase»S => partition «id.name»Partition
+			const Id «id.name»Partition = mesh->getPartitionOf«item»(«id.name»); // Indexes on «item.toUpperCase»S => partition «id.name»Partition
 		'''
 		}
 	}

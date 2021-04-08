@@ -663,16 +663,7 @@ namespace nablalib::mesh
             m_partitions_cells[metis_partition_cell[i]].emplace_back(i);
 
             const array<Id, 4> nodes = RANGE_nodesFromCells(i);
-            m_partitions_nodes[metis_partition_cell[i]].emplace_back(nodes[0]);
-            m_partitions_nodes[metis_partition_cell[i]].emplace_back(nodes[1]);
-            m_partitions_nodes[metis_partition_cell[i]].emplace_back(nodes[2]);
-            m_partitions_nodes[metis_partition_cell[i]].emplace_back(nodes[3]);
-
             const array<Id, 4> faces = RANGE_facesFromCells(i);
-            m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[0]);
-            m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[1]);
-            m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[2]);
-            m_partitions_faces[metis_partition_cell[i]].emplace_back(faces[3]);
 
             /* Add in revere links. What to do if a node is in multiple partitions?
              * => In case of multiple links, link to the partition with the higher ID number.
@@ -689,6 +680,18 @@ namespace nablalib::mesh
             m_faces_to_partitions[faces[1]] = metis_partition_cell[i];
             m_faces_to_partitions[faces[2]] = metis_partition_cell[i];
             m_faces_to_partitions[faces[3]] = metis_partition_cell[i];
+        }
+
+        /* Partition to node relation */
+        for (size_t node = 0; node < m_nodes_to_partitions.size(); ++node) {
+            const size_t part = m_nodes_to_partitions[node];
+            m_partitions_nodes[part].emplace_back(node);
+        }
+
+        /* Partition to face relation */
+        for (size_t face = 0; face < m_faces_to_partitions.size(); ++face) {
+            const size_t part = m_faces_to_partitions[face];
+            m_partitions_faces[part].emplace_back(face);
         }
 
         CSR_Matrix::free(matrix);
