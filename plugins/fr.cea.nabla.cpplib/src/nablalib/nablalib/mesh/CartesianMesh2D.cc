@@ -652,8 +652,8 @@ namespace nablalib::mesh
 
         std::cout << "Edge cut is: " << objval << "\n";
 
-        m_cells_to_partitions.resize(getNbNodes());
-        m_nodes_to_partitions.resize(getNbCells());
+        m_cells_to_partitions.resize(getNbCells());
+        m_nodes_to_partitions.resize(getNbNodes());
         m_faces_to_partitions.resize(getNbFaces());
 
         for (idx_t i = 0; i < matrix.xadj_len; ++i) {
