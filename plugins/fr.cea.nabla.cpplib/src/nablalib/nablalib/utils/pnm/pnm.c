@@ -35,7 +35,7 @@ ___pnm_file_new_defaults(struct pnm_file *file)
     file->type      = 5;
     file->header[0] = 'P';
     file->header[1] = '5';
-    file->header[2] = '\n';
+    file->header[2] = '\0';
 }
 
 static inline int
@@ -388,8 +388,8 @@ pnm_file_new(int X, int Y, const char *name)
     if (___pnm_file_new(&___tmp_file))
         goto error;
 
-    if (0 == sprintf(___tmp_file.header, "P%d", ___tmp_file.type))
-        return NULL;
+    // if (0 == sprintf(___tmp_file.header, "P%d", ___tmp_file.type))
+    //     return NULL;
 
     *file = ___tmp_file;
     return file;

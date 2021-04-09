@@ -8,6 +8,7 @@
  * Contributors: see AUTHORS file
  *******************************************************************************/
 #include "nablalib/mesh/CartesianMesh2D.h"
+#include "nablalib/utils/pnm/pnm.h"
 #include <stdexcept>
 #include <sstream>
 #include <cassert>
@@ -631,6 +632,31 @@ namespace nablalib::mesh
         for (size_t face = 0; face < m_faces_to_partitions.size(); ++face) {
             const size_t part = m_faces_to_partitions[face];
             m_partitions_faces[part].emplace_back(face);
+        }
+
+        if (NULL != getenv("NABLA_DEBUG_PARTITION")) {
+            /* Cell debug => sample HowTo */
+            {
+                /* Partition to cell debug */
+                for (int part = 0; part < CartesianMesh2D::PartitionNumber; ++part) {
+                    std::string file_name = "partition_" + std::to_string(part) + "_to_cells.pgm";
+                    pnm_file *file = pnm_file_new(m_problem_x, m_problem_y, file_name.c_str());
+                    for (const Id cell : m_partitions_cells[part])
+                        file->bitmap[cell] = 255;
+                    assert(!pnm_file_close(file));
+                }
+
+                /* Cell to partition debug */
+                for (int part = 0; part < CartesianMesh2D::PartitionNumber; ++part) {
+                    std::string file_name = "cell_to_partition" + std::to_string(part) + ".pgm";
+                    pnm_file *file = pnm_file_new(m_problem_x, m_problem_y, file_name.c_str());
+                    for (int cell = 0; cell < m_problem_x * m_problem_y; ++cell) {
+                        if (m_cells_to_partitions[cell] == part)
+                            file->bitmap[cell] = 255;
+                    }
+                    assert(!pnm_file_close(file));
+                }
+            }
         }
 
         CSR_Matrix::free(matrix);

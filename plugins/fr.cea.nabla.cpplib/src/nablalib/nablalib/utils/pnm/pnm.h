@@ -30,7 +30,7 @@ int pnm_file_open(struct pnm_file *);
 int pnm_file_close(struct pnm_file *);
 
 /* Create a new pnm file */
-struct pnm_file * pnm_file_new(int X, int Y, const char *name);
+struct pnm_file *pnm_file_new(int X, int Y, const char *name);
 
 #ifdef __cplusplus
 }
