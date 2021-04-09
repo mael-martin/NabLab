@@ -126,13 +126,13 @@ class OpenMpTaskMainContentProvider extends MainContentProvider
 		// Start simulation
 		// Simulator must be a pointer when a finalize is needed at the end
 		// Wrap the simulate in OMP region => mono producer
-		#pragma omp parallel
-		{
-			#pragma omp single nowait
-			{
-				«name»->simulate();
-			}
-		}
+		// #pragma omp parallel
+		// {
+		// 	#pragma omp single nowait
+		// 	{
+		 		«name»->simulate();
+		// 	}
+		// }
 	'''
 }
 
