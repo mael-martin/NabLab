@@ -55,13 +55,12 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 		«ENDIF»
 		#pragma omp parallel
 		{
-		#pragma omp single // nowait
+		#pragma omp single nowait
 		{
 		«FOR j : calls»
 			«IF j instanceof ExecuteTimeLoopJob»
 			«IF !execTimeLoopPresent»
-			// «execTimeLoopPresent = true»
-			#pragma omp taskwait
+			// Wait before time loop: «execTimeLoopPresent = true»
 			}}
 			«ENDIF»
 			«ENDIF»
@@ -70,8 +69,6 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 		«IF ! execTimeLoopPresent»
 		}}
 		«ENDIF»
-		// Wait for this loop tasks to be done...
-		// #pragma omp taskwait
 
 		'''
 	}

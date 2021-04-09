@@ -124,15 +124,8 @@ class OpenMpTaskMainContentProvider extends MainContentProvider
 	override protected getSimulationCall(IrModule it)
 	'''
 		// Start simulation
-		// Simulator must be a pointer when a finalize is needed at the end
-		// Wrap the simulate in OMP region => mono producer
-		// #pragma omp parallel
-		// {
-		// 	#pragma omp single nowait
-		// 	{
-		 		«name»->simulate();
-		// 	}
-		// }
+		// OMP regions are hidden inside
+		 «name»->simulate();
 	'''
 }
 

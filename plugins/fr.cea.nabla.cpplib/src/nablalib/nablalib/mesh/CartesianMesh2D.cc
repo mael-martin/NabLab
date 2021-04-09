@@ -600,14 +600,15 @@ namespace nablalib::mesh
         m_faces_to_partitions.resize(getNbFaces());
 
         for (idx_t i = 0; i < matrix.xadj_len; ++i) {
+            /* Partition to cell relation */
             m_partitions_cells[metis_partition_cell[i]].emplace_back(i);
-
-            const array<Id, 4> nodes = RANGE_nodesFromCells(i);
-            const array<Id, 4> faces = RANGE_facesFromCells(i);
 
             /* Add in revere links. What to do if a node is in multiple partitions?
              * => In case of multiple links, link to the partition with the higher ID number.
              */
+
+            const array<Id, 4> nodes = RANGE_nodesFromCells(i);
+            const array<Id, 4> faces = RANGE_facesFromCells(i);
 
             m_cells_to_partitions[i] = metis_partition_cell[i];
 
@@ -634,58 +635,57 @@ namespace nablalib::mesh
             m_partitions_faces[part].emplace_back(face);
         }
 
-        if (NULL != getenv("NABLA_DEBUG_PARTITION")) {
-            /* Cell debug => sample HowTo */
-            {
-                /* Partition to cell debug */
-                for (int part = 0; part < CartesianMesh2D::PartitionNumber; ++part) {
-                    std::string file_name = "partition_" + std::to_string(part) + "_to_cells.pgm";
-                    pnm_file *file = pnm_file_new(m_problem_x, m_problem_y, file_name.c_str());
-                    for (const Id cell : m_partitions_cells[part])
-                        file->bitmap[cell] = 255;
-                    assert(!pnm_file_close(file));
-                }
-
-                /* Cell to partition debug */
-                for (int part = 0; part < CartesianMesh2D::PartitionNumber; ++part) {
-                    std::string file_name = "cell_to_partition" + std::to_string(part) + ".pgm";
-                    pnm_file *file = pnm_file_new(m_problem_x, m_problem_y, file_name.c_str());
-                    for (int cell = 0; cell < m_problem_x * m_problem_y; ++cell) {
-                        if (m_cells_to_partitions[cell] == part)
-                            file->bitmap[cell] = 255;
-                    }
-                    assert(!pnm_file_close(file));
-                }
-            }
-
-            /* Node debug */
-            {
-                /* Partition to node debug */
-                for (int part = 0; part < CartesianMesh2D::PartitionNumber; ++part) {
-                    std::string file_name = "partition_" + std::to_string(part) + "_to_nodes.pgm";
-                    pnm_file *file = pnm_file_new(m_problem_x + 1, m_problem_y + 1, file_name.c_str());
-                    for (const Id node : m_partitions_nodes[part]) {
-                        auto [x, y] = id2IndexNode(node);
-                        file->bitmap[node] = 255;
-                    }
-                    assert(!pnm_file_close(file));
-                }
-
-                /* Node to partition debug */
-                for (int part = 0; part < CartesianMesh2D::PartitionNumber; ++part) {
-                    std::string file_name = "node_to_partition" + std::to_string(part) + ".pgm";
-                    pnm_file *file = pnm_file_new(m_problem_x + 1, m_problem_y + 1, file_name.c_str());
-                    for (int node = 0; node < (m_problem_x + 1) * (m_problem_y + 1); ++node) {
-                        if (m_nodes_to_partitions[node] == part)
-                            file->bitmap[node] = 255;
-                    }
-                    assert(!pnm_file_close(file));
-                }
-            }
-        }
-
+        dumpPartitionRelations();
         CSR_Matrix::free(matrix);
         return metis_partition_cell;
+    }
+
+    void
+    CartesianMesh2D::dumpPartitionRelations() noexcept
+    {
+        /* Cell debug => sample HowTo */
+        /* Partition to cell debug */
+        for (int part = 0; part < CartesianMesh2D::PartitionNumber; ++part) {
+            std::string file_name = "partition_" + std::to_string(part) + "_to_cells.pgm";
+            pnm_file *file = pnm_file_new(m_problem_x, m_problem_y, file_name.c_str());
+            for (const Id cell : m_partitions_cells[part])
+                file->bitmap[cell] = 255;
+            assert(!pnm_file_close(file));
+        }
+
+        /* Cell to partition debug */
+        for (int part = 0; part < CartesianMesh2D::PartitionNumber; ++part) {
+            std::string file_name = "cell_to_partition" + std::to_string(part) + ".pgm";
+            pnm_file *file = pnm_file_new(m_problem_x, m_problem_y, file_name.c_str());
+            for (int cell = 0; cell < m_problem_x * m_problem_y; ++cell) {
+                if (m_cells_to_partitions[cell] == part)
+                    file->bitmap[cell] = 255;
+            }
+            assert(!pnm_file_close(file));
+        }
+
+        /* Node debug */
+        /* Partition to node debug */
+        for (int part = 0; part < CartesianMesh2D::PartitionNumber; ++part) {
+            std::string file_name = "partition_" + std::to_string(part) + "_to_nodes.pgm";
+            pnm_file *file = pnm_file_new(m_problem_x + 1, m_problem_y + 1, file_name.c_str());
+            for (const Id node : m_partitions_nodes[part]) {
+                auto [x, y] = id2IndexNode(node);
+                file->bitmap[node] = 255;
+            }
+            assert(!pnm_file_close(file));
+        }
+
+        /* Node to partition debug */
+        for (int part = 0; part < CartesianMesh2D::PartitionNumber; ++part) {
+            std::string file_name = "node_to_partition" + std::to_string(part) + ".pgm";
+            pnm_file *file = pnm_file_new(m_problem_x + 1, m_problem_y + 1, file_name.c_str());
+            for (int node = 0; node < (m_problem_x + 1) * (m_problem_y + 1); ++node) {
+                if (m_nodes_to_partitions[node] == part)
+                    file->bitmap[node] = 255;
+            }
+            assert(!pnm_file_close(file));
+        }
     }
 
     void

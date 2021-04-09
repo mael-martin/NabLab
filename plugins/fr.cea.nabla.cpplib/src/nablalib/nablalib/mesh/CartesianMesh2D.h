@@ -300,6 +300,7 @@ private:
 private:
     void printPartialPartitions() noexcept;
     idx_t* createPartitions() noexcept;
+    void dumpPartitionRelations() noexcept;
     void computeNeighborPartitions(idx_t *metis_partition_cell) noexcept;
     void computePartialPartitions() noexcept;
 
