@@ -7,9 +7,10 @@ bin/
 .settings/
 # Xtext
 xtend-gen/
-# C++
+# C/C++
 .o
 .a
+.out
 build
 # Nabla
 .nablair
@@ -20,3 +21,6 @@ output
 target/
 # macOS
 .DS_Store
+# Pictures
+.pnm
+.pgm
