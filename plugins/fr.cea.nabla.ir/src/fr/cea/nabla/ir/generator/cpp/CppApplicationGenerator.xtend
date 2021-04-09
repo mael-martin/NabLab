@@ -371,13 +371,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				«FOR v : variables.filter[needStaticAllocation].filter[typeContentProvider.getCppTypeCanBePartitionized(type)]»
 				partitions[part].«v.name» = «typeContentProvider.getCppType(v.type)»(«typeContentProvider.getCstrInit(v.type, v.name)»);
 				«ENDFOR»
-				
-				// Copy node coordinates
-				for (const size_t rNodes : mesh->RANGE_nodesFromPartition(part))
-				{
-					partitions[part].«irRoot.initNodeCoordVariable.name»«iterator»[0] = gNodes[rNodes][0];
-					partitions[part].«irRoot.initNodeCoordVariable.name»«iterator»[1] = gNodes[rNodes][1];
-				}
+			}
+
+			// Copy node coordinates
+			for (size_t i = 0; i < gNodes.size(); ++i) {
+				partitions[mesh->getPartitionOfNode(i)].«irRoot.initNodeCoordVariable.name»[i] = gNodes[i];
 			}
 		«ELSE»
 			// Copy node coordinates
@@ -449,16 +447,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			«IF !nodeVariables.nullOrEmpty»
 				«FOR v : nodeVariables»
 				{
-					«IF createPartitions»
-					«typeContentProvider.getCppType(v.target.type)» «v.target.name» = «typeContentProvider.getCppType(v.target.type)»(«typeContentProvider.getCstrInit(v.target.type, v.target.name)»);
-					«val node_var_name = v.target.name»
-					«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)»
-						for (const size_t index : mesh->RANGE_cellsFromPartition(«i»)) «node_var_name»[index] = partitions[«i»].«node_var_name»[index];
-					«ENDFOR»
-					«ENDIF»
 					writer.openNodeArray("«v.outputName»", «v.target.type.sizesSize»);
 					for (size_t i=0 ; i<nbNodes ; ++i)
-						writer.write(«v.target.writeCallContent»);
+						writer.write(«IF createPartitions»partitions[mesh->getPartitionOfNode(i)].«ENDIF»«v.target.writeCallContent»);
 					writer.closeNodeArray();
 				}
 				«ENDFOR»
@@ -469,16 +460,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			«IF !cellVariables.nullOrEmpty»
 				«FOR v : cellVariables»
 				{
-					«IF createPartitions»
-					«val node_var_name = v.target.name»
-					«typeContentProvider.getCppType(v.target.type)» «node_var_name» = «typeContentProvider.getCppType(v.target.type)»(«typeContentProvider.getCstrInit(v.target.type, node_var_name)»);
-					«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)»
-						for (const size_t index : mesh->RANGE_nodesFromPartition(«i»)) «node_var_name»[index] = partitions[«i»].«node_var_name»[index];
-					«ENDFOR»
-					«ENDIF»
 					writer.openCellArray("«v.outputName»", «v.target.type.sizesSize»);
 					for (size_t i=0 ; i<nbCells ; ++i)
-						writer.write(«v.target.writeCallContent»);
+						writer.write(«IF createPartitions»partitions[mesh->getPartitionOfCell(i)].«ENDIF»«v.target.writeCallContent»);
 					writer.closeCellArray();
 				}
 				«ENDFOR»
