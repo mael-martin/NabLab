@@ -92,6 +92,9 @@ public:
     static void setMaxDataShift(uint32_t max_shift) noexcept { MAX_SHIFT = max_shift; }
     static size_t getPartitionNumber() noexcept { return PartitionNumber; }
 
+    uint64_t getProblemX() const noexcept { return m_problem_x; }
+    uint64_t getProblemY() const noexcept { return m_problem_y; }
+
     CartesianMesh2D(MeshGeometry<2>* geometry, const vector<Id>& inner_nodes_ids,
                   const vector<Id>& top_nodes_ids, const vector<Id>& bottom_nodes_ids,
                   const vector<Id>& left_nodes_ids, const vector<Id>& right_nodes_ids,
@@ -261,13 +264,15 @@ private:
     CartesianMesh2D(CartesianMesh2D &&)           = delete;
     CartesianMesh2D& operator=(CartesianMesh2D &) = delete;
 
-/* Internal helper functions */
-private:
+/* Helper functions */
+public:
     inline Id index2IdCell(const size_t& i, const size_t& j) const noexcept { return static_cast<Id>(i * m_nb_x_quads + j); }
     inline Id index2IdNode(const size_t& i, const size_t& j) const noexcept { return static_cast<Id>(i * (m_nb_x_quads + 1) + j); }
     pair<size_t, size_t> id2IndexCell(const Id& k) const noexcept;
     pair<size_t, size_t> id2IndexNode(const Id& k) const noexcept;
 
+/* Internal helper functions */
+private:
     bool isInnerEdge(const Edge& e) const noexcept;
     inline bool isVerticalEdge(const Edge& e) const noexcept { return (e.getNodeIds()[0] == e.getNodeIds()[1] + m_nb_x_quads + 1 || e.getNodeIds()[1] == e.getNodeIds()[0] + m_nb_x_quads + 1); }
     inline bool isHorizontalEdge(const Edge& e) const noexcept { return (e.getNodeIds()[0] == e.getNodeIds()[1] + 1 || e.getNodeIds()[1] == e.getNodeIds()[0] + 1); }
