@@ -305,36 +305,33 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 	
 	static def printVariableRangeFmt(Variable it, CharSequence taskCurrent, boolean needNeighbors)
 	{
-		if (!isVariableRange)
-			return '''\"«name»_%s\"'''
-
-		if (!needNeighbors && taskCurrent !== null)
-			return '''\"«name»_%ld\"'''
+		if ((!isVariableRange) || (!needNeighbors && taskCurrent !== null))
+			return '''\"%p\"'''
 
 		/* Need the neighbors, or just get all for the getDependencies /
 		 * getDependenciesAll cases. Here it's the same, but keep the if / else
 		 * to have the same logic has in the printVariableRangeValue function. */
 		val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
 		if (taskCurrent !== null)
-			return '''«FOR i : iterator SEPARATOR ', '»\"«name»_%ld\"«ENDFOR»'''
+			return '''«FOR i : iterator SEPARATOR ', '»\"%p\"«ENDFOR»'''
 		else
-			return '''«FOR i : iterator SEPARATOR ', '»\"«name»_%d\"«ENDFOR»'''
+			return '''«FOR i : iterator SEPARATOR ', '»\"%p\"«ENDFOR»'''
 	}
 	
 	static def printVariableRangeValue(Variable it, CharSequence taskCurrent, boolean needNeighbors)
 	{
 		if (!isVariableRange)
-			return '''"simple"'''
+			return '''&«name»'''
 
 		if (!needNeighbors && taskCurrent !== null)
-			return '''«taskCurrent»'''
+			return '''&(this->partitions[«taskCurrent»].«name»)'''
 
 		/* Need the neighbors, or just get all for the getDependencies/getDependenciesAll cases */
 		val iterator = iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
 		if (taskCurrent !== null)
-			return '''«FOR i : iterator SEPARATOR ', '»mesh->NEIGHBOR_getForPartition(«taskCurrent», «i»)«ENDFOR»'''
+			return '''«FOR i : iterator SEPARATOR ', '»&(this->partitions[mesh->NEIGHBOR_getForPartition(«taskCurrent», «i»)].«name»)«ENDFOR»'''
 		else
-			return '''«FOR i : iterator SEPARATOR ', '»«i»«ENDFOR»'''
+			return '''«FOR i : iterator SEPARATOR ', '»&(this->partitions[«i»].«name»)«ENDFOR»'''
 	}
 	
 	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''mesh->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
