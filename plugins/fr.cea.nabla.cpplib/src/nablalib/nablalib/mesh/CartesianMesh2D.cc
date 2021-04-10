@@ -634,8 +634,9 @@ namespace nablalib::mesh
             const size_t part = m_faces_to_partitions[face];
             m_partitions_faces[part].emplace_back(face);
         }
+        std::cout << "Initial partitions are OK\n";
 
-        dumpPartitionRelations();
+        // dumpPartitionRelations();
         CSR_Matrix::free(matrix);
         return metis_partition_cell;
     }
@@ -708,6 +709,7 @@ namespace nablalib::mesh
         if (partnum_cn != i) m_partitions_neighbors[i].push_back(partnum_cn);           \
     }
 
+        std::cout << "Neigbor partitions computation begin\n";
         m_partitions_neighbors.resize(CartesianMesh2D::PartitionNumber);
 
         // For All p In partitions
@@ -732,7 +734,7 @@ namespace nablalib::mesh
         }
 
         #undef ___CHECK_NEIGHBOR_CELL
-
+        std::cout << "Neigbor partitions are OK\n";
         std::free(metis_partition_cell);
     }
 
@@ -752,6 +754,7 @@ namespace nablalib::mesh
             }                                                                                               \
         }}
         /* Quick and dirty parallelisation for independent loop's body */
+        std::cout << "Partial partitions computation begin\n";
         #pragma omp parallel for
         for (size_t i = 0; i < CartesianMesh2D::PartitionNumber; ++i) {
             vector_uniq(m_partitions_nodes[i]);
@@ -767,6 +770,7 @@ namespace nablalib::mesh
             ___POPULATE_PARTITIONS(nodes, left,   LeftNodes);
             ___POPULATE_PARTITIONS(nodes, right,  RightNodes);
             ___POPULATE_PARTITIONS(nodes, inner,  InnerNodes);
+#if 0
             ___POPULATE_PARTITIONS(faces, top,    TopFaces);
             ___POPULATE_PARTITIONS(faces, bottom, BottomFaces);
             ___POPULATE_PARTITIONS(faces, left,   LeftFaces);
@@ -775,8 +779,10 @@ namespace nablalib::mesh
             ___POPULATE_PARTITIONS(faces, outer,  OuterFaces);
             ___POPULATE_PARTITIONS(faces, innerHorizontal, InnerHorizontalFaces);
             ___POPULATE_PARTITIONS(faces, innerVertical,   InnerVerticalFaces);
+#endif
         }
         #undef ___POPULATE_PARTITIONS
+        std::cout << "Partial partitions are OK\n";
     }
 
     /* Get items from a partition */
