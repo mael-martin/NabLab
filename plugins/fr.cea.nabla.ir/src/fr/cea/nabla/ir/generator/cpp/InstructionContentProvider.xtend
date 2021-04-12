@@ -821,12 +821,12 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		val ret = '''
 		«IF launch_super_task»
-		#pragma omp task«parentJob.priority» «parentJob.sharedVarsClause_LOOP»«
+		#pragma omp task«parentJob.priority» «getSharedVarsClause_LOOP(parentJob, true)»«
 			getDependenciesAll_LOOP(parentJob, 'in',  ins)»«
 			getDependenciesAll_LOOP(parentJob, 'out', outs)»
 		{ // BEGIN OF SUPER TASK
 		«ENDIF»
-		«innerContentInternal»
+		«IF launch_super_task»	«ENDIF»«innerContentInternal»
 		«IF launch_super_task»
 		} // END OF SUPER TASK
 		«ENDIF»
@@ -854,14 +854,12 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				«IF ! super_task»
-				#pragma omp task «parentJob.sharedVarsClause_LOOP»«parentJob.priority»«
+				#pragma omp task «getSharedVarsClause_LOOP(parentJob, true)»«parentJob.priority»«
 				                 getDependenciesAll_LOOP(parentJob, 'in',  ins)»«
 				                 getDependenciesAll_LOOP(parentJob, 'out', outs)»
 				{
-				«ELSE»
-				// REFUSE TO LAUNCH NEASTED TASK HERE
 				«ENDIF»
-				«left.content» = «right.content»;
+					«left.content» = «right.content»;
 				«IF ! super_task»
 				}
 				«ENDIF»
@@ -885,15 +883,13 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«IF ! super_task»
-			#pragma omp task «parentJob.sharedVarsClause_LOOP»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
+			#pragma omp task «getSharedVarsClause_LOOP(parentJob, true)»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
 				getDependenciesAll_LOOP(parentJob, 'in', ins)» \
 			/* reduc res */ depend(out: this->«out.name»)
 			{
-			«ELSE»
-			// REFUSE TO LAUNCH NEASTED TASK HERE
 			«ENDIF»
 			{
-			«iterationBlock.defineInterval('''
+				«iterationBlock.defineInterval('''
 			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
 				«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
 			''')»
@@ -1016,27 +1012,26 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		val ret = '''
 		{
-			const Id ___omp_base  = «base_index»;
-			const Id ___omp_limit = «limit_index»;
+			const Id ___omp_base        = «base_index»;
+			const Id ___omp_limit       = «limit_index»;
 			«IF ! super_task»
 			«FOR idxType : parentJob.usedIndexType»
 			const Id ___omp_base_«idxType»  = «convertIndexType('___omp_base',  basetype, idxType, true)»;
-			const Id ___omp_count_«idxType» = «convertIndexType('''___omp_limit + internal::nbX_«basetype»''', basetype, idxType, false)» - ___omp_base_«idxType»;
+			const Id ___omp_count_«idxType» = «convertIndexType('___omp_limit', basetype, idxType, false)» - ___omp_base_«idxType»;
 			«ENDFOR»
-			#pragma omp task firstprivate(task, ___omp_base, ___omp_limit) «parentJob.sharedVarsClause_LOOP»«parentJob.priority»«
+			«IF parentJob.usedIndexType.length > 1»
+			// WARN: Conversions in in/out for omp task
+			«ENDIF»
+			#pragma omp task firstprivate(task, ___omp_base, ___omp_limit) «getSharedVarsClause_LOOP(parentJob, false)»«parentJob.priority»«
 				getDependencies_LOOP(parentJob, 'in',  ins,  '''___omp_base''', '''___omp_count''')»«
 				getDependencies_LOOP(parentJob, 'out', outs, '''___omp_base''', '''___omp_count''')»
-			{
-			«ELSE»
-			// REFUSE TO LAUNCH NEASTED TASK HERE
 			«ENDIF»
-			for (size_t «iterationBlock.indexName» = ___omp_base; «iterationBlock.indexName» < ___omp_limit; ++«iterationBlock.indexName»)
 			{
-				«body.innerContent»
+				for (size_t «iterationBlock.indexName» = ___omp_base; «iterationBlock.indexName» < ___omp_limit; ++«iterationBlock.indexName»)
+				{
+					«body.innerContent»
+				}
 			}
-			«IF ! super_task»
-			}
-			«ENDIF»
 		}
 		'''
 

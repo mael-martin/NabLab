@@ -237,17 +237,16 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 
 		/* All ranges  */
 		if (need_ranges) {
-			ret = ''' \
-/* dep loop (range) */ depend(«inout»: «
-FOR v : dep_ranges SEPARATOR ', \\\n\t'
-	»(&this->«v.name».data()[«from»_«v.name.globalVariableType»])[:«count»_«v.name.globalVariableType»]«
-ENDFOR»)'''
+		ret = ''' \
+«FOR v : dep_ranges SEPARATOR ' \\\n'
+	»/* dep loop (range) */ depend(«inout»: (&(this->«v.name».data()[«from»_«v.name.globalVariableType»]))[:«count»_«v.name.globalVariableType»])«
+ENDFOR»'''
 		}
 
 		/* All simple values */
 		if (need_simple)
 			ret = '''«ret» \
-/* dep loop (simple) */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', \\\n\t'»this->«v.name»«ENDFOR»)'''
+«FOR v : dep_simple SEPARATOR ', \\\n'»/* dep loop (simple) */ depend(«inout»: (this->«v.name»))«ENDFOR»'''
 		
 		return ret
 	}
@@ -313,14 +312,14 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		{
 			/* All ranges */
 			ret = ''' \
-/* dep loop all (range) */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n\t'»(this->«v.name».data())[:«v.name».size()]«ENDFOR»)'''
+«FOR v : dep_ranges SEPARATOR ' \\\n'»/* dep loop all (range) */ depend(«inout»: (this->«v.name».data())[:«v.name».size()])«ENDFOR»'''
 		}
 
 		if (need_simple)
 		{
 			/* All simple values */
 			ret = '''«ret» \
-/* dep loop all (simple) */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', \\\n\t'»this->«v.name»«ENDFOR»)'''
+«FOR v : dep_simple SEPARATOR ' \\\n'»/* dep loop all (simple) */ depend(«inout»:(this->«v.name»))«ENDFOR»'''
 		}
 
 		return ret
@@ -407,9 +406,9 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		val ret = ins.map["this->" + name].toSet
 		return ret
 	}
-	static def getSharedVarsClause_LOOP(Job it) {
+	static def getSharedVarsClause_LOOP(Job it, boolean isDependAll) {
 		val shared = sharedVarsNames_LOOP
-		val idxs   = usedIndexType.map[t | '''internal::nbX_«t»''']
+		val idxs   = usedIndexType.map[t | '''internal::nbX_«t»«IF ! isDependAll», ___omp_base_«t», ___omp_count_«t»«ENDIF»''']
 		'''default(none) shared(stderr, «
 			IF idxs.length != 0»«FOR i : idxs SEPARATOR ', '»«i»«ENDFOR», «ENDIF»mesh«
 			IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
