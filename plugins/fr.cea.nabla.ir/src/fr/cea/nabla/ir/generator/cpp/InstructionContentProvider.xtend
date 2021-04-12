@@ -788,14 +788,14 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	HashMap<String, Integer> counters                 = new HashMap();
 	HashMap<String, CharSequence> auxString           = new HashMap();
 	
+	private def void forceRestTask()   { counters.put("ForceRestTask", 1); }
+	private def void unforceRestTask() { counters.put("ForceRestTask", 0); }
 	private def void levelINC() { counters.put("Level", counters.getOrDefault('Level', 0) + 1) }
 	private def void levelDEC() { counters.put("Level", Math::max(counters.get('Level') - 1, 0)) }
 	private def void endTASK()  { counters.put("Task", 0) }
-	private def void beginTASK(CharSequence taskId) {
-		counters.put("Task", 1)
-		auxString.put("TaskId", taskId)
-	}
+	private def void beginTASK(CharSequence taskId) { counters.put("Task", 1); auxString.put("TaskId", taskId) }
 	
+	private def boolean isForcedRestTask() { counters.getOrDefault("ForceRestTask", 0) >= 1 }
 	private def int getCurrentLevel() { return counters.getOrDefault('Level', 0); }
 	private def CharSequence getCurrentTASK() { return (counters.getOrDefault('Task', 0) == 1) ? auxString.get('TaskId') : null }
 	private def getChildTasks(InstructionBlock it) { return eAllContents.filter(Loop).filter[multithreadable].size + eAllContents.filter(ReductionInstruction).size }
@@ -837,11 +837,15 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		// #pragma omp task firstprivate(task)«parentJob.priority»«parentJob.sharedVarsClause»«
 		                                     getDependencies_LOOP(parentJob, 'in',  ins,  '''0''', '''limit''')»«
 						                     getDependencies_LOOP(parentJob, 'out', outs, '''0''', '''limit''')»
-		{ // BEGIN OF SUPER TASK
+		{ // BEGIN OF SUPER TASK REGULAR
 		«ENDIF»
 		«innerContentInternal»
 		«IF launch_super_task»
-		}} // END OF SUPER TASK
+		}} // END OF SUPER TASK REGULAR
+		{ // BEGIN OF SUPER TASK REST «forceRestTask»
+		const size_t task = «OMPTaskMaxNumber» - 1;
+		«innerContentInternal»
+		} // END OF SUPER TASK REST «unforceRestTask»
 		«ENDIF»
 		'''
 
@@ -1115,11 +1119,13 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val super_task = (currentTASK !== null)
 		'''
 			«IF ! super_task»
-			for (size_t task = 0; task < «OMPTaskMaxNumber» - 1; ++task)
+			for (size_t task = 0; task < «OMPTaskMaxNumber»«IF ! super_task» - 1«ENDIF»; ++task)
 			«ENDIF»
-			«launchSingleTaskForPartition(it, '''task''', ins, outs, false)»
+			«launchSingleTaskForPartition(it, '''task''', ins, outs, isForcedRestTask)»
+			«IF ! super_task »
 			const size_t task = «OMPTaskMaxNumber» - 1;
 			«launchSingleTaskForPartition(it, '''task''', ins, outs, true)»
+			«ENDIF»
 		'''
 	}
 }
