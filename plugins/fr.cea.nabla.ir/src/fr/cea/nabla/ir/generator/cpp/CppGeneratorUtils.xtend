@@ -410,6 +410,9 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 	}
 	static def getSharedVarsClause_LOOP(Job it) {
 		val shared = sharedVarsNames_LOOP
-		'''default(none) shared(stderr, internal::nbX_CELLS, internal::nbX_FACES, internal::nbX_NODES, mesh«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
+		val idxs   = usedIndexType.map[t | '''internal::nbX_«t»''']
+		'''default(none) shared(stderr, «
+			IF idxs.length != 0»«FOR i : idxs SEPARATOR ', '»«i»«ENDFOR», «ENDIF»mesh«
+			IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
 	}
 }
