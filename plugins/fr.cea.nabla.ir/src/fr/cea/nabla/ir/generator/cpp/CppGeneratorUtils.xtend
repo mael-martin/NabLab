@@ -234,14 +234,13 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		val need_ranges = dep_ranges.length >= 1;
 		val need_simple = dep_simple.length >= 1;
 		var ret         = ''''''
-		val get_last    = '''internal::nbXQuads'''
 
 		/* All ranges  */
 		if (need_ranges) {
 			ret = ''' \
 /* dep loop (range) */ depend(«inout»: «
 FOR v : dep_ranges SEPARATOR ', \\\n\t'
-	»this->«v.name».data()[«from»_«v.name.globalVariableType»:«count»_«v.name.globalVariableType»]«
+	»(&this->«v.name».data()[«from»_«v.name.globalVariableType»])[:«count»_«v.name.globalVariableType»]«
 ENDFOR»)'''
 		}
 
@@ -314,7 +313,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		{
 			/* All ranges */
 			ret = ''' \
-/* dep loop all (range) */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n\t'»(this->«v.name».data())[0:«v.name».size()]«ENDFOR»)'''
+/* dep loop all (range) */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n\t'»(this->«v.name».data())[:«v.name».size()]«ENDFOR»)'''
 		}
 
 		if (need_simple)
