@@ -155,19 +155,19 @@ class CppGeneratorUtils
 		/* All ranges, with the neighbors */
 		if (need_ranges && needNeighbors)
 			ret = ''' \
-/* dep partition */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n'»«
-FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', \\\n'
+/* dep partition (range neighbor) */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»«
+FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', '
 »this->partitions[mesh->NEIGHBOR_getForPartition(«taskPartition», «i»)].«v.name»«ENDFOR»«ENDFOR»)'''
 		
 		/* All ranges, but without neighbors */
 		else if (need_ranges)
 			ret = ''' \
-/* dep partiton */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n'»this->partitions[«taskPartition»].«v.name»«ENDFOR»)'''
+/* dep partiton (range no-neighbor) */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»this->partitions[«taskPartition»].«v.name»«ENDFOR»)'''
 
 		/* All simple values */
 		if (need_simple)
 			ret = '''«ret» \
-/* dep partition */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', \\\n'»«getVariableName(v)»«ENDFOR»)'''
+/* dep partition (simple) */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»«getVariableName(v)»«ENDFOR»)'''
 		
 		return ret
 	}
@@ -187,14 +187,16 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		var ret = ''''''
 
 		/* All ranges  */
-		if (!need_ranges)
+		if (need_ranges) {
 			ret = ''' \
-/* dep loop */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n'»this->«v.name»[«from»:(«limit»-«from»)]«ENDFOR»)'''
+/* dep loop (range) */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n\t'
+»this->«v.name».data()[«from»:(«limit»_«v.name.globalVariableType»-«from»_«v.name.globalVariableType»)]«ENDFOR»)'''
+		}
 
 		/* All simple values */
 		if (need_simple)
 			ret = '''«ret» \
-/* dep loop */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', \\\n'»this->«v.name»«ENDFOR»)'''
+/* dep loop (simple) */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', \\\n\t'»this->«v.name»«ENDFOR»)'''
 		
 		return ret
 	}
@@ -227,8 +229,8 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		{
 			/* All ranges */
 			ret = ''' \
-/* dep partition all */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n'»«
-FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', \\\n'
+/* dep partition all (range) */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»«
+FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', '
 »this->partitions[«i»].«v.name»«ENDFOR»«ENDFOR»)'''
 		}
 
@@ -236,7 +238,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		{
 			/* All simple values */
 			ret = '''«ret» \
-/* dep partition all */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', \\\n'»this->«v.name»«ENDFOR»)'''
+/* dep partition all (simple) */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»this->«v.name»«ENDFOR»)'''
 		}
 
 		return ret
@@ -260,14 +262,14 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		{
 			/* All ranges */
 			ret = ''' \
-/* dep loop all */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»this->«v.name»[0:«v.name».size()]«ENDFOR»)'''
+/* dep loop all (range) */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n\t'»(this->«v.name».data())[0:«v.name».size()]«ENDFOR»)'''
 		}
 
 		if (need_simple)
 		{
 			/* All simple values */
 			ret = '''«ret» \
-/* dep loop all */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»this->«v.name»«ENDFOR»)'''
+/* dep loop all (simple) */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', \\\n\t'»this->«v.name»«ENDFOR»)'''
 		}
 
 		return ret
@@ -337,15 +339,25 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 	}
 	
 	/* Shared variables, don't copy them into threads */
-	static def getSharedVarsNames(Job it) {
+	static def getSharedVarsNames_PARTITION(Job it) {
 		val ins = caller.calls.map[inVars.filter[!isOption].filter[t|!typeContentProvider.getCppTypeCanBePartitionized(t.type)]].flatten.toSet;
 		ins.addAll(outVars.filter[!isOption].filter[t|!typeContentProvider.getCppTypeCanBePartitionized(t.type)])
 		val ret = ins.map["this->" + name].toSet
 		ret.add("this->partitions")
 		return ret
 	}
-	static def getSharedVarsClause(Job it) {
-		val shared = sharedVarsNames
+	static def getSharedVarsClause_PARTITION(Job it) {
+		val shared = sharedVarsNames_PARTITION
+		'''default(none) shared(stderr, mesh«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
+	}
+	static def getSharedVarsNames_LOOP(Job it) {
+		val ins = inVars.filter[!isOption].toSet;
+		ins.addAll(outVars.filter[!isOption])
+		val ret = ins.map["this->" + name].toSet
+		return ret
+	}
+	static def getSharedVarsClause_LOOP(Job it) {
+		val shared = sharedVarsNames_LOOP
 		'''default(none) shared(stderr, mesh«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
 	}
 }

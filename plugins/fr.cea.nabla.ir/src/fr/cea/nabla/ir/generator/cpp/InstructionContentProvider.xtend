@@ -360,7 +360,7 @@ class OpenMpTaskPartitionInstructionContentProvider extends InstructionContentPr
 		«IF launch_super_task»
 		for (size_t task = 0; task < («OMPTaskMaxNumber»); ++task)
 		{
-		#pragma omp task firstprivate(task) «parentJob.sharedVarsClause»«parentJob.priority»«
+		#pragma omp task firstprivate(task) «parentJob.sharedVarsClause_PARTITION»«parentJob.priority»«
 		                                     getDependencies_PARTITION(parentJob, 'in',  ins,  '''task''', need_neighbors)»«
 						                     getDependencies_PARTITION(parentJob, 'out', outs, '''task''', false)»
 		{ // BEGIN OF SUPER TASK
@@ -400,7 +400,7 @@ class OpenMpTaskPartitionInstructionContentProvider extends InstructionContentPr
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				«IF ! super_task»
-				#pragma omp task «parentJob.sharedVarsClause»«parentJob.priority»«
+				#pragma omp task «parentJob.sharedVarsClause_PARTITION»«parentJob.priority»«
 				                 getDependenciesAll_PARTITION(parentJob, 'in',  ins,  0, OMPTaskMaxNumber)»«
 				                 getDependenciesAll_PARTITION(parentJob, 'out', outs, 0, OMPTaskMaxNumber)»
 				{
@@ -432,7 +432,7 @@ class OpenMpTaskPartitionInstructionContentProvider extends InstructionContentPr
 		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«IF ! super_task»
-			#pragma omp task «parentJob.sharedVarsClause»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
+			#pragma omp task «parentJob.sharedVarsClause_PARTITION»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
 				getDependenciesAll_PARTITION(parentJob, 'in', ins, 0, OMPTaskMaxNumber)» depend(out: this->«out.name»)
 			{
 			«takeOMPTraces_PARTITION(ins, outs, null, false)»
@@ -652,7 +652,7 @@ class OpenMpTaskPartitionInstructionContentProvider extends InstructionContentPr
 		val ret = '''
 		{
 			«IF ! super_task»
-			#pragma omp task firstprivate(task) «parentJob.sharedVarsClause»«parentJob.priority»«
+			#pragma omp task firstprivate(task) «parentJob.sharedVarsClause_PARTITION»«parentJob.priority»«
 			                                     getDependencies_PARTITION(parentJob, 'in',  ins,  partitionId, need_neighbors)»«
 			                                     getDependencies_PARTITION(parentJob, 'out', outs, partitionId, false)»
 			{
@@ -821,12 +821,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		val ret = '''
 		«IF launch_super_task»
-		// #pragma omp task firstprivate(task)«parentJob.priority»«parentJob.sharedVarsClause»«
-			getDependencies_LOOP(parentJob, 'in',  ins,  '''0''', '''limit''')»«
-			getDependencies_LOOP(parentJob, 'out', outs, '''0''', '''limit''')»
+		#pragma omp task«parentJob.priority» «parentJob.sharedVarsClause_LOOP»«
+			getDependenciesAll_LOOP(parentJob, 'in',  ins)»«
+			getDependenciesAll_LOOP(parentJob, 'out', outs)»
 		{ // BEGIN OF SUPER TASK
-		  // TODO: replace 0 and limit by computed ones
-		  // Inspect inside loops
 		«ENDIF»
 		«innerContentInternal»
 		«IF launch_super_task»
@@ -856,7 +854,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				«IF ! super_task»
-				// #pragma omp task «parentJob.sharedVarsClause»«parentJob.priority»«
+				#pragma omp task «parentJob.sharedVarsClause_LOOP»«parentJob.priority»«
 				                 getDependenciesAll_LOOP(parentJob, 'in',  ins)»«
 				                 getDependenciesAll_LOOP(parentJob, 'out', outs)»
 				{
@@ -887,7 +885,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«IF ! super_task»
-			// #pragma omp task «parentJob.sharedVarsClause»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
+			#pragma omp task «parentJob.sharedVarsClause_LOOP»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
 				getDependenciesAll_LOOP(parentJob, 'in', ins)» depend(out: this->«out.name»)
 			{
 			«ELSE»
@@ -955,39 +953,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		dataConnectivity.put(itemName, value.iterator.container.connectivityCall.connectivity.name)
 	}
 
-	private def getConnectivityFamily(String connectivity)
-	{
-		if      ("BottomNodes" == connectivity) { return "Node" }
-		else if ("TopNodes"    == connectivity) { return "Node" }
-		else if ("RightNodes"  == connectivity) { return "Node" }
-		else if ("LeftNodes"   == connectivity) { return "Node" }
-		else if ("InnerNodes"  == connectivity) { return "Node" }
-		else if ("OuterNodes"  == connectivity) { return "Node" }
-		else if ("Nodes"       == connectivity) { return "Node" }
-
-		/* Check for cell connectivities */
-		else if ("BottomCells" == connectivity) { return "Cell" }
-		else if ("TopCells"    == connectivity) { return "Cell" }
-		else if ("RightCells"  == connectivity) { return "Cell" }
-		else if ("LeftCells"   == connectivity) { return "Cell" }
-		else if ("InnerCells"  == connectivity) { return "Cell" }
-		else if ("OuterCells"  == connectivity) { return "Cell" }
-		else if ("Cells"       == connectivity) { return "Cell" }
-		
-		/* Check for face connectivities */
-		else if ("InnerHorizontalFaces" == connectivity) { return "Face" }
-		else if ("InnerVerticalFaces"   == connectivity) { return "Face" }
-		else if ("BottomFaces"          == connectivity) { return "Face" }
-		else if ("TopFaces"             == connectivity) { return "Face" }
-		else if ("RightFaces"           == connectivity) { return "Face" }
-		else if ("LeftFaces"            == connectivity) { return "Face" }
-		else if ("InnerFaces"           == connectivity) { return "Face" }
-		else if ("OuterFaces"           == connectivity) { return "Face" }
-		else if ("Faces"                == connectivity) { return "Face" }
-		
-		else throw new Exception("Unknown connectivity " + connectivity)
-		
-	}
 	private def getConnectivityType(String itemname)
 	{
 		/* Check for node connectivities */
@@ -1050,7 +1015,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			const size_t ___omp_base  = «base_index»;
 			const size_t ___omp_limit = «limit_index»;
 			«IF ! super_task»
-			// #pragma omp task firstprivate(task, ___omp_base, ___omp_lit) «parentJob.sharedVarsClause»«parentJob.priority»«
+			#pragma omp task firstprivate(task, ___omp_base, ___omp_limit) «parentJob.sharedVarsClause_LOOP»«parentJob.priority»«
 				getDependencies_LOOP(parentJob, 'in',  ins,  '''___omp_base''', '''___omp_limit''')»«
 				getDependencies_LOOP(parentJob, 'out', outs, '''___omp_base''', '''___omp_limit''')»
 			{

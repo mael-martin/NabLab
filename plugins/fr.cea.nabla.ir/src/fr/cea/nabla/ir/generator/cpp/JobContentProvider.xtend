@@ -221,7 +221,7 @@ class OpenMpTaskPartitionJobContentProvider extends JobContentProvider
 	'''
 		«val ins  = copies.map[source]»
 		«val outs = copies.map[destination]»
-		#pragma omp task «sharedVarsClause»«priority»«
+		#pragma omp task «sharedVarsClause_PARTITION»«priority»«
 		                  getDependenciesAll_PARTITION('in',  ins,  0, OMPTaskMaxNumber)»«
 		                  getDependenciesAll_PARTITION('out', outs, 0, OMPTaskMaxNumber)»
 		{
