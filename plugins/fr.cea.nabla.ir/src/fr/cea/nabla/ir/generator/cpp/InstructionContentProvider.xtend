@@ -956,33 +956,35 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	private def getConnectivityType(String itemname)
 	{
 		/* Check for node connectivities */
-		if      (itemname.contains("BottomNodes")) { return "bottomNodes" }
-		else if (itemname.contains("TopNodes"))    { return "topNodes"    }
-		else if (itemname.contains("RightNodes"))  { return "rightNodes"  }
-		else if (itemname.contains("LeftNodes"))   { return "leftNodes"   }
-		else if (itemname.contains("InnerNodes"))  { return "innerNodes"  }
-		else if (itemname.contains("OuterNodes"))  { return "outerNodes"  }
-		else if (itemname.contains("Nodes"))       { return "nodes"       }
+		if      (itemname.contains("BottomNodes")) { return INDEX_TYPE::NODES }
+		else if (itemname.contains("TopNodes"))    { return INDEX_TYPE::NODES }
+		else if (itemname.contains("RightNodes"))  { return INDEX_TYPE::NODES }
+		else if (itemname.contains("LeftNodes"))   { return INDEX_TYPE::NODES }
+		else if (itemname.contains("InnerNodes"))  { return INDEX_TYPE::NODES }
+		else if (itemname.contains("OuterNodes"))  { return INDEX_TYPE::NODES }
 
 		/* Check for cell connectivities */
-		else if (itemname.contains("BottomCells")) { return "bottomCells" }
-		else if (itemname.contains("TopCells"))    { return "topCells"    }
-		else if (itemname.contains("RightCells"))  { return "rightCells"  }
-		else if (itemname.contains("LeftCells"))   { return "leftCells"   }
-		else if (itemname.contains("InnerCells"))  { return "innerCells"  }
-		else if (itemname.contains("OuterCells"))  { return "outerCells"  }
-		else if (itemname.contains("Cells"))       { return "cells"       }
+		else if (itemname.contains("BottomCells")) { return INDEX_TYPE::CELLS }
+		else if (itemname.contains("TopCells"))    { return INDEX_TYPE::CELLS }
+		else if (itemname.contains("RightCells"))  { return INDEX_TYPE::CELLS }
+		else if (itemname.contains("LeftCells"))   { return INDEX_TYPE::CELLS }
+		else if (itemname.contains("InnerCells"))  { return INDEX_TYPE::CELLS }
+		else if (itemname.contains("OuterCells"))  { return INDEX_TYPE::CELLS }
 		
 		/* Check for face connectivities */
-		else if (itemname.contains("InnerHorizontalFaces")) { return "innerHorizontalFaces" }
-		else if (itemname.contains("InnerVerticalFaces"))   { return "innerVerticalFaces"   }
-		else if (itemname.contains("BottomFaces"))          { return "bottomFaces"          }
-		else if (itemname.contains("TopFaces"))             { return "topFaces"             }
-		else if (itemname.contains("RightFaces"))           { return "rightFaces"           }
-		else if (itemname.contains("LeftFaces"))            { return "leftFaces"            }
-		else if (itemname.contains("InnerFaces"))           { return "innerFaces"           }
-		else if (itemname.contains("OuterFaces"))           { return "outerFaces"           }
-		else if (itemname.contains("Faces"))                { return "faces"                }
+		else if (itemname.contains("InnerHorizontalFaces")) { return INDEX_TYPE::FACES }
+		else if (itemname.contains("InnerVerticalFaces"))   { return INDEX_TYPE::FACES }
+		else if (itemname.contains("BottomFaces"))          { return INDEX_TYPE::FACES }
+		else if (itemname.contains("TopFaces"))             { return INDEX_TYPE::FACES }
+		else if (itemname.contains("RightFaces"))           { return INDEX_TYPE::FACES }
+		else if (itemname.contains("LeftFaces"))            { return INDEX_TYPE::FACES }
+		else if (itemname.contains("InnerFaces"))           { return INDEX_TYPE::FACES }
+		else if (itemname.contains("OuterFaces"))           { return INDEX_TYPE::FACES }
+
+		/* Base types */
+		else if (itemname.contains("Faces")) { return INDEX_TYPE::FACES }
+		else if (itemname.contains("Cells")) { return INDEX_TYPE::CELLS }
+		else if (itemname.contains("Nodes")) { return INDEX_TYPE::NODES }
 		
 		/* Happily ignored because don't exit from the partition -> no external contributions */
 		else if (itemname.contains("CommonFace")) {
@@ -1008,12 +1010,17 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val super_task  = (currentTASK !== null)
 		val base_index  = '''((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * «partitionId»)'''
 		val limit_index = '''((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1) + («partitionId» == («OMPTaskMaxNumber» - 1) ? («iterationBlock.nbElems» % «OMPTaskMaxNumber») : 0))'''
+		val basetype    = getConnectivityType
 		if (!super_task) beginTASK(partitionId)
 
 		val ret = '''
 		{
-			const size_t ___omp_base  = «base_index»;
-			const size_t ___omp_limit = «limit_index»;
+			const Id ___omp_base  = «base_index»;
+			const Id ___omp_limit = «limit_index»;
+			«FOR idxType : parentJob.usedIndexType»
+			const Id ___omp_base_«idxType»  = «convertIndexType('___omp_base',  basetype, idxType, true)»;
+			const Id ___omp_limit_«idxType» = «convertIndexType('''___omp_limit + internal::nbX_«basetype»''', basetype, idxType, false)»;
+			«ENDFOR»
 			«IF ! super_task»
 			#pragma omp task firstprivate(task, ___omp_base, ___omp_limit) «parentJob.sharedVarsClause_LOOP»«parentJob.priority»«
 				getDependencies_LOOP(parentJob, 'in',  ins,  '''___omp_base''', '''___omp_limit''')»«

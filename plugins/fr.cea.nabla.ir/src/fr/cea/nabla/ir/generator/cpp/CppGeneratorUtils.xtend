@@ -172,6 +172,49 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		return ret
 	}
 
+	static def getUsedIndexType(Job it) {
+		val ret = inVars.map[name.globalVariableType].toSet
+		ret.addAll(outVars.map[name.globalVariableType])
+		ret.remove(INDEX_TYPE::NULL)
+		return ret
+	}
+	
+	static def convertIndexType(CharSequence index, INDEX_TYPE basetype, INDEX_TYPE casttype, boolean lower)
+	{
+		switch basetype {
+		case INDEX_TYPE::CELLS: {
+			switch casttype {
+				case INDEX_TYPE::NODES: return '''internal::«lower ? 'min' : 'max'»(mesh->getCellsOfNode(«index»))'''
+				case INDEX_TYPE::FACES: return '''internal::«lower ? 'min' : 'max'»(mesh->getCellsOfFace(«index»))'''
+				case INDEX_TYPE::CELLS: return index
+				default: {}
+			}
+		}
+
+		case INDEX_TYPE::NODES: {
+			switch casttype {
+				case INDEX_TYPE::CELLS: return '''internal::«lower ? 'min' : 'max'»(mesh->getNodesOfCell(«index»))'''
+				case INDEX_TYPE::FACES: return '''internal::«lower ? 'min' : 'max'»(mesh->getNodesOfFace(«index»))'''
+				case INDEX_TYPE::NODES: return index
+				default: {}
+			}
+		}
+
+		case INDEX_TYPE::FACES: {
+			switch casttype {
+				case INDEX_TYPE::FACES: return index
+				case INDEX_TYPE::CELLS: return '''internal::«lower ? 'min' : 'max'»(mesh->getFacesOfCell(«index»))'''
+				default: {}
+			}
+		}
+			
+		case INDEX_TYPE::NULL:
+			throw new Exception("Can't convert from index of type 'NULL'")
+		}
+		
+		throw new Exception("Unknown conversion from '" + basetype + "' to '" + casttype + "'")
+	}
+
 	static def getDependencies_LOOP(Job it, String inout, Iterable<Variable> deps, CharSequence from, CharSequence limit)
 	{
 		/* Construct the OpenMP clause */
@@ -184,13 +227,18 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		val dep_simple  = dependencies.filter(v|!v.isVariableRange);
 		val need_ranges = dep_ranges.length >= 1;
 		val need_simple = dep_simple.length >= 1;
-		var ret = ''''''
+		var ret         = ''''''
+		val get_last    = '''internal::nbXQuads'''
 
 		/* All ranges  */
 		if (need_ranges) {
 			ret = ''' \
-/* dep loop (range) */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n\t'
-»this->«v.name».data()[«from»:(«limit»_«v.name.globalVariableType»-«from»_«v.name.globalVariableType»)]«ENDFOR»)'''
+/* dep loop (range) */ depend(«inout»: «
+FOR v : dep_ranges SEPARATOR ', \\\n\t'
+	»this->«v.name».data()[«from»:(«
+	limit»_«v.name.globalVariableType»-«
+	from»_«v.name.globalVariableType»)]«
+ENDFOR»)'''
 		}
 
 		/* All simple values */
@@ -358,6 +406,6 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 	}
 	static def getSharedVarsClause_LOOP(Job it) {
 		val shared = sharedVarsNames_LOOP
-		'''default(none) shared(stderr, mesh«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
+		'''default(none) shared(stderr, internal::nbX_CELLS, internal::nbX_FACES, internal::nbX_NODES, mesh«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
 	}
 }
