@@ -788,41 +788,32 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	HashMap<String, Integer> counters                 = new HashMap();
 	HashMap<String, CharSequence> auxString           = new HashMap();
 	
-	private def void forceRestTask()   { counters.put("ForceRestTask", 1); }
-	private def void unforceRestTask() { counters.put("ForceRestTask", 0); }
 	private def void levelINC() { counters.put("Level", counters.getOrDefault('Level', 0) + 1) }
 	private def void levelDEC() { counters.put("Level", Math::max(counters.get('Level') - 1, 0)) }
 	private def void endTASK()  { counters.put("Task", 0) }
 	private def void beginTASK(CharSequence taskId) { counters.put("Task", 1); auxString.put("TaskId", taskId) }
 	
-	private def boolean isForcedRestTask() { counters.getOrDefault("ForceRestTask", 0) >= 1 }
 	private def int getCurrentLevel() { return counters.getOrDefault('Level', 0); }
 	private def CharSequence getCurrentTASK() { return (counters.getOrDefault('Task', 0) == 1) ? auxString.get('TaskId') : null }
 	private def getChildTasks(InstructionBlock it) { return eAllContents.filter(Loop).filter[multithreadable].size + eAllContents.filter(ReductionInstruction).size }
-	private def isInsideAJob(IrAnnotable it) {
-		return (null !== EcoreUtil2.getContainerOfType(it, Job)) &&
-			(EcoreUtil2.getContainerOfType(it, Function) === null);
-	}
+	private def isInsideAJob(IrAnnotable it) { (null !== EcoreUtil2.getContainerOfType(it, Job)) && (EcoreUtil2.getContainerOfType(it, Function) === null); }
 
 	private def getInnerContentInternal(InstructionBlock it)
-	{
-		val isReduction = (instructions.size == 2) &&
-		                  (instructions.toList.head instanceof ReductionInstruction) &&
-		                  (instructions.toList.last instanceof Affectation)
 	'''
 		«FOR i : instructions»
 		«i.content»
 		«ENDFOR»
 		««« This bracket is opened in the getReductionContent function
-		«IF isReduction»
+		«IF (instructions.size == 2) &&
+		    (instructions.toList.head instanceof ReductionInstruction) &&
+		    (instructions.toList.last instanceof Affectation)»
 		}
 		«ENDIF»
 	'''
-	}
 	override dispatch getInnerContent(InstructionBlock it)
 	{
 		levelINC();
-		val launch_super_task = (insideAJob && (currentLevel == 1) && (childTasks > 1))
+		val launch_super_task = false && (insideAJob && (currentLevel == 1) && (childTasks > 1))
 		if (launch_super_task) { beginTASK('''task'''); }
 		val parentJob      = EcoreUtil2.getContainerOfType(it, Job)
 		val ins            = parentJob.inVars
@@ -830,22 +821,18 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		val ret = '''
 		«IF launch_super_task»
-		for (size_t task = 0; task < «OMPTaskMaxNumber» - 1; ++task)
+		for (size_t task = 0; task < «OMPTaskMaxNumber»; ++task)
 		{
 		// TODO: replace 0 and limit by computed ones
 		// Inspect inside loops
 		// #pragma omp task firstprivate(task)«parentJob.priority»«parentJob.sharedVarsClause»«
 		                                     getDependencies_LOOP(parentJob, 'in',  ins,  '''0''', '''limit''')»«
 						                     getDependencies_LOOP(parentJob, 'out', outs, '''0''', '''limit''')»
-		{ // BEGIN OF SUPER TASK REGULAR
+		{ // BEGIN OF SUPER TASK
 		«ENDIF»
 		«innerContentInternal»
 		«IF launch_super_task»
-		}} // END OF SUPER TASK REGULAR
-		{ // BEGIN OF SUPER TASK REST «forceRestTask»
-		const size_t task = «OMPTaskMaxNumber» - 1;
-		«innerContentInternal»
-		} // END OF SUPER TASK REST «unforceRestTask»
+		}} // END OF SUPER TASK
 		«ENDIF»
 		'''
 
@@ -875,7 +862,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				                 getDependenciesAll_LOOP(parentJob, 'in',  ins)»«
 				                 getDependenciesAll_LOOP(parentJob, 'out', outs)»
 				{
-				«takeOMPTraces_PARTITION(ins, outs, null, false)»
 				«ELSE»
 				// REFUSE TO LAUNCH NEASTED TASK HERE
 				«ENDIF»
@@ -1052,13 +1038,13 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 	/* TODO: Take into account which directions are used (to only pin 1 or 2
 	 * partitions, not all the neighbors). */
-	private def launchSingleTaskForPartition(Loop it, CharSequence partitionId, Set<Variable> ins, Set<Variable> outs, boolean rest)
+	private def launchSingleTaskForPartition(Loop it, CharSequence partitionId, Set<Variable> ins, Set<Variable> outs)
 	{
 		
 		val parentJob   = EcoreUtil2.getContainerOfType(it, Job)
 		val super_task  = (currentTASK !== null)
 		val base_index  = '''((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * «partitionId»)'''
-		val limit_index = '''((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1)«IF rest» + («iterationBlock.nbElems» % «OMPTaskMaxNumber»)«ENDIF»)'''
+		val limit_index = '''((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1) + («partitionId» == («OMPTaskMaxNumber» - 1) ? («iterationBlock.nbElems» % «OMPTaskMaxNumber») : 0))'''
 		if (!super_task) beginTASK(partitionId)
 
 		val ret = '''
@@ -1119,13 +1105,9 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val super_task = (currentTASK !== null)
 		'''
 			«IF ! super_task»
-			for (size_t task = 0; task < «OMPTaskMaxNumber»«IF ! super_task» - 1«ENDIF»; ++task)
+			for (size_t task = 0; task < «OMPTaskMaxNumber»; ++task)
 			«ENDIF»
-			«launchSingleTaskForPartition(it, '''task''', ins, outs, isForcedRestTask)»
-			«IF ! super_task »
-			const size_t task = «OMPTaskMaxNumber» - 1;
-			«launchSingleTaskForPartition(it, '''task''', ins, outs, true)»
-			«ENDIF»
+			«launchSingleTaskForPartition(it, '''task''', ins, outs)»
 		'''
 	}
 }
