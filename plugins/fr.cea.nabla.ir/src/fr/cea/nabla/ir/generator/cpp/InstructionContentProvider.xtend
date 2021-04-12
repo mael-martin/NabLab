@@ -902,18 +902,13 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			// #pragma omp task «parentJob.sharedVarsClause»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
 				getDependenciesAll_LOOP(parentJob, 'in', ins)» depend(out: this->«out.name»)
 			{
-			«takeOMPTraces_PARTITION(ins, outs, null, false)»
 			«ELSE»
 			// REFUSE TO LAUNCH NEASTED TASK HERE
 			«ENDIF»
 			{
 			«iterationBlock.defineInterval('''
-			«val connectivity = getConnectivityType(iterationBlock.indexName).toFirstUpper»
 			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
-			{
-				const Id «iterationBlock.indexName.split(connectivity).head»IdPartition = mesh->getPartitionOf«connectivity.connectivityFamily»(«iterationBlock.indexName»);
 				«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
-			}
 			''')»
 			«IF ! super_task»
 			}

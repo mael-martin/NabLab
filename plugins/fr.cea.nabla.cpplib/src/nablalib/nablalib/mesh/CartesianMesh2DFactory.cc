@@ -140,8 +140,11 @@ CartesianMesh2DFactory::create()
     return new CartesianMesh2D(mesh_geometry,
     /* nodes lists    */       inner_node_ids_, top_node_ids_, bottom_node_ids_, left_node_ids_, right_node_ids_,
     /* simple node id */       top_left_node_id_, top_right_node_id_, bottom_left_node_id_, bottom_right_node_id_,
-    /* cells lists    */       inner_cells_ids_, outer_cells_ids_,
+    /* cells lists    */       inner_cells_ids_, outer_cells_ids_);
+#if 0
+    // Needed only for the CartesianMeshPartition2D
     /* problem sizes  */       nbXQuads, nbYQuads);
+#endif
 }
 
 }
