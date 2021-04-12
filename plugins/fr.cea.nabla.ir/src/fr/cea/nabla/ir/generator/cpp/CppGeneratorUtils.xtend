@@ -173,8 +173,14 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 	}
 
 	static def getUsedIndexType(Job it) {
-		val ret = inVars.map[name.globalVariableType].toSet
-		ret.addAll(outVars.map[name.globalVariableType])
+		val variables = inVars
+		variables.addAll(outVars)
+		if (variables.length == 0) return #[].toSet
+
+		val falseIns = falseInVariableForJob;
+		variables.removeAll(falseIns)
+		
+		val ret = variables.map[name.globalVariableType].toSet
 		ret.remove(INDEX_TYPE::NULL)
 		return ret
 	}
@@ -215,7 +221,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		throw new Exception("Unknown conversion from '" + basetype + "' to '" + casttype + "'")
 	}
 
-	static def getDependencies_LOOP(Job it, String inout, Iterable<Variable> deps, CharSequence from, CharSequence limit)
+	static def getDependencies_LOOP(Job it, String inout, Iterable<Variable> deps, CharSequence from, CharSequence count)
 	{
 		/* Construct the OpenMP clause */
 		val falseIns = getFalseInVariableForJob(it);
@@ -235,9 +241,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 			ret = ''' \
 /* dep loop (range) */ depend(«inout»: «
 FOR v : dep_ranges SEPARATOR ', \\\n\t'
-	»this->«v.name».data()[«from»:(«
-	limit»_«v.name.globalVariableType»-«
-	from»_«v.name.globalVariableType»)]«
+	»this->«v.name».data()[«from»_«v.name.globalVariableType»:«count»_«v.name.globalVariableType»]«
 ENDFOR»)'''
 		}
 

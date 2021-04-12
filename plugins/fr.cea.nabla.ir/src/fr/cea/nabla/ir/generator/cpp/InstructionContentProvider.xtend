@@ -1017,14 +1017,14 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		{
 			const Id ___omp_base  = «base_index»;
 			const Id ___omp_limit = «limit_index»;
+			«IF ! super_task»
 			«FOR idxType : parentJob.usedIndexType»
 			const Id ___omp_base_«idxType»  = «convertIndexType('___omp_base',  basetype, idxType, true)»;
-			const Id ___omp_limit_«idxType» = «convertIndexType('''___omp_limit + internal::nbX_«basetype»''', basetype, idxType, false)»;
+			const Id ___omp_count_«idxType» = «convertIndexType('''___omp_limit + internal::nbX_«basetype»''', basetype, idxType, false)» - ___omp_base_«idxType»;
 			«ENDFOR»
-			«IF ! super_task»
 			#pragma omp task firstprivate(task, ___omp_base, ___omp_limit) «parentJob.sharedVarsClause_LOOP»«parentJob.priority»«
-				getDependencies_LOOP(parentJob, 'in',  ins,  '''___omp_base''', '''___omp_limit''')»«
-				getDependencies_LOOP(parentJob, 'out', outs, '''___omp_base''', '''___omp_limit''')»
+				getDependencies_LOOP(parentJob, 'in',  ins,  '''___omp_base''', '''___omp_count''')»«
+				getDependencies_LOOP(parentJob, 'out', outs, '''___omp_base''', '''___omp_count''')»
 			{
 			«ELSE»
 			// REFUSE TO LAUNCH NEASTED TASK HERE
