@@ -39,6 +39,46 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 	override getCallsContent(JobCaller it)
 	{
 		val allouts = calls.map[outVars].flatten
+		var boolean execTimeLoopPresent = false;
+		'''
+		// Launch all tasks for this loop...
+		«IF allouts.toList.size != allouts.toSet.size»
+		// XXX: There are duplicate out dependencies
+		«ENDIF»
+		
+		«IF OMPTraces»
+		fprintf(stderr, "### New Loop DAG: «name» %zu\n", ___DAG_loops);
+		++___DAG_loops;
+		«ENDIF»
+		#pragma omp parallel
+		{
+		#pragma omp single nowait
+		{
+		«FOR j : calls»
+			«IF j instanceof ExecuteTimeLoopJob»
+			«IF !execTimeLoopPresent»
+			// Wait before time loop: «execTimeLoopPresent = true»
+			}}
+			«ENDIF»
+			«ENDIF»
+			«j.callName.replace('.', '->')»(); // @«j.at»
+		«ENDFOR»
+		«IF ! execTimeLoopPresent»
+		}}
+		«ENDIF»
+
+		'''
+	}
+}
+
+class OpenMpTaskPartitionJobCallerContentProvider extends JobCallerContentProvider
+{
+	
+	override getCallsHeader(JobCaller it) ''''''
+
+	override getCallsContent(JobCaller it)
+	{
+		val allouts = calls.map[outVars].flatten
 		val module  = EcoreUtil2.getContainerOfType(it, IrModule)
 		if (module !== null)
 			registerGlobalVariable(module)

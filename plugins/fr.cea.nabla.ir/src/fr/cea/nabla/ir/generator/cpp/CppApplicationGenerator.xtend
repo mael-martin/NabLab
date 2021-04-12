@@ -626,7 +626,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	
 	private def isOpenMpTask()
 	{
-		backend instanceof OpenMpTaskBackend
+		backend instanceof OpenMpTaskBackend || backend instanceof OpenMpTaskPartitionBackend
 	}
 
 	private def getWriteCallContent(Variable v)

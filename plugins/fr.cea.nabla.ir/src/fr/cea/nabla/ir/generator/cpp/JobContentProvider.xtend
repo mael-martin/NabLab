@@ -170,7 +170,7 @@ class StlThreadJobContentProvider extends JobContentProvider
 }
 
 @Data
-class OpenMpTaskJobContentProvider extends JobContentProvider
+class OpenMpTaskPartitionJobContentProvider extends JobContentProvider
 {
 	protected val extension TypeContentProvider
 

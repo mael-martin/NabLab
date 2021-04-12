@@ -169,7 +169,7 @@ class ExpressionContentProvider
 }
 
 @Data
-class OpenMpTaskExpressionContentProvider extends ExpressionContentProvider
+class OpenMpTaskPartitionExpressionContentProvider extends ExpressionContentProvider
 {
 	val extension TypeContentProvider typeContentProvider = super.typeContentProvider
 	

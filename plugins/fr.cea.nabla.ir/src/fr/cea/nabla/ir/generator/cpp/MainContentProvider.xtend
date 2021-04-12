@@ -110,7 +110,7 @@ class MainContentProvider
 }
 
 @Data
-class OpenMpTaskMainContentProvider extends MainContentProvider
+class OpenMpTaskPartitionMainContentProvider extends MainContentProvider
 {
 	override protected getPartitionCreation(IrModule it)
 	'''

@@ -137,7 +137,7 @@ class CppGeneratorUtils
 		} else ''''''
 	}
 	
-	static def getDependenciesFlush(Job it, CharSequence clause, Iterable<Variable> deps, CharSequence taskPartition, boolean needNeighbors)
+	static def getDependenciesFlush_PARTITION(Job it, CharSequence clause, Iterable<Variable> deps, CharSequence taskPartition, boolean needNeighbors)
 	{
 		/* Construct the OpenMP clause */
 		val falseIns = getFalseInVariableForJob(it);
@@ -174,7 +174,7 @@ class CppGeneratorUtils
 		''' : ''''''
 	}
 
-	static def getDependenciesFlushAll(Job it, CharSequence clause, Iterable<Variable> deps, int fromTask, int taskLimit)
+	static def getDependenciesFlushAll_PARTITION(Job it, CharSequence clause, Iterable<Variable> deps, int fromTask, int taskLimit)
 	{
 		/* Construct the OpenMP clause(s) */
 		val falseIns = getFalseInVariableForJob(it);
@@ -207,7 +207,7 @@ class CppGeneratorUtils
 		''' : ''''''
 	}
 	
-	static def getDependencies(Job it, String inout, Iterable<Variable> deps, CharSequence taskPartition, boolean needNeighbors)
+	static def getDependencies_PARTITION(Job it, String inout, Iterable<Variable> deps, CharSequence taskPartition, boolean needNeighbors)
 	{
 		/* Construct the OpenMP clause */
 		val falseIns = getFalseInVariableForJob(it);
@@ -251,7 +251,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		return ''''''
 	}
 
-	static def getDependenciesAll(Job it, String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
+	static def getDependenciesAll_PARTITION(Job it, String inout, Iterable<Variable> deps, int fromTask, int taskLimit)
 	{
 		/* Construct the OpenMP clause(s) */
 		val falseIns = getFalseInVariableForJob(it);
@@ -284,13 +284,13 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		return ret
 	}
 
-	static def takeOMPTraces(IrAnnotable it, Set<Variable> ins, Set<Variable> outs, CharSequence partitionId, boolean need_neighbors) {
+	static def takeOMPTraces_PARTITION(IrAnnotable it, Set<Variable> ins, Set<Variable> outs, CharSequence partitionId, boolean need_neighbors) {
 		if (OMPTraces) {
 			val parentJob      = EcoreUtil2.getContainerOfType(it, Job)
-			val ins_fmt        = ins.map[printVariableRangeFmt(partitionId, need_neighbors)]
-			val outs_fmt       = outs.map[printVariableRangeFmt(partitionId, false)]
-			val printf_values  = ins.map[printVariableRangeValue(partitionId, need_neighbors)].toList
-			printf_values.addAll(outs.map[printVariableRangeValue(partitionId, false)])
+			val ins_fmt        = ins.map[printVariableRangeFmt_PARTITION(partitionId, need_neighbors)]
+			val outs_fmt       = outs.map[printVariableRangeFmt_PARTITION(partitionId, false)]
+			val printf_values  = ins.map[printVariableRangeValue_PARTITION(partitionId, need_neighbors)].toList
+			printf_values.addAll(outs.map[printVariableRangeValue_PARTITION(partitionId, false)])
 
 			'''
 			fprintf(stderr, "(\"T«parentJob.name»@«parentJob.at»«IF partitionId !== null»:%ld«ENDIF»\", [«
@@ -303,7 +303,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		else ''''''
 	}
 	
-	static def printVariableRangeFmt(Variable it, CharSequence taskCurrent, boolean needNeighbors)
+	static def printVariableRangeFmt_PARTITION(Variable it, CharSequence taskCurrent, boolean needNeighbors)
 	{
 		if ((!isVariableRange) || (!needNeighbors && taskCurrent !== null))
 			return '''\"%p\"'''
@@ -317,8 +317,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		else
 			return '''«FOR i : iterator SEPARATOR ', '»\"%p\"«ENDFOR»'''
 	}
-	
-	static def printVariableRangeValue(Variable it, CharSequence taskCurrent, boolean needNeighbors)
+	static def printVariableRangeValue_PARTITION(Variable it, CharSequence taskCurrent, boolean needNeighbors)
 	{
 		if (!isVariableRange)
 			return '''&«name»'''

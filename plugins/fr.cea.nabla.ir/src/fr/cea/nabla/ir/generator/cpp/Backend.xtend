@@ -140,21 +140,44 @@ class OpenMpTaskBackend extends Backend
 {
 	new()
 	{
-		OMPTraces = false
-		OMPTaskMaxNumber = 4
-		CppApplicationGenerator::createPartitions = true
+		OMPTraces = true
+		OMPTaskMaxNumber = 10
+		CppApplicationGenerator::createPartitions = false
 		name = 'OpenMPTask'
 		cmakeContentProvider = new OpenMpCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
-		expressionContentProvider = new OpenMpTaskExpressionContentProvider(typeContentProvider)
+		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
 		instructionContentProvider = new OpenMpTaskInstructionContentProvider(typeContentProvider, expressionContentProvider)
 		functionContentProvider = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
 		traceContentProvider = new TraceContentProvider
 		includesContentProvider = new OpenMpIncludesContentProvider
 		jsonContentProvider = new JsonContentProvider(expressionContentProvider)
 		jobCallerContentProvider = new OpenMpTaskJobCallerContentProvider
-		jobContentProvider = new OpenMpTaskJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider, typeContentProvider)
-		mainContentProvider = new OpenMpTaskMainContentProvider(jsonContentProvider)
+		jobContentProvider = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
+		mainContentProvider = new MainContentProvider(jsonContentProvider)
+		registerTypeContentProvider(typeContentProvider)
+	}
+}
+
+class OpenMpTaskPartitionBackend extends Backend
+{
+	new()
+	{
+		OMPTraces = true
+		OMPTaskMaxNumber = 10
+		CppApplicationGenerator::createPartitions = true
+		name = 'OpenMPTask'
+		cmakeContentProvider = new OpenMpCMakeContentProvider
+		typeContentProvider = new StlThreadTypeContentProvider
+		expressionContentProvider = new OpenMpTaskPartitionExpressionContentProvider(typeContentProvider)
+		instructionContentProvider = new OpenMpTaskPartitionInstructionContentProvider(typeContentProvider, expressionContentProvider)
+		functionContentProvider = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
+		traceContentProvider = new TraceContentProvider
+		includesContentProvider = new OpenMpIncludesContentProvider
+		jsonContentProvider = new JsonContentProvider(expressionContentProvider)
+		jobCallerContentProvider = new OpenMpTaskPartitionJobCallerContentProvider
+		jobContentProvider = new OpenMpTaskPartitionJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider, typeContentProvider)
+		mainContentProvider = new OpenMpTaskPartitionMainContentProvider(jsonContentProvider)
 		registerTypeContentProvider(typeContentProvider)
 	}
 }
