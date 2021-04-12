@@ -813,7 +813,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	override dispatch getInnerContent(InstructionBlock it)
 	{
 		levelINC();
-		val launch_super_task = false && (insideAJob && (currentLevel == 1) && (childTasks > 1))
+		val launch_super_task = (insideAJob && (currentLevel == 1) && (childTasks > 1))
 		if (launch_super_task) { beginTASK('''task'''); }
 		val parentJob      = EcoreUtil2.getContainerOfType(it, Job)
 		val ins            = parentJob.inVars
@@ -821,18 +821,16 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		val ret = '''
 		«IF launch_super_task»
-		for (size_t task = 0; task < «OMPTaskMaxNumber»; ++task)
-		{
-		// TODO: replace 0 and limit by computed ones
-		// Inspect inside loops
 		// #pragma omp task firstprivate(task)«parentJob.priority»«parentJob.sharedVarsClause»«
-		                                     getDependencies_LOOP(parentJob, 'in',  ins,  '''0''', '''limit''')»«
-						                     getDependencies_LOOP(parentJob, 'out', outs, '''0''', '''limit''')»
+			getDependencies_LOOP(parentJob, 'in',  ins,  '''0''', '''limit''')»«
+			getDependencies_LOOP(parentJob, 'out', outs, '''0''', '''limit''')»
 		{ // BEGIN OF SUPER TASK
+		  // TODO: replace 0 and limit by computed ones
+		  // Inspect inside loops
 		«ENDIF»
 		«innerContentInternal»
 		«IF launch_super_task»
-		}} // END OF SUPER TASK
+		} // END OF SUPER TASK
 		«ENDIF»
 		'''
 
@@ -1102,11 +1100,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			
 			else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
 		}
-		val super_task = (currentTASK !== null)
 		'''
-			«IF ! super_task»
 			for (size_t task = 0; task < «OMPTaskMaxNumber»; ++task)
-			«ENDIF»
 			«launchSingleTaskForPartition(it, '''task''', ins, outs)»
 		'''
 	}
