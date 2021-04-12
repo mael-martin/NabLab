@@ -17,6 +17,7 @@ import org.eclipse.xtext.EcoreUtil2
 import fr.cea.nabla.ir.ir.JobCaller
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.ir.IrModule
+import fr.cea.nabla.ir.ir.TimeLoopJob
 
 class JobCallerContentProvider
 {
@@ -55,7 +56,7 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 		#pragma omp single nowait
 		{
 		«FOR j : calls»
-			«IF j instanceof ExecuteTimeLoopJob»
+			«IF j instanceof ExecuteTimeLoopJob || j instanceof TimeLoopJob»
 			«IF !execTimeLoopPresent»
 			// Wait before time loop: «execTimeLoopPresent = true»
 			}}

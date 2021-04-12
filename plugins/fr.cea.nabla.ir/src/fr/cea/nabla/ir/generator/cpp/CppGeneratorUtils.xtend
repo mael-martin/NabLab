@@ -154,19 +154,46 @@ class CppGeneratorUtils
 		/* All ranges, with the neighbors */
 		if (need_ranges && needNeighbors)
 			ret = ''' \
-/* dep */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»«
-FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', '
+/* dep partition */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n'»«
+FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', \\\n'
 »this->partitions[mesh->NEIGHBOR_getForPartition(«taskPartition», «i»)].«v.name»«ENDFOR»«ENDFOR»)'''
 		
 		/* All ranges, but without neighbors */
 		else if (need_ranges)
 			ret = ''' \
-/* dep */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»this->partitions[«taskPartition»].«v.name»«ENDFOR»)'''
+/* dep partiton */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n'»this->partitions[«taskPartition»].«v.name»«ENDFOR»)'''
 
 		/* All simple values */
 		if (need_simple)
 			ret = '''«ret» \
-/* dep */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»«getVariableName(v)»«ENDFOR»)'''
+/* dep partition */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', \\\n'»«getVariableName(v)»«ENDFOR»)'''
+		
+		return ret
+	}
+
+	static def getDependencies_LOOP(Job it, String inout, Iterable<Variable> deps, CharSequence from, CharSequence limit)
+	{
+		/* Construct the OpenMP clause */
+		val falseIns = getFalseInVariableForJob(it);
+		val dependencies = deps.toSet;
+		if (dependencies.length == 0) return ''''''
+		dependencies.removeAll(falseIns)
+
+		val dep_ranges  = dependencies.filter(v|v.isVariableRange);
+		val dep_simple  = dependencies.filter(v|!v.isVariableRange);
+		val need_ranges = dep_ranges.length >= 1;
+		val need_simple = dep_simple.length >= 1;
+		var ret = ''''''
+
+		/* All ranges  */
+		if (!need_ranges)
+			ret = ''' \
+/* dep loop */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n'»this->«v.name»[«from»:(«limit»-«from»)]«ENDFOR»)'''
+
+		/* All simple values */
+		if (need_simple)
+			ret = '''«ret» \
+/* dep loop */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', \\\n'»this->«v.name»«ENDFOR»)'''
 		
 		return ret
 	}
@@ -199,8 +226,8 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		{
 			/* All ranges */
 			ret = ''' \
-/* dep all */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»«
-FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', '
+/* dep partition all */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', \\\n'»«
+FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', \\\n'
 »this->partitions[«i»].«v.name»«ENDFOR»«ENDFOR»)'''
 		}
 
@@ -208,7 +235,38 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		{
 			/* All simple values */
 			ret = '''«ret» \
-/* dep all */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»«getVariableName(v)»«ENDFOR»)'''
+/* dep partition all */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', \\\n'»this->«v.name»«ENDFOR»)'''
+		}
+
+		return ret
+	}
+
+	static def getDependenciesAll_LOOP(Job it, String inout, Iterable<Variable> deps)
+	{
+		/* Construct the OpenMP clause(s) */
+		val falseIns = getFalseInVariableForJob(it);
+		val dependencies = deps.toSet;
+		if (dependencies.length == 0) return ''''''
+		dependencies.removeAll(falseIns)
+
+		val dep_ranges  = dependencies.filter(v|v.isVariableRange);
+		val dep_simple  = dependencies.filter(v|!v.isVariableRange);
+		val need_ranges = dep_ranges.length >= 1;
+		val need_simple = dep_simple.length >= 1;
+		var ret = ''''''
+
+		if (need_ranges)
+		{
+			/* All ranges */
+			ret = ''' \
+/* dep loop all */ depend(«inout»: «FOR v : dep_ranges SEPARATOR ', '»this->«v.name»[0:«v.name».size()]«ENDFOR»)'''
+		}
+
+		if (need_simple)
+		{
+			/* All simple values */
+			ret = '''«ret» \
+/* dep loop all */ depend(«inout»: «FOR v : dep_simple SEPARATOR ', '»this->«v.name»«ENDFOR»)'''
 		}
 
 		return ret
