@@ -834,7 +834,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		{
 		// TODO: replace 0 and limit by computed ones
 		// Inspect inside loops
-		#pragma omp task firstprivate(task)«parentJob.priority»«parentJob.sharedVarsClause»«
+		// #pragma omp task firstprivate(task)«parentJob.priority»«parentJob.sharedVarsClause»«
 		                                     getDependencies_LOOP(parentJob, 'in',  ins,  '''0''', '''limit''')»«
 						                     getDependencies_LOOP(parentJob, 'out', outs, '''0''', '''limit''')»
 		{ // BEGIN OF SUPER TASK
@@ -867,7 +867,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				«IF ! super_task»
-				#pragma omp task «parentJob.sharedVarsClause»«parentJob.priority»«
+				// #pragma omp task «parentJob.sharedVarsClause»«parentJob.priority»«
 				                 getDependenciesAll_LOOP(parentJob, 'in',  ins)»«
 				                 getDependenciesAll_LOOP(parentJob, 'out', outs)»
 				{
@@ -899,7 +899,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«IF ! super_task»
-			#pragma omp task «parentJob.sharedVarsClause»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
+			// #pragma omp task «parentJob.sharedVarsClause»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
 				getDependenciesAll_LOOP(parentJob, 'in', ins)» depend(out: this->«out.name»)
 			{
 			«takeOMPTraces_PARTITION(ins, outs, null, false)»
@@ -1064,11 +1064,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		val ret = '''
 		{
-			// TODO: Replace the 0 => nbElems by computed limits
 			const size_t ___omp_base  = «base_index»;
 			const size_t ___omp_limit = «limit_index»;
 			«IF ! super_task»
-			#pragma omp task firstprivate(task, ___omp_base, ___omp_lit) «parentJob.sharedVarsClause»«parentJob.priority»«
+			// #pragma omp task firstprivate(task, ___omp_base, ___omp_lit) «parentJob.sharedVarsClause»«parentJob.priority»«
 				getDependencies_LOOP(parentJob, 'in',  ins,  '''___omp_base''', '''___omp_limit''')»«
 				getDependencies_LOOP(parentJob, 'out', outs, '''___omp_base''', '''___omp_limit''')»
 			{
@@ -1124,6 +1123,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			for (size_t task = 0; task < «OMPTaskMaxNumber» - 1; ++task)
 			«ENDIF»
 			«launchSingleTaskForPartition(it, '''task''', ins, outs, false)»
+			const size_t task = «OMPTaskMaxNumber» - 1;
 			«launchSingleTaskForPartition(it, '''task''', ins, outs, true)»
 		'''
 	}
