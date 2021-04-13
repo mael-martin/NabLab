@@ -885,7 +885,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			«IF ! super_task»
 			#pragma omp task «getSharedVarsClause_LOOP(parentJob, true)»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
 				getDependenciesAll_LOOP(parentJob, 'in', ins)» \
-			/* reduc res */ depend(out: this->«out.name»)
+			/* dep reduction result */ depend(out:	(this->«out.name»))
 			{
 			«ENDIF»
 			{
