@@ -1017,7 +1017,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			«IF ! super_task»
 			«FOR idxType : parentJob.usedIndexType»
 			const Id ___omp_base_«idxType»  = «convertIndexType('___omp_base',  basetype, idxType, true)»;
-			const Id ___omp_count_«idxType» = «convertIndexType('___omp_limit', basetype, idxType, false)» - ___omp_base_«idxType»;
+			const Id ___omp_count_«idxType» = «convertIndexType('___omp_limit - 1', basetype, idxType, false)» - ___omp_base_«idxType»;
 			«ENDFOR»
 			«IF parentJob.usedIndexType.length > 1»
 			// WARN: Conversions in in/out for omp task

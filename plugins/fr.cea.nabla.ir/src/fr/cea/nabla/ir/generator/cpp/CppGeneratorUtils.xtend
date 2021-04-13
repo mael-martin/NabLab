@@ -190,8 +190,8 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		switch basetype {
 		case INDEX_TYPE::CELLS: {
 			switch casttype {
-				case INDEX_TYPE::NODES: return '''internal::«lower ? 'min' : 'max'»(mesh->getCellsOfNode(«index»))'''
-				case INDEX_TYPE::FACES: return '''internal::«lower ? 'min' : 'max'»(mesh->getCellsOfFace(«index»))'''
+				case INDEX_TYPE::NODES: return '''internal::«lower ? 'min' : 'max'»(mesh->getNodesOfCell(«index»))'''
+				case INDEX_TYPE::FACES: return '''internal::«lower ? 'min' : 'max'»(mesh->getFacesOfCell(«index»))'''
 				case INDEX_TYPE::CELLS: return index
 				default: {}
 			}
@@ -199,8 +199,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 
 		case INDEX_TYPE::NODES: {
 			switch casttype {
-				case INDEX_TYPE::CELLS: return '''internal::«lower ? 'min' : 'max'»(mesh->getNodesOfCell(«index»))'''
-				case INDEX_TYPE::FACES: return '''internal::«lower ? 'min' : 'max'»(mesh->getNodesOfFace(«index»))'''
+				case INDEX_TYPE::CELLS: return '''internal::«lower ? 'min' : 'max'»(mesh->getCellsOfNode(«index»))'''
 				case INDEX_TYPE::NODES: return index
 				default: {}
 			}
@@ -209,7 +208,8 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		case INDEX_TYPE::FACES: {
 			switch casttype {
 				case INDEX_TYPE::FACES: return index
-				case INDEX_TYPE::CELLS: return '''internal::«lower ? 'min' : 'max'»(mesh->getFacesOfCell(«index»))'''
+				case INDEX_TYPE::CELLS: return '''internal::«lower ? 'min' : 'max'»(mesh->getCellsOfFace(«index»))'''
+				case INDEX_TYPE::NODES: return '''internal::«lower ? 'min' : 'max'»(mesh->getNodesOfFace(«index»))'''
 				default: {}
 			}
 		}
