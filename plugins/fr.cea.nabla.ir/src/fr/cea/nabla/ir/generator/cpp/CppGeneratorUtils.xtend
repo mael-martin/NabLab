@@ -257,7 +257,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		if (need_ranges) {
 		ret = ''' \
 «FOR v : dep_ranges SEPARATOR ' \\\n'
-	»/* dep loop (range) */ depend(«inout»:	(&(this->«v.name».data()[«from»_«v.name.globalVariableType»]))[:(«count»_«v.name.globalVariableType»+0)])«
+	»/* dep loop (range) */ depend(«inout»:	(&(this->«v.name».data()[«from»_«v.name.globalVariableType»]))[:(«count»_«v.name.globalVariableType»)])«
 ENDFOR»'''
 		}
 
@@ -336,7 +336,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		{
 			/* All ranges */
 			ret = ''' \
-«FOR v : dep_ranges SEPARATOR ' \\\n'»/* dep loop all (range) */ depend(«inout»:	(&(this->«v.name».data()[0]))[:(«v.name».size()«IF inout == 'out'»+0«ENDIF»)])«ENDFOR»'''
+«FOR v : dep_ranges SEPARATOR ' \\\n'»/* dep loop all (range) */ depend(«inout»:	(&(this->«v.name».data()[0]))[:(«v.name».size())])«ENDFOR»'''
 		}
 
 		if (need_simple)
@@ -396,6 +396,73 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 			return '''«FOR i : iterator SEPARATOR ', '»&(this->partitions[mesh->NEIGHBOR_getForPartition(«taskCurrent», «i»)].«name»)«ENDFOR»'''
 		else
 			return '''«FOR i : iterator SEPARATOR ', '»&(this->partitions[«i»].«name»)«ENDFOR»'''
+	}
+	
+	static def printVariableRange_LOOP(Job it, Set<Variable> ins, Set<Variable> outs) {
+		if (!OMPTraces)
+			return ''''''
+		/* Construct the OpenMP clause(s) */
+		val falseIns = getFalseInVariableForJob(it);
+		ins.removeAll(falseIns)
+		outs.removeAll(falseIns)
+
+		/* Force simple variables if it's produced by a super task */
+		val forced_simple_ins  = ins.filter[v|GlobalVariableProducedBySuperTask.contains(v.name)].toSet
+		val forced_simple_outs = outs.filter[v|GlobalVariableProducedBySuperTask.contains(v.name)].toSet
+		ins.removeAll(forced_simple_ins)
+		outs.removeAll(forced_simple_outs)
+
+		val dep_ranges_ins  = ins.filter(v|v.isVariableRange).toList;
+		val dep_simple_ins  = ins.filter(v|!v.isVariableRange).toSet;
+		dep_simple_ins.addAll(forced_simple_ins) /* Forced simple */
+
+		val dep_ranges_outs = outs.filter(v|v.isVariableRange).toList;
+		val dep_simple_outs = outs.filter(v|!v.isVariableRange).toSet;
+		dep_simple_outs.addAll(forced_simple_outs) /* Forced simple */
+		
+		/* Print the unique task id */
+		var ret = '''fprintf(stderr, "(\"T«name»@«at»:%ld\", [", task);'''
+		
+		/* Print the IN dependencies */
+		if (dep_simple_ins.length > 0) { ret = '''«ret»fprintf(stderr, "«FOR v : dep_simple_ins SEPARATOR ', '»\"«v.name»\"«ENDFOR»)");''' }
+		if (dep_ranges_ins.length > 0) {
+			for (var int i = 0; i < dep_ranges_ins.length; i += 1) {
+				ret = '''
+				«ret»
+				for (Id i = ___omp_base_«dep_ranges_ins.get(i).name.globalVariableType
+				»; i < ___omp_base_«dep_ranges_ins.get(i).name.globalVariableType
+				» + ___omp_count_«dep_ranges_ins.get(i).name.globalVariableType» + 1; ++i) fprintf(stderr, "\"«
+				dep_ranges_ins.get(i).name»_%ld\"«IF i != dep_ranges_ins.length - 1», «ENDIF»", i);
+				'''
+			}
+		}
+
+		/* Separation */
+		ret = '''
+		«ret»
+		fprintf("], [");
+		'''
+		
+		/* Print the OUT dependencies */
+		if (dep_simple_outs.length > 0) { ret = '''«ret»fprintf(stderr, "«FOR v : dep_simple_outs SEPARATOR ', '»\"«v.name»\"«ENDFOR»)");''' }
+		if (dep_ranges_outs.length > 0) {
+			for (var int i = 0; i < dep_ranges_outs.length; i += 1) {
+				ret = '''
+				«ret»
+				for (Id i = ___omp_base_«dep_ranges_outs.get(i).name.globalVariableType
+				»; i < ___omp_base_«dep_ranges_outs.get(i).name.globalVariableType
+				» + ___omp_count_«dep_ranges_outs.get(i).name.globalVariableType» + 1; ++i) fprintf(stderr, "\"«
+				dep_ranges_outs.get(i).name»_%ld\"«IF i != dep_ranges_outs.length - 1», «ENDIF»", i);
+				'''
+			}
+		}
+		
+		/* Print the end of the trace line */
+		ret = '''
+		«ret»
+		fprintf("])\n");
+		'''
+
 	}
 	
 	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''mesh->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''

@@ -821,6 +821,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		val ret = '''
 		«IF launch_super_task»
+		«printVariableRange_LOOP(parentJob, ins.clone.toSet, outs.clone.toSet)»
 		#pragma omp task«parentJob.priority» «getSharedVarsClause_LOOP(parentJob, true)»«
 			getDependenciesAll_LOOP(parentJob, 'in',  ins)»«
 			getDependenciesAll_LOOP(parentJob, 'out', outs)»
@@ -854,6 +855,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				«IF ! super_task»
+				«printVariableRange_LOOP(parentJob, ins.clone.toSet, outs.clone.toSet)»
 				#pragma omp task «getSharedVarsClause_LOOP(parentJob, true)»«parentJob.priority»«
 				                 getDependenciesAll_LOOP(parentJob, 'in',  ins)»«
 				                 getDependenciesAll_LOOP(parentJob, 'out', outs)»
@@ -883,6 +885,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«IF ! super_task»
+			«printVariableRange_LOOP(parentJob, ins.clone.toSet, outs.clone.toSet)»
 			#pragma omp task «getSharedVarsClause_LOOP(parentJob, true)»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
 				getDependenciesAll_LOOP(parentJob, 'in', ins)» \
 			/* dep reduction result */ depend(out:	(this->«out.name»))
@@ -1026,11 +1029,12 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			const Id ___omp_min_«idxType»   = std::min(«convertIndexType('___omp_base', basetype, idxType, true )», «convertIndexType('___omp_limit - 1', basetype, idxType, true )»);
 			const Id ___omp_max_«idxType»   = std::max(«convertIndexType('___omp_base', basetype, idxType, false)», «convertIndexType('___omp_limit - 1', basetype, idxType, false)»);
 			const Id ___omp_base_«idxType»  = ___omp_min_«idxType»;
-			const Id ___omp_count_«idxType» = ___omp_max_«idxType» - ___omp_min_«idxType»;
+			const Id ___omp_count_«idxType» = ___omp_max_«idxType» - ___omp_min_«idxType» + 1;
 			«ENDFOR»
 			«IF parentJob.usedIndexType.length > 1»
 			// WARN: Conversions in in/out for omp task
 			«ENDIF»
+			«printVariableRange_LOOP(parentJob, ins.clone.toSet, outs.clone.toSet)»
 			#pragma omp task firstprivate(task, ___omp_base, ___omp_limit) «getSharedVarsClause_LOOP(parentJob, false)»«parentJob.priority»«
 				getDependencies_LOOP(parentJob, 'in',  ins,  '''___omp_base''', '''___omp_count''')»«
 				getDependencies_LOOP(parentJob, 'out', outs, '''___omp_base''', '''___omp_count''')»

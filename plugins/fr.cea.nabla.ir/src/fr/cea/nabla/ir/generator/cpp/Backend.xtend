@@ -39,6 +39,7 @@ class SequentialBackend extends Backend
 	new()
 	{
 		name = 'Sequential'
+		CppApplicationGenerator::createPartitions = false
 		irTransformationStep = new ReplaceReductions(true)
 		cmakeContentProvider = new CMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
@@ -60,6 +61,7 @@ class StlThreadBackend extends Backend
 	new()
 	{
 		name = 'StlThread'
+		CppApplicationGenerator::createPartitions = false
 		cmakeContentProvider = new StlThreadCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -80,6 +82,7 @@ class KokkosBackend extends Backend
 	new()
 	{
 		name = 'Kokkos'
+		CppApplicationGenerator::createPartitions = false
 		cmakeContentProvider = new KokkosCMakeContentProvider
 		typeContentProvider = new KokkosTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -100,6 +103,7 @@ class KokkosTeamThreadBackend extends Backend
 	new()
 	{
 		name = 'Kokkos Team Thread'
+		CppApplicationGenerator::createPartitions = false
 		cmakeContentProvider = new KokkosCMakeContentProvider
 		typeContentProvider = new KokkosTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -140,7 +144,7 @@ class OpenMpTaskBackend extends Backend
 {
 	new()
 	{
-		OMPTraces = false
+		OMPTraces = true
 		OMPTaskMaxNumber = 10
 		CppApplicationGenerator::createPartitions = false
 		name = 'OpenMPTask'
