@@ -86,6 +86,13 @@ class CppGeneratorUtils
 	/* Global variables produced by a super task => don't bother with indices as it breaks everything with OpenMP */
 	static HashSet<String> GlobalVariableProducedBySuperTask = new HashSet();
 	static def void resetGlobalVariableProducedBySuperTask() { GlobalVariableProducedBySuperTask.clear }
+	static def void registerGlobalVariableProducedBySuperTask(IrModule it) {
+		eAllContents.filter(Job).forEach[ j |
+			if (!jobIsSuperTask(j))
+				return;
+				j.outVars.forEach[ v | GlobalVariableProducedBySuperTask.add(v.name) ]
+		]
+	}
 	
 	/* False 'in' variables */
 	static private def getFalseInVariableForJob(Job it)
@@ -233,9 +240,15 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		val dependencies = deps.toSet;
 		if (dependencies.length == 0) return ''''''
 		dependencies.removeAll(falseIns)
+		
+		/* Force simple variables if it's produced by a super task */
+		val forced_simple = dependencies.filter[v|GlobalVariableProducedBySuperTask.contains(v.name)].toSet
+		dependencies.removeAll(forced_simple)
 
 		val dep_ranges  = dependencies.filter(v|v.isVariableRange);
-		val dep_simple  = dependencies.filter(v|!v.isVariableRange);
+		val dep_simple  = dependencies.filter(v|!v.isVariableRange).toSet;
+		dep_simple.addAll(forced_simple) /* Forced simple */
+
 		val need_ranges = dep_ranges.length >= 1;
 		val need_simple = dep_simple.length >= 1;
 		var ret         = ''''''
@@ -251,7 +264,7 @@ ENDFOR»'''
 		/* All simple values */
 		if (need_simple)
 			ret = '''«ret» \
-«FOR v : dep_simple SEPARATOR ', \\\n'»/* dep loop (simple) */ depend(«inout»:	(this->«v.name»))«ENDFOR»'''
+«FOR v : dep_simple SEPARATOR ', \\\n'»/* dep loop (simpL) */ depend(«inout»:	(this->«v.name»))«ENDFOR»'''
 		
 		return ret
 	}
@@ -307,8 +320,14 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		if (dependencies.length == 0) return ''''''
 		dependencies.removeAll(falseIns)
 
+		/* Force simple variables if it's produced by a super task */
+		val forced_simple = dependencies.filter[v|GlobalVariableProducedBySuperTask.contains(v.name)].toSet
+		dependencies.removeAll(forced_simple)
+
 		val dep_ranges  = dependencies.filter(v|v.isVariableRange);
-		val dep_simple  = dependencies.filter(v|!v.isVariableRange);
+		val dep_simple  = dependencies.filter(v|!v.isVariableRange).toSet;
+		dep_simple.addAll(forced_simple) /* Forced simple */
+
 		val need_ranges = dep_ranges.length >= 1;
 		val need_simple = dep_simple.length >= 1;
 		var ret = ''''''
