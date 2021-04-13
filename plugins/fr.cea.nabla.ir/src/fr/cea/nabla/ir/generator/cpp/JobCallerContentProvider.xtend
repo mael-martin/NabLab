@@ -62,7 +62,9 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 			}}
 			«ENDIF»
 			«ENDIF»
-			«j.callName.replace('.', '->')»(); // @«j.at»«IF j.usedIndexType.length > 1» (do conversions)«ENDIF»
+			«j.callName.replace('.', '->')»(); // @«j.at»«
+				IF j.usedIndexType.length > 1» (do conversions)«ENDIF»«
+				IF jobIsSuperTask(j)» (super task)«ENDIF»
 		«ENDFOR»
 		«IF ! execTimeLoopPresent»
 		}}

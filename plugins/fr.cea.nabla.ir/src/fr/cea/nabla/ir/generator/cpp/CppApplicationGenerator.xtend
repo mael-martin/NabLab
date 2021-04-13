@@ -52,6 +52,8 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 	override getGenerationContents(IrRoot ir)
 	{
+		resetGlobalVariable
+		resetGlobalVariableProducedBySuperTask
 		ir.modules.filter[t|t!==null].forEach[registerGlobalVariable]
 		val fileContents = new ArrayList<GenerationContent>
 		for (module : ir.modules)

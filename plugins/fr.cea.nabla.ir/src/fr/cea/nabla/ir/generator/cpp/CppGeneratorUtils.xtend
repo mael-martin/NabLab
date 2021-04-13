@@ -24,10 +24,10 @@ import fr.cea.nabla.ir.ir.Variable
 import fr.cea.nabla.ir.ir.IrPackage
 import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.ArgOrVar
-import fr.cea.nabla.ir.ir.LinearAlgebraType
-import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.ItemIndex
 import fr.cea.nabla.ir.ir.IrAnnotable
+import fr.cea.nabla.ir.ir.Loop
+import fr.cea.nabla.ir.ir.ReductionInstruction
 import fr.cea.nabla.ir.generator.cpp.TypeContentProvider
 import org.eclipse.xtext.EcoreUtil2
 import java.util.stream.IntStream
@@ -81,6 +81,11 @@ class CppGeneratorUtils
 	static def INDEX_TYPE getGlobalVariableType(String varName) {
 		return GlobalVariableIndexTypes.getOrDefault(varName, INDEX_TYPE::NULL);
 	}
+	static def void resetGlobalVariable() { GlobalVariableIndexTypes.clear }
+	
+	/* Global variables produced by a super task => don't bother with indices as it breaks everything with OpenMP */
+	static HashSet<String> GlobalVariableProducedBySuperTask = new HashSet();
+	static def void resetGlobalVariableProducedBySuperTask() { GlobalVariableProducedBySuperTask.clear }
 	
 	/* False 'in' variables */
 	static private def getFalseInVariableForJob(Job it)
@@ -239,7 +244,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		if (need_ranges) {
 		ret = ''' \
 «FOR v : dep_ranges SEPARATOR ' \\\n'
-	»/* dep loop (range) */ depend(«inout»:	(&(this->«v.name».data()[«from»_«v.name.globalVariableType»]))[:(«count»_«v.name.globalVariableType»+1)])«
+	»/* dep loop (range) */ depend(«inout»:	(&(this->«v.name».data()[«from»_«v.name.globalVariableType»]))[:(«count»_«v.name.globalVariableType»+0)])«
 ENDFOR»'''
 		}
 
@@ -312,7 +317,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		{
 			/* All ranges */
 			ret = ''' \
-«FOR v : dep_ranges SEPARATOR ' \\\n'»/* dep loop all (range) */ depend(«inout»:	(this->«v.name».data())[:(«v.name».size())])«ENDFOR»'''
+«FOR v : dep_ranges SEPARATOR ' \\\n'»/* dep loop all (range) */ depend(«inout»:	(&(this->«v.name».data()[0]))[:(«v.name».size()«IF inout == 'out'»+0«ENDIF»)])«ENDFOR»'''
 		}
 
 		if (need_simple)
@@ -376,6 +381,17 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 	
 	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''mesh->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
 	
+	/* Is a job a super task job? */
+	static def boolean jobIsSuperTask(Job it) {
+		return (
+			eAllContents.filter(Loop).filter[multithreadable].size +
+			eAllContents.filter(ReductionInstruction).size
+		) > 3
+		/* Magic number, take into account the initial loops, see
+		 * `OpenMpTaskInstructionContentProvider::getChildTasks(InstructionBlock it)`
+		 * For the original formula. */
+	}
+
 	/* Get DF */
 	static def getInVars(Job it) {
 		(it === null)

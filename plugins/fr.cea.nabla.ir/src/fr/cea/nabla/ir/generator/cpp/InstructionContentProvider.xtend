@@ -927,9 +927,16 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			if (item instanceof ItemIdValueIterator)
 				addDataShift(item.id.itemName, item.value as ItemIdValueIterator)
 		]
-		val ret = '''
-		«launchTasks»
-		'''
+		var ret = ''''''
+
+		if (getCurrentTASK() !== null) ret = '''
+			«sequentialLoopContent»
+			'''
+
+		else ret = '''
+			«launchTasks»
+			'''
+
 		levelDEC();
 		return ret
 	}
