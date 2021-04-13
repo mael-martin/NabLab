@@ -408,7 +408,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 	}
 	static def getSharedVarsClause_LOOP(Job it, boolean isDependAll) {
 		val shared = sharedVarsNames_LOOP
-		val idxs   = usedIndexType.map[t | '''internal::nbX_«t»«IF ! isDependAll», ___omp_base_«t», ___omp_count_«t»«ENDIF»''']
+		val idxs   = ! isDependAll ? usedIndexType.map[t | '''___omp_base_«t», ___omp_count_«t»'''] : #[]
 		'''default(none) shared(stderr, «
 			IF idxs.length != 0»«FOR i : idxs SEPARATOR ', '»«i»«ENDFOR», «ENDIF»mesh«
 			IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''

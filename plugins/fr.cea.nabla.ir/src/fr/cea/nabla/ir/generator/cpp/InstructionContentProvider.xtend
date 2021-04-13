@@ -1016,8 +1016,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			const Id ___omp_limit       = «limit_index»;
 			«IF ! super_task»
 			«FOR idxType : parentJob.usedIndexType»
-			const Id ___omp_base_«idxType»  = «convertIndexType('___omp_base',  basetype, idxType, true)»;
-			const Id ___omp_count_«idxType» = «convertIndexType('___omp_limit - 1', basetype, idxType, false)» - ___omp_base_«idxType»;
+			const Id ___omp_min_«idxType»   = std::min(«convertIndexType('___omp_base', basetype, idxType, true )», «convertIndexType('___omp_limit - 1', basetype, idxType, true )»);
+			const Id ___omp_max_«idxType»   = std::max(«convertIndexType('___omp_base', basetype, idxType, false)», «convertIndexType('___omp_limit - 1', basetype, idxType, false)»);
+			const Id ___omp_base_«idxType»  = ___omp_min_«idxType»;
+			const Id ___omp_count_«idxType» = ___omp_max_«idxType» - ___omp_min_«idxType»;
 			«ENDFOR»
 			«IF parentJob.usedIndexType.length > 1»
 			// WARN: Conversions in in/out for omp task
