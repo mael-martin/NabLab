@@ -56,16 +56,24 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 		{
 		#pragma omp single nowait
 		{
-		«FOR j : calls»
-			«IF j instanceof ExecuteTimeLoopJob || j instanceof TimeLoopJob»
-			«IF !execTimeLoopPresent»
-			// Wait before time loop: «execTimeLoopPresent = true»
-			}}
+		«val jobsByAt = calls.groupBy[at]»
+		«FOR at : jobsByAt.keySet.sort»
+			«val atJobs = jobsByAt.get(at)»
+			«IF atJobs.filter[usedIndexType.length > 1].length > 0»
+				/* A job will do an index conversion, need to wait as it is not supported */
+				#pragma omp taskwait
 			«ENDIF»
-			«ENDIF»
-			«j.callName.replace('.', '->')»(); // @«j.at»«
-				IF j.usedIndexType.length > 1» (do conversions)«ENDIF»«
-				IF jobIsSuperTask(j)» (super task)«ENDIF»
+			«FOR j : atJobs»
+				«IF j instanceof ExecuteTimeLoopJob || j instanceof TimeLoopJob»
+				«IF !execTimeLoopPresent»
+				// Wait before time loop: «execTimeLoopPresent = true»
+				}}
+				«ENDIF»
+				«ENDIF»
+				«j.callName.replace('.', '->')»(); // @«j.at»«
+					IF j.usedIndexType.length > 1» (do conversions)«ENDIF»«
+					IF jobIsSuperTask(j)» (super task)«ENDIF»
+			«ENDFOR»
 		«ENDFOR»
 		«IF ! execTimeLoopPresent»
 		}}
