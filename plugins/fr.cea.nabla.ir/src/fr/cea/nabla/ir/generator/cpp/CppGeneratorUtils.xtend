@@ -257,7 +257,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		if (need_ranges) {
 		ret = ''' \
 «FOR v : dep_ranges SEPARATOR ' \\\n'
-	»/* dep loop (range) */ depend(«inout»:	(&(this->«v.name».data()[«from»_«v.name.globalVariableType»]))[:(«count»_«v.name.globalVariableType»)])«
+	»/* dep loop (range) */ depend(«inout»:	(this->«v.name».data()+«from»_«v.name.globalVariableType»)[(«count»_«v.name.globalVariableType»)])«
 ENDFOR»'''
 		}
 
@@ -336,7 +336,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		{
 			/* All ranges */
 			ret = ''' \
-«FOR v : dep_ranges SEPARATOR ' \\\n'»/* dep loop all (range) */ depend(«inout»:	(&(this->«v.name».data()[0]))[:(«v.name».size()-1)])«ENDFOR»'''
+«FOR v : dep_ranges SEPARATOR ' \\\n'»/* dep loop all (range) */ depend(«inout»:	(this->«v.name».data())[(«v.name».size()-1)])«ENDFOR»'''
 		}
 
 		if (need_simple)
