@@ -1055,7 +1055,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			// WARN: Conversions in in/out for omp task
 			«ENDIF»
 			«printVariableRange_LOOP(parentJob, ins.clone.toSet, outs.clone.toSet)»
-			#pragma omp task firstprivate(task, ___omp_base, ___omp_limit) «getSharedVarsClause_LOOP(parentJob, false)»«parentJob.priority»«
+			#pragma omp task «getFirstPrivateVars_LOOP(parentJob)» «getSharedVarsClause_LOOP(parentJob, false)»«parentJob.priority»«
 				getDependencies_LOOP(parentJob, 'in',  ins,  '''___omp_base''', '''___omp_count''')»«
 				getDependencies_LOOP(parentJob, 'out', outs, '''___omp_base''', '''___omp_count''')»
 			«ENDIF»

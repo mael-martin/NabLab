@@ -409,7 +409,6 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 			#if NABLA_DEBUG == 1
 			assert(___omp_count_«idxType» >= 1);
 			#endif
-			assert();
 		«ENDFOR»
 		«ENDIF»
 	'''
@@ -544,9 +543,12 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 	}
 	static def getSharedVarsClause_LOOP(Job it, boolean isDependAll) {
 		val shared = sharedVarsNames_LOOP
-		val idxs   = ! isDependAll ? usedIndexType.map[t | '''___omp_base_«t», ___omp_count_«t»'''] : #[]
-		'''default(none) shared(stderr, «
-			IF idxs.length != 0»«FOR i : idxs SEPARATOR ', '»«i»«ENDFOR», «ENDIF»mesh«
-			IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
+		''' \
+default(none) shared(stderr, mesh«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
+	}
+	static def getFirstPrivateVars_LOOP(Job it) {
+		val idxs   = usedIndexType.map[t | '''___omp_base_«t», ___omp_count_«t», ___omp_min_«t», ___omp_max_«t»''' ]
+		''' \
+firstprivate(task, ___omp_base, ___omp_limit«IF idxs.size > 0», «ENDIF»«FOR i : idxs SEPARATOR ', '»«i»«ENDFOR»)'''
 	}
 }
