@@ -343,7 +343,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		{
 			/* All simple values */
 			ret = '''«ret» \
-«FOR v : dep_simple SEPARATOR ' \\\n'»/* dep loop all (simple) */ depend(«inout»:	(this->«v.name»))«ENDFOR»'''
+«FOR v : dep_simple SEPARATOR ' \\\n'»/* dep loop all (simpL) */ depend(«inout»:	(this->«v.name»))«ENDFOR»'''
 		}
 
 		return ret
@@ -398,6 +398,21 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 			return '''«FOR i : iterator SEPARATOR ', '»&(this->partitions[«i»].«name»)«ENDFOR»'''
 	}
 	
+	static def indexVariableDeclarationsIfOMPTraces_LOOP(Job parentJob)
+	'''
+		«IF OMPTraces»
+		const size_t task = 0;
+		«FOR idxType : parentJob.usedIndexType»
+			«val sample_variable = parentJob.allVars.filter[v | v.name.globalVariableType == idxType].head»
+			const Id ___omp_base_«idxType»  = 0;
+			const Id ___omp_count_«idxType» = «sample_variable.name».size();
+			#if NABLA_DEBUG == 1
+			assert(___omp_count_«idxType» >= 1);
+			#endif
+			assert();
+		«ENDFOR»
+		«ENDIF»
+	'''
 	static def printVariableRange_LOOP(Job it, Set<Variable> ins, Set<Variable> outs) {
 		if (!OMPTraces)
 			return ''''''
@@ -424,15 +439,22 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		var ret = '''fprintf(stderr, "(\"T«name»@«at»:%ld\", [", task);'''
 		
 		/* Print the IN dependencies */
-		if (dep_simple_ins.length > 0) { ret = '''«ret»fprintf(stderr, "«FOR v : dep_simple_ins SEPARATOR ', '»\"«v.name»\"«ENDFOR»)");''' }
+		if (dep_simple_ins.length > 0) { ret = '''«ret»fprintf(stderr, "«FOR v : dep_simple_ins SEPARATOR ', '»\"«v.name»\"«ENDFOR»");''' }
 		if (dep_ranges_ins.length > 0) {
 			for (var int i = 0; i < dep_ranges_ins.length; i += 1) {
+				if (i != 0) {
+					ret = '''
+					«ret»
+					fprintf(stderr, ", ");
+					'''
+				}
 				ret = '''
 				«ret»
 				for (Id i = ___omp_base_«dep_ranges_ins.get(i).name.globalVariableType
 				»; i < ___omp_base_«dep_ranges_ins.get(i).name.globalVariableType
-				» + ___omp_count_«dep_ranges_ins.get(i).name.globalVariableType» + 1; ++i) fprintf(stderr, "\"«
-				dep_ranges_ins.get(i).name»_%ld\"«IF i != dep_ranges_ins.length - 1», «ENDIF»", i);
+				» + ___omp_count_«dep_ranges_ins.get(i).name.globalVariableType» + 1; ++i) { fprintf(stderr, "\"«
+				dep_ranges_ins.get(i).name»_%ld\"", i); if (i != ___omp_base_«dep_ranges_ins.get(i).name.globalVariableType
+				» + ___omp_count_«dep_ranges_ins.get(i).name.globalVariableType») fprintf(stderr, ", "); }
 				'''
 			}
 		}
@@ -440,19 +462,26 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		/* Separation */
 		ret = '''
 		«ret»
-		fprintf("], [");
+		fprintf(stderr, "], [");
 		'''
 		
 		/* Print the OUT dependencies */
-		if (dep_simple_outs.length > 0) { ret = '''«ret»fprintf(stderr, "«FOR v : dep_simple_outs SEPARATOR ', '»\"«v.name»\"«ENDFOR»)");''' }
+		if (dep_simple_outs.length > 0) { ret = '''«ret»fprintf(stderr, "«FOR v : dep_simple_outs SEPARATOR ', '»\"«v.name»\"«ENDFOR»");''' }
 		if (dep_ranges_outs.length > 0) {
 			for (var int i = 0; i < dep_ranges_outs.length; i += 1) {
+				if (i != 0) {
+					ret = '''
+					«ret»
+					fprintf(stderr, ", ");
+					'''
+				}
 				ret = '''
 				«ret»
 				for (Id i = ___omp_base_«dep_ranges_outs.get(i).name.globalVariableType
 				»; i < ___omp_base_«dep_ranges_outs.get(i).name.globalVariableType
-				» + ___omp_count_«dep_ranges_outs.get(i).name.globalVariableType» + 1; ++i) fprintf(stderr, "\"«
-				dep_ranges_outs.get(i).name»_%ld\"«IF i != dep_ranges_outs.length - 1», «ENDIF»", i);
+				» + ___omp_count_«dep_ranges_outs.get(i).name.globalVariableType» + 1; ++i) { fprintf(stderr, "\"«
+				dep_ranges_outs.get(i).name»_%ld\"", i); if (i != ___omp_base_«dep_ranges_outs.get(i).name.globalVariableType
+				» + ___omp_count_«dep_ranges_outs.get(i).name.globalVariableType») fprintf(stderr, ", "); }
 				'''
 			}
 		}
@@ -460,7 +489,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		/* Print the end of the trace line */
 		ret = '''
 		«ret»
-		fprintf("])\n");
+		fprintf(stderr, "])\n");
 		'''
 
 	}
@@ -488,6 +517,11 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		(it === null)
 		? #[].toSet
 		: eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet
+	}
+	static def getAllVars(Job it) {
+		val ret = inVars.toSet;
+		ret.addAll(outVars)
+		return ret;
 	}
 	
 	/* Shared variables, don't copy them into threads */

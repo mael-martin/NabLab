@@ -821,6 +821,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		val ret = '''
 		«IF launch_super_task»
+		«indexVariableDeclarationsIfOMPTraces_LOOP(parentJob)»
 		«printVariableRange_LOOP(parentJob, ins.clone.toSet, outs.clone.toSet)»
 		#pragma omp task«parentJob.priority» «getSharedVarsClause_LOOP(parentJob, true)»«
 			getDependenciesAll_LOOP(parentJob, 'in',  ins)»«
@@ -855,6 +856,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				«IF ! super_task»
+				«indexVariableDeclarationsIfOMPTraces_LOOP(parentJob)»
 				«printVariableRange_LOOP(parentJob, ins.clone.toSet, outs.clone.toSet)»
 				#pragma omp task «getSharedVarsClause_LOOP(parentJob, true)»«parentJob.priority»«
 				                 getDependenciesAll_LOOP(parentJob, 'in',  ins)»«
@@ -885,6 +887,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«IF ! super_task»
+			«indexVariableDeclarationsIfOMPTraces_LOOP(parentJob)»
 			«printVariableRange_LOOP(parentJob, ins.clone.toSet, outs.clone.toSet)»
 			#pragma omp task «getSharedVarsClause_LOOP(parentJob, true)»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
 				getDependenciesAll_LOOP(parentJob, 'in', ins)» \
@@ -1015,21 +1018,38 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		
 		val parentJob   = EcoreUtil2.getContainerOfType(it, Job)
 		val super_task  = (currentTASK !== null)
-		val base_index  = '''((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * «partitionId»)'''
-		val limit_index = '''((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1) + («partitionId» == («OMPTaskMaxNumber» - 1) ? («iterationBlock.nbElems» % «OMPTaskMaxNumber») : 0))'''
 		val basetype    = getConnectivityType
+		val base_index  = '''((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * «partitionId»)'''
+		val limit_index =
+		'''(«OMPTaskMaxNumber» - 1 != «partitionId»)
+	? ((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1))
+	: («iterationBlock.nbElems»)'''
+
 		if (!super_task) beginTASK(partitionId)
 
 		val ret = '''
 		{
-			const Id ___omp_base        = «base_index»;
-			const Id ___omp_limit       = «limit_index»;
+			const Id ___omp_base  = «base_index»;
+			const Id ___omp_limit = «limit_index»;
+			assert(___omp_base != ___omp_limit);
+			#if NABLA_DEBUG == 1
+			fprintf(stderr, "«parentJob.name»@«parentJob.at»: %ld -> %ld\n", ___omp_base, ___omp_limit);
+			#endif
 			«IF ! super_task»
 			«FOR idxType : parentJob.usedIndexType»
 			const Id ___omp_min_«idxType»   = std::min(«convertIndexType('___omp_base', basetype, idxType, true )», «convertIndexType('___omp_limit - 1', basetype, idxType, true )»);
 			const Id ___omp_max_«idxType»   = std::max(«convertIndexType('___omp_base', basetype, idxType, false)», «convertIndexType('___omp_limit - 1', basetype, idxType, false)»);
 			const Id ___omp_base_«idxType»  = ___omp_min_«idxType»;
 			const Id ___omp_count_«idxType» = ___omp_max_«idxType» - ___omp_min_«idxType» + 1;
+			#if NABLA_DEBUG == 1
+			assert(___omp_count_«idxType» >= 1);
+			assert(___omp_min_«idxType»   >= 0);
+			assert(___omp_min_«idxType»   <= ___omp_max_«idxType»);
+			assert(___omp_max_«idxType»   < «
+				IF idxType == INDEX_TYPE::CELLS»nbCells«ENDIF»«
+				IF idxType == INDEX_TYPE::NODES»nbNodes«ENDIF»«
+				IF idxType == INDEX_TYPE::FACES»nbFaces«ENDIF»);
+			#endif
 			«ENDFOR»
 			«IF parentJob.usedIndexType.length > 1»
 			// WARN: Conversions in in/out for omp task
