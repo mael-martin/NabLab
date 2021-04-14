@@ -1019,7 +1019,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val parentJob   = EcoreUtil2.getContainerOfType(it, Job)
 		val super_task  = (currentTASK !== null)
 		val basetype    = getConnectivityType
-		val base_index  = '''((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * «partitionId»)'''
+		val base_index  = getBaseIndex_LOOP(iterationBlock.nbElems, partitionId)
 		val limit_index =
 		'''(«OMPTaskMaxNumber» - 1 != «partitionId»)
 	? ((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1))

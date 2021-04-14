@@ -257,7 +257,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		if (need_ranges) {
 		ret = ''' \
 «FOR v : dep_ranges SEPARATOR ' \\\n'
-	»/* dep loop (range) */ depend(«inout»:	(this->«v.name».data()+«from»_«v.name.globalVariableType»)[(«count»_«v.name.globalVariableType»)])«
+	»/* dep loop (range) */ depend(«inout»:	(this->«v.name»[«from»_«v.name.globalVariableType»]))«
 ENDFOR»'''
 		}
 
@@ -268,6 +268,8 @@ ENDFOR»'''
 		
 		return ret
 	}
+	
+	static def getBaseIndex_LOOP(CharSequence nbElems, CharSequence partitionId) '''((«nbElems» / «OMPTaskMaxNumber») * «partitionId»)'''
 
 	static def getAffinities(Job it, Iterable<Variable> deps, CharSequence taskPartition)
 	{
@@ -334,9 +336,10 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 
 		if (need_ranges)
 		{
-			/* All ranges */
-			ret = ''' \
-«FOR v : dep_ranges SEPARATOR ' \\\n'»/* dep loop all (range) */ depend(«inout»:	(this->«v.name».data())[(«v.name».size()-1)])«ENDFOR»'''
+			/* All ranges : XXX : Can't be used with partial things like 'innerCells', must be all the variable */
+			ret = '''«FOR v : dep_ranges SEPARATOR ' \\\n'»«FOR i : OMPTaskMaxNumberIterator» \
+/* dep loop all (rgpin) */ depend(«inout»:	(this->«v.name»[«getBaseIndex_LOOP('''(this->«v.name».size())''', '''«i»''')»]))«
+ENDFOR»«ENDFOR»'''
 		}
 
 		if (need_simple)
