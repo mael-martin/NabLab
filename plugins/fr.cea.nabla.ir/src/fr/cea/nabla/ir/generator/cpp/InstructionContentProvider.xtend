@@ -1040,7 +1040,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			const Id ___omp_min_«idxType»   = std::min(«convertIndexType('___omp_base', basetype, idxType, true )», «convertIndexType('___omp_limit - 1', basetype, idxType, true )»);
 			const Id ___omp_max_«idxType»   = std::max(«convertIndexType('___omp_base', basetype, idxType, false)», «convertIndexType('___omp_limit - 1', basetype, idxType, false)»);
 			const Id ___omp_base_«idxType»  = ___omp_min_«idxType»;
-			const Id ___omp_count_«idxType» = ___omp_max_«idxType» - ___omp_min_«idxType» + 1;
+			const Id ___omp_count_«idxType» = ___omp_max_«idxType» - ___omp_min_«idxType» + («iterationBlock.nbElems» == ___omp_limit); // Don't do +1 most of the time to not duplicate outputs;
 			#if NABLA_DEBUG == 1
 			assert(___omp_count_«idxType» >= 1);
 			assert(___omp_min_«idxType»   >= 0);
