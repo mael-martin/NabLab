@@ -146,7 +146,7 @@ class CppGeneratorUtils
 		if (it !== null)
 		{
 			val max_at = caller.calls.map[at].max
-			''' priority(«(max_at - at + 1.0).intValue»)'''
+			''' /* priority(«(max_at - at + 1.0).intValue») */'''
 		} else ''''''
 	}
 	
@@ -336,7 +336,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		{
 			/* All ranges */
 			ret = ''' \
-«FOR v : dep_ranges SEPARATOR ' \\\n'»/* dep loop all (range) */ depend(«inout»:	(&(this->«v.name».data()[0]))[:(«v.name».size())])«ENDFOR»'''
+«FOR v : dep_ranges SEPARATOR ' \\\n'»/* dep loop all (range) */ depend(«inout»:	(&(this->«v.name».data()[0]))[:(«v.name».size()-1)])«ENDFOR»'''
 		}
 
 		if (need_simple)
@@ -405,7 +405,7 @@ FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARA
 		«FOR idxType : parentJob.usedIndexType»
 			«val sample_variable = parentJob.allVars.filter[v | v.name.globalVariableType == idxType].head»
 			const Id ___omp_base_«idxType»  = 0;
-			const Id ___omp_count_«idxType» = «sample_variable.name».size();
+			const Id ___omp_count_«idxType» = «sample_variable.name».size() - 1;
 			#if NABLA_DEBUG == 1
 			assert(___omp_count_«idxType» >= 1);
 			#endif

@@ -48,6 +48,7 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 		«ENDIF»
 		
 		«IF OMPTraces»
+		fprintf(stderr, "C%ld\nN%ld\n", nbCells, nbNodes);
 		fprintf(stderr, "### New Loop DAG: «name» %zu\n", ___DAG_loops);
 		++___DAG_loops;
 		«ENDIF»
