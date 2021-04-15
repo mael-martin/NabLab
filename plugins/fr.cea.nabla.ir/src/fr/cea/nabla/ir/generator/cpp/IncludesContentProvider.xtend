@@ -93,7 +93,7 @@ class StlThreadIncludesContentProvider extends IncludesContentProvider
 	override getUserNs(boolean hasLevelDB)
 	{
 		val userNs = super.getUserNs(hasLevelDB)
-		userNs +=  "nablalib::utils::stl"
+		userNs +=  "nablalib::utils"
 		return userNs
 	}
 }
@@ -138,7 +138,7 @@ class SequentialIncludesContentProvider extends IncludesContentProvider
 	override getUserNs(boolean hasLevelDB)
 	{
 		val userNs = super.getUserNs(hasLevelDB)
-		if (hasLevelDB) userNs += "nablalib::utils::stl"
+		if (hasLevelDB) userNs += "nablalib::utils"
 		return userNs
 	}
 }
