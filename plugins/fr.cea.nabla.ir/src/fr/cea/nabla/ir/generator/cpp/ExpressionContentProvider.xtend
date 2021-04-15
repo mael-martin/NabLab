@@ -26,7 +26,6 @@ import fr.cea.nabla.ir.ir.PrimitiveType
 import fr.cea.nabla.ir.ir.RealConstant
 import fr.cea.nabla.ir.ir.UnaryExpression
 import fr.cea.nabla.ir.ir.VectorConstant
-import fr.cea.nabla.ir.ir.Job
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.IrTypeExtensions.*
@@ -34,8 +33,6 @@ import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import org.eclipse.xtend.lib.annotations.Data
-import org.eclipse.xtext.EcoreUtil2
-import java.util.HashMap
 
 @Data
 class ExpressionContentProvider
@@ -165,38 +162,5 @@ class ExpressionContentProvider
 			case 1: '&' + expr.content
 			default: expr.content
 		}
-	}
-}
-
-@Data
-class OpenMpTaskPartitionExpressionContentProvider extends ExpressionContentProvider
-{
-	val extension TypeContentProvider typeContentProvider = super.typeContentProvider
-	
-	static val HashMap<String, String> IndexTypeToIdPartition = new HashMap();
-	static def void registerPartitionIdForIndexType(String INDEX_TYPE, String partitionId)
-	{
-		IndexTypeToIdPartition.put(INDEX_TYPE, partitionId)
-	}
-
-	override dispatch CharSequence getContent(ArgOrVarRef it)
-	{
-		if (target.linearAlgebra && !(iterators.empty && indices.empty))
-			'''«codeName».getValue(«formatIteratorsAndIndices(target.type, iterators, indices)»)'''
-		else
-			'''«codeName»«formatIteratorsAndIndices(target.type, iterators, indices)»'''
-	}
-
-	override CharSequence getCodeName(ArgOrVarRef it)
-	{
-		val insideJob        = EcoreUtil2.getContainerOfType(it, Job) !== null
-		val index_type       = getGlobalVariableType(target.codeName);
-		val partition_prefix = '''partitions[«IndexTypeToIdPartition.get(index_type.toString)»].'''
-		if (index_type == INDEX_TYPE::NULL || !insideJob) {
-			super.getCodeName(it)
-		}
-		
-		else if (irModule === target.irModule) '''«partition_prefix»«target.codeName»'''
-		else '''«partition_prefix»mainModule->«target.codeName»'''
 	}
 }

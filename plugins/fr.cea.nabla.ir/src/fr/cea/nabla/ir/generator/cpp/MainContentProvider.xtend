@@ -54,7 +54,6 @@ class MainContentProvider
 			d["mesh"].Accept(writer);
 			meshFactory.jsonInit(strbuf.GetString());
 		}
-		«getPartitionCreation()»
 		«meshClassName»* mesh = meshFactory.create();
 
 		// Module instanciation(s)
@@ -80,7 +79,6 @@ class MainContentProvider
 		«FOR m : irRoot.modules.reverseView»
 			delete «m.name»;
 		«ENDFOR»
-		«getPartitionDestruction()»
 		delete mesh;
 	'''
 
@@ -97,9 +95,6 @@ class MainContentProvider
 		«className»* «name» = new «className»(mesh, «name»Options);
 		«IF !main»«name»->setMainModule(«irRoot.mainModule.name»);«ENDIF»
 	'''
-	
-	protected def getPartitionCreation(IrModule it) ''''''
-	protected def getPartitionDestruction(IrModule it) ''''''
 
 	protected def getSimulationCall(IrModule it)
 	'''
@@ -109,26 +104,6 @@ class MainContentProvider
 	internal::nbX_NODES = meshFactory.getNbXQuads() + 1;
 	internal::nbX_FACES = 0; // TODO
 	«name»->simulate();
-	'''
-}
-
-@Data
-class OpenMpTaskPartitionMainContentProvider extends MainContentProvider
-{
-	override protected getPartitionCreation(IrModule it)
-	'''
-		/* Global variable for the partitions */
-		CartesianMesh2D::setPartitionNumber(«OMPTaskMaxNumber»);
-		CartesianMesh2D::setMaxDataShift(«eAllContents.filter(ItemIdValueIterator).map[shift].max»);
-	'''
-	
-	override protected getPartitionDestruction(IrModule it) ''''''
-
-	override protected getSimulationCall(IrModule it)
-	'''
-		// Start simulation
-		// OMP regions are hidden inside
-		 «name»->simulate();
 	'''
 }
 

@@ -9,7 +9,6 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
-import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.OMPTraces
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.OMPTaskMaxNumber
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.registerTypeContentProvider
 import fr.cea.nabla.ir.transformers.IrTransformationStep
@@ -39,7 +38,6 @@ class SequentialBackend extends Backend
 	new()
 	{
 		name = 'Sequential'
-		CppApplicationGenerator::createPartitions = false
 		irTransformationStep = new ReplaceReductions(true)
 		cmakeContentProvider = new CMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
@@ -61,7 +59,6 @@ class StlThreadBackend extends Backend
 	new()
 	{
 		name = 'StlThread'
-		CppApplicationGenerator::createPartitions = false
 		cmakeContentProvider = new StlThreadCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -82,7 +79,6 @@ class KokkosBackend extends Backend
 	new()
 	{
 		name = 'Kokkos'
-		CppApplicationGenerator::createPartitions = false
 		cmakeContentProvider = new KokkosCMakeContentProvider
 		typeContentProvider = new KokkosTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -103,7 +99,6 @@ class KokkosTeamThreadBackend extends Backend
 	new()
 	{
 		name = 'Kokkos Team Thread'
-		CppApplicationGenerator::createPartitions = false
 		cmakeContentProvider = new KokkosCMakeContentProvider
 		typeContentProvider = new KokkosTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -124,7 +119,6 @@ class OpenMpBackend extends Backend
 	new()
 	{
 		name = 'OpenMP'
-		CppApplicationGenerator::createPartitions = false
 		cmakeContentProvider = new OpenMpCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -144,9 +138,7 @@ class OpenMpTaskBackend extends Backend
 {
 	new()
 	{
-		OMPTraces = false
 		OMPTaskMaxNumber = 10
-		CppApplicationGenerator::createPartitions = false
 		name = 'OpenMPTask'
 		cmakeContentProvider = new OpenMpCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
@@ -159,29 +151,6 @@ class OpenMpTaskBackend extends Backend
 		jobCallerContentProvider = new OpenMpTaskJobCallerContentProvider
 		jobContentProvider = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
 		mainContentProvider = new MainContentProvider(jsonContentProvider)
-		registerTypeContentProvider(typeContentProvider)
-	}
-}
-
-class OpenMpTaskPartitionBackend extends Backend
-{
-	new()
-	{
-		OMPTraces = false
-		OMPTaskMaxNumber = 10
-		CppApplicationGenerator::createPartitions = true
-		name = 'OpenMPTask'
-		cmakeContentProvider = new OpenMpCMakeContentProvider
-		typeContentProvider = new StlThreadTypeContentProvider
-		expressionContentProvider = new OpenMpTaskPartitionExpressionContentProvider(typeContentProvider)
-		instructionContentProvider = new OpenMpTaskPartitionInstructionContentProvider(typeContentProvider, expressionContentProvider)
-		functionContentProvider = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
-		traceContentProvider = new TraceContentProvider
-		includesContentProvider = new OpenMpIncludesContentProvider
-		jsonContentProvider = new JsonContentProvider(expressionContentProvider)
-		jobCallerContentProvider = new OpenMpTaskPartitionJobCallerContentProvider
-		jobContentProvider = new OpenMpTaskPartitionJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider, typeContentProvider)
-		mainContentProvider = new OpenMpTaskPartitionMainContentProvider(jsonContentProvider)
 		registerTypeContentProvider(typeContentProvider)
 	}
 }

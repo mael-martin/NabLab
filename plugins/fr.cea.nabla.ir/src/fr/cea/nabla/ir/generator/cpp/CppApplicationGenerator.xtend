@@ -31,13 +31,11 @@ import static extension fr.cea.nabla.ir.IrRootExtensions.*
 import static extension fr.cea.nabla.ir.IrTypeExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
-import java.util.stream.IntStream
 
 class CppApplicationGenerator extends CppGenerator implements ApplicationGenerator
 {
 	val String levelDBPath
 	val cMakeVars = new LinkedHashSet<Pair<String, String>>
-	public static var boolean createPartitions = false
 
 	new(Backend backend, String wsPath, String levelDBPath, Iterable<Pair<String, String>> cMakeVars)
 	{
@@ -100,26 +98,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDFOR»
 	}
 	«ENDIF»
-	«IF createPartitions»
-
-	/******************** Partition declaration ********************/
-	
-	struct «className»Partition
-	{
-		/* Global variables that must be placed inside partitions from the «className» class */
-		«FOR v : variables.filter[!option].filter[t|typeContentProvider.getCppTypeCanBePartitionized(t.type)]»
-			«v.variableDeclaration»
-		«ENDFOR»
-
-		«className»Partition() = default;
-		~«className»Partition() = default;
-
-		/* Don't move this object around */
-		«className»Partition(«className»Partition &&) = delete;
-		«className»Partition(const «className»Partition &) = delete;
-		«className»Partition& operator=(«className»Partition &) = delete;
-	};
-	«ENDIF»
 
 	/******************** Module declaration ********************/
 
@@ -174,10 +152,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«IF levelDB»void createDB(const std::string& db_name);«ENDIF»
 
 	private:
-		«IF OMPTraces»
-		unsigned long task_id = 0; /* Used by the OpenMpTaskInstructionProvider */
-		«ENDIF»
-	
 		«IF postProcessing !== null»
 		void dumpVariables(int iteration, bool useTimer=true);
 
@@ -225,27 +199,12 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	
 	/* Get the global variables that will be used in the compute methods */
 	private def getGlobalVariableDeclarations(IrModule it)
-	{
-		if (createPartitions)
-		'''
-			// Global not partitionable variables
-			«FOR v : variables.filter[!option].filter[t|!typeContentProvider.getCppTypeCanBePartitionized(t.type)]»
-				«v.variableDeclaration»
-			«ENDFOR»
-
-			// Partitions for variables that can be partitionized
-			«className»Partition *partitions;
-		'''
-		
-		else
-		'''
-			// Global variables
-			«FOR v : variables.filter[!option]»
-				«v.variableDeclaration»
-			«ENDFOR»
-		'''
-		
-	}
+	'''
+		// Global variables
+		«FOR v : variables.filter[!option]»
+			«v.variableDeclaration»
+		«ENDFOR»
+	'''
 
 	private def getSourceFileContent(IrModule it)
 	'''
@@ -335,12 +294,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	
 	«className»::~«className»()
 	{
-		«IF createPartitions»
-		/* Delete all partitions */
-		for (size_t part = 0; part < «OMPTaskMaxNumber»; ++part)
-			(&partitions[part])->~«className»Partition();
-		std::free(partitions);
-		«ENDIF»
 	}
 
 	«className»::«className»(«meshClassName»* aMesh, Options& aOptions)
@@ -350,14 +303,12 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDFOR»
 	, options(aOptions)
 	«IF postProcessing !== null», writer("«irRoot.name»", options.«Utils.OutputPathNameAndValue.key»)«ENDIF»
-	«IF ! createPartitions»
-		«FOR v : variablesWithDefaultValue.filter[x | !x.constExpr]»
-		, «v.name»(«expressionContentProvider.getContent(v.defaultValue)»)
-		«ENDFOR»
-		«FOR v : variables.filter[needStaticAllocation]»
-		, «v.name»(«typeContentProvider.getCstrInit(v.type, v.name)»)
-		«ENDFOR»
-	«ENDIF»
+	«FOR v : variablesWithDefaultValue.filter[x | !x.constExpr]»
+	, «v.name»(«expressionContentProvider.getContent(v.defaultValue)»)
+	«ENDFOR»
+	«FOR v : variables.filter[needStaticAllocation]»
+	, «v.name»(«typeContentProvider.getCstrInit(v.type, v.name)»)
+	«ENDFOR»
 	{
 		«val dynamicArrayVariables = variables.filter[needDynamicAllocation]»
 		«IF !dynamicArrayVariables.empty»
@@ -370,34 +321,13 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«ENDIF»
 		«IF main»
 		const auto& gNodes = mesh->getGeometry()->getNodes();
-		«IF createPartitions /* FIXME */»
-			// FIXME: first touch for NUMA effects
-			partitions = («className»Partition *) std::malloc(«meshClassName»::getPartitionNumber() * sizeof(«className»Partition));
-			«val iterator = backend.typeContentProvider.formatIterators(irRoot.initNodeCoordVariable.type as ConnectivityType, #["rNodes"])»
-			for (size_t part = 0; part < «OMPTaskMaxNumber»; ++part)
-			{
-				new (&partitions[part]) «className»Partition();
-				«FOR v : variablesWithDefaultValue.filter[x | !x.constExpr].filter[typeContentProvider.getCppTypeCanBePartitionized(type)]»
-				partitions[part].«v.name» = «typeContentProvider.getCppType(v.type)»(«expressionContentProvider.getContent(v.defaultValue)»);
-				«ENDFOR»
-				«FOR v : variables.filter[needStaticAllocation].filter[typeContentProvider.getCppTypeCanBePartitionized(type)]»
-				partitions[part].«v.name» = «typeContentProvider.getCppType(v.type)»(«typeContentProvider.getCstrInit(v.type, v.name)»);
-				«ENDFOR»
-			}
-
-			// Copy node coordinates
-			for (size_t i = 0; i < gNodes.size(); ++i) {
-				partitions[mesh->getPartitionOfNode(i)].«irRoot.initNodeCoordVariable.name»[i] = gNodes[i];
-			}
-		«ELSE»
-			// Copy node coordinates
-			«val iterator = backend.typeContentProvider.formatIterators(irRoot.initNodeCoordVariable.type as ConnectivityType, #["rNodes"])»
-			for (size_t rNodes=0; rNodes<nbNodes; rNodes++)
-			{
-				«irRoot.initNodeCoordVariable.name»«iterator»[0] = gNodes[rNodes][0];
-				«irRoot.initNodeCoordVariable.name»«iterator»[1] = gNodes[rNodes][1];
-			}
-			«ENDIF»
+		// Copy node coordinates
+		«val iterator = backend.typeContentProvider.formatIterators(irRoot.initNodeCoordVariable.type as ConnectivityType, #["rNodes"])»
+		for (size_t rNodes=0; rNodes<nbNodes; rNodes++)
+		{
+			«irRoot.initNodeCoordVariable.name»«iterator»[0] = gNodes[rNodes][0];
+			«irRoot.initNodeCoordVariable.name»«iterator»[1] = gNodes[rNodes][1];
+		}
 		«ENDIF»
 	}
 
@@ -443,15 +373,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				ioTimer.start();
 			}
 			auto quads = mesh->getGeometry()->getQuads();
-			«IF createPartitions»
-				«val coo_var_name = irRoot.nodeCoordVariable.name»
-				«val coo_var_type = irRoot.nodeCoordVariable.type»
-				«typeContentProvider.getCppType(coo_var_type)» «coo_var_name» = «typeContentProvider.getCppType(coo_var_type)»(«typeContentProvider.getCstrInit(coo_var_type, coo_var_name)»);
-				«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)»
-					«val index_type = "nodes"»
-					for (const size_t index : mesh->RANGE_«index_type»FromPartition(«i»)) «coo_var_name»[index] = partitions[«i»].«coo_var_name»[index];
-				«ENDFOR»
-			«ENDIF»
 			writer.startVtpFile(iteration, «irRoot.timeVariable.name», nbNodes, «irRoot.nodeCoordVariable.name».data(), nbCells, quads.data());
 			«val outputVarsByConnectivities = irRoot.postProcessing.outputVariables.groupBy(x | x.support.name)»
 			writer.openNodeData();
@@ -461,7 +382,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				{
 					writer.openNodeArray("«v.outputName»", «v.target.type.sizesSize»);
 					for (size_t i=0 ; i<nbNodes ; ++i)
-						writer.write(«IF createPartitions»partitions[mesh->getPartitionOfNode(i)].«ENDIF»«v.target.writeCallContent»);
+						writer.write(«v.target.writeCallContent»);
 					writer.closeNodeArray();
 				}
 				«ENDFOR»
@@ -474,7 +395,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				{
 					writer.openCellArray("«v.outputName»", «v.target.type.sizesSize»);
 					for (size_t i=0 ; i<nbCells ; ++i)
-						writer.write(«IF createPartitions»partitions[mesh->getPartitionOfCell(i)].«ENDIF»«v.target.writeCallContent»);
+						writer.write(«v.target.writeCallContent»);
 					writer.closeCellArray();
 				}
 				«ENDFOR»
@@ -638,7 +559,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	
 	private def isOpenMpTask()
 	{
-		backend instanceof OpenMpTaskBackend || backend instanceof OpenMpTaskPartitionBackend
+		backend instanceof OpenMpTaskBackend
 	}
 
 	private def getWriteCallContent(Variable v)

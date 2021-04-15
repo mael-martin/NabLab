@@ -47,11 +47,6 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 		// XXX: There are duplicate out dependencies
 		«ENDIF»
 		
-		«IF OMPTraces»
-		fprintf(stderr, "C%ld\nN%ld\n", nbCells, nbNodes);
-		fprintf(stderr, "### New Loop DAG: «name» %zu\n", ___DAG_loops);
-		++___DAG_loops;
-		«ENDIF»
 		#pragma omp parallel
 		{
 		#pragma omp single nowait
@@ -81,59 +76,6 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 
 		'''
 	}
-}
-
-class OpenMpTaskPartitionJobCallerContentProvider extends JobCallerContentProvider
-{
-	
-	override getCallsHeader(JobCaller it) ''''''
-
-	override getCallsContent(JobCaller it)
-	{
-		val allouts = calls.map[outVars].flatten
-		val module  = EcoreUtil2.getContainerOfType(it, IrModule)
-		if (module !== null)
-			registerGlobalVariable(module)
-		var boolean execTimeLoopPresent = false;
-		'''
-		// Launch all tasks for this loop...
-		«IF allouts.toList.size != allouts.toSet.size»
-		// XXX: There are duplicate out dependencies
-		«ENDIF»
-		
-		«IF OMPTraces»
-		fprintf(stderr, "### New Loop DAG: «name» %zu\n", ___DAG_loops);
-		++___DAG_loops;
-		«ENDIF»
-		#pragma omp parallel
-		{
-		#pragma omp single nowait
-		{
-		«FOR j : calls»
-			«IF j instanceof ExecuteTimeLoopJob»
-			«IF !execTimeLoopPresent»
-			// Wait before time loop: «execTimeLoopPresent = true»
-			}}
-			«ENDIF»
-			«ENDIF»
-			«j.callName.replace('.', '->')»(); // @«j.at»
-		«ENDFOR»
-		«IF ! execTimeLoopPresent»
-		}}
-		«ENDIF»
-
-		'''
-	}
-
-	def getDAG(JobCaller it)
-	'''
-		puts("# DAG «name»");
-		«FOR j : calls»
-		puts("(\"T«j.name»@«j.at»\", [«
-			FOR d : j.inVars SEPARATOR ', '»\"«d.name»\"«ENDFOR»], [«
-			FOR d : j.outVars SEPARATOR ', '»\"«d.name»\"«ENDFOR»])");
-		«ENDFOR»
-	'''
 }
 
 class KokkosTeamThreadJobCallerContentProvider extends JobCallerContentProvider

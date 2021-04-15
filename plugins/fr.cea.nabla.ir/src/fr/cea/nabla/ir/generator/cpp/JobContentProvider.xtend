@@ -14,7 +14,6 @@ import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
-import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 
 import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.ConnectivityType
@@ -27,7 +26,6 @@ import fr.cea.nabla.ir.ir.TimeLoopJob
 import org.eclipse.xtend.lib.annotations.Data
 import java.util.ArrayList
 import java.util.List
-import java.util.stream.IntStream
 
 @Data
 abstract class JobContentProvider
@@ -167,134 +165,6 @@ class StlThreadJobContentProvider extends JobContentProvider
 	{
 		copyBaseType(leftName, rightName, dimension, indexNames)
 	}
-}
-
-@Data
-class OpenMpTaskPartitionJobContentProvider extends JobContentProvider
-{
-	protected val extension TypeContentProvider
-
-	override protected copyConnectivityType(String leftName, String rightName, int dimension, List<CharSequence> indexNames)
-	{
-		'''
-		for (size_t partition_number = 0; partition_number < «OMPTaskMaxNumber»; ++partition_number) {
-			«copyBaseType(
-				'''partitions[partition_number].«leftName»''',
-				'''partitions[partition_number].«rightName»''',
-				dimension,
-				indexNames
-			)»
-		}
-		'''
-	}
-
-	override CharSequence copyBaseType(String leftName, String rightName, int dimension, List<CharSequence> indexNames)
-	{
-		if (dimension == 0)
-			'''«leftName»«FOR i : indexNames»[«i»]«ENDFOR» = «rightName»«FOR i : indexNames»[«i»]«ENDFOR»;'''
-		else
-		{
-			val length = '''«leftName»«FOR i : indexNames»[«i»]«ENDFOR».size()'''
-			var indexName = '''i«indexNames.size + 1»'''
-			indexNames += indexName
-			'''
-				for (size_t «indexName»(0) ; «indexName»<«length» ; «indexName»++)
-					«copyBaseType(leftName, rightName, dimension-1, indexNames)»
-			'''
-		}
-	}
-
-
-	override getContent(TimeLoopCopy it)
-	{
-		// c.destination.type == c.source.type
-		val t = source.type
-		switch t
-		{
-			BaseType: copyBaseType(destination.name, source.name, t.sizes.size, new ArrayList<CharSequence>())
-			ConnectivityType: copyConnectivityType(destination.name, source.name, t.connectivities.size + t.base.sizes.size, new ArrayList<CharSequence>())
-			LinearAlgebraType: copyLinearAlgebraType(destination.name, source.name, t.sizes.size, new ArrayList<CharSequence>())
-		}
-	}
-
-	override protected dispatch CharSequence getInnerContent(TimeLoopJob it)
-	'''
-		«val ins  = copies.map[source]»
-		«val outs = copies.map[destination]»
-		#pragma omp task «sharedVarsClause_PARTITION»«priority»«
-		                  getDependenciesAll_PARTITION('in',  ins,  0, OMPTaskMaxNumber)»«
-		                  getDependenciesAll_PARTITION('out', outs, 0, OMPTaskMaxNumber)»
-		{
-		«takeOMPTraces_PARTITION(ins.toSet, outs.toSet, null, false)»
-		«FOR c : copies»
-			«c.content»
-		«ENDFOR»
-		}
-	'''
-
-	override protected dispatch CharSequence getInnerContent(ExecuteTimeLoopJob it)
-	'''
-		«callsHeader»
-		«val itVar = iterationCounter.codeName»
-		«itVar» = 0;
-		bool continueLoop = true;
-		do
-		{
-			«IF caller.main»
-			globalTimer.start();
-			cpuTimer.start();
-			«ENDIF»
-			«itVar»++;
-			«val ppInfo = irRoot.postProcessing»
-			«IF caller.main && ppInfo !== null»
-				if (!writer.isDisabled() && «ppInfo.periodReference.codeName» >= «ppInfo.lastDumpVariable.codeName» + «ppInfo.periodValue.codeName»)
-					dumpVariables(«itVar»);
-			«ENDIF»
-			«traceContentProvider.getBeginOfLoopTrace(irModule, itVar, caller.main)»
-
-			«callsContent»
-
-			// Evaluate loop condition with variables at time n
-			continueLoop = («whileCondition.content»);
-
-			if (continueLoop)
-			{
-				// Switch variables to prepare next iteration
-				«FOR copy : copies»
-				«IF getCppTypeCanBePartitionized(copy.source.type)»
-					«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)»
-						std::swap(partitions[«i»].«copy.source.name», partitions[«i»].«copy.destination.name»);
-					«ENDFOR»
-				«ELSE»
-					std::swap(«copy.source.name», «copy.destination.name»);
-				«ENDIF»
-				«ENDFOR»
-			}
-			«IF caller.main»
-
-			cpuTimer.stop();
-			globalTimer.stop();
-			«ENDIF»
-
-			«traceContentProvider.getEndOfLoopTrace(irModule, itVar, caller.main, (ppInfo !== null))»
-
-			«IF caller.main»
-			cpuTimer.reset();
-			ioTimer.reset();
-			«ENDIF»
-		} while (continueLoop);
-		«IF caller.main»
-		std::cerr.flush();
-		std::cout.flush();
-		std::cout << ("\n[ITERS      " __BLUE__) << «itVar» << (__RESET__ "]\n");
-		std::cout << ("[STOP_TIME  " __BLUE__) << «irRoot.timeVariable.codeName» << (__RESET__ "]\n");
-		std::cout << ("[NEXT_TIME  " __BLUE__) << «irRoot.timeVariable.codeName»plus1 << (__RESET__ "]\n");
-		«ENDIF»
-		«IF caller.main && irRoot.postProcessing !== null»
-			// force a last output at the end
-			dumpVariables(«itVar», false);
-		«ENDIF»
-	'''
 }
 
 @Data
