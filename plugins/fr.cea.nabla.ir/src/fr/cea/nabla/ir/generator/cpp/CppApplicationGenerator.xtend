@@ -225,9 +225,8 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	
 	«IF isOpenMpTask»
 	static size_t ___DAG_loops = 0;
-	«ENDIF»
 	#include <algorithm>
-	namespace internal {
+	namespace internal_omptask {
 	auto max = [](const auto& vec) -> Id { return *std::max_element(vec.begin(), vec.end()); };
 	auto min = [](const auto& vec) -> Id { return *std::min_element(vec.begin(), vec.end()); };
 	
@@ -235,6 +234,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	static size_t nbX_FACES = 0;
 	static size_t nbX_NODES = 0;
 	}
+	«ENDIF»
 	«val internFunctions = functions.filter(InternFunction)»
 	«IF !internFunctions.empty»
 

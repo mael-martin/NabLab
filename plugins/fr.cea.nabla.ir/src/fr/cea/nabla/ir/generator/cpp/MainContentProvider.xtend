@@ -100,9 +100,6 @@ class MainContentProvider
 	'''
 	// Start simulation
 	// Simulator must be a pointer when a finalize is needed at the end (Kokkos, omp...)
-	internal::nbX_CELLS = meshFactory.getNbXQuads();
-	internal::nbX_NODES = meshFactory.getNbXQuads() + 1;
-	internal::nbX_FACES = 0; // TODO
 	«name»->simulate();
 	'''
 }

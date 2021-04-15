@@ -8,15 +8,6 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-#include <algorithm>
-namespace internal {
-auto max = [](const auto& vec) -> Id { return *std::max_element(vec.begin(), vec.end()); };
-auto min = [](const auto& vec) -> Id { return *std::min_element(vec.begin(), vec.end()); };
-
-static size_t nbX_CELLS = 0;
-static size_t nbX_FACES = 0;
-static size_t nbX_NODES = 0;
-}
 
 /******************** Free functions definitions ********************/
 

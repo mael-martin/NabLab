@@ -10,7 +10,7 @@
 
 static size_t ___DAG_loops = 0;
 #include <algorithm>
-namespace internal {
+namespace internal_omptask {
 auto max = [](const auto& vec) -> Id { return *std::max_element(vec.begin(), vec.end()); };
 auto min = [](const auto& vec) -> Id { return *std::min_element(vec.begin(), vec.end()); };
 
@@ -665,9 +665,6 @@ int main(int argc, char* argv[])
 	
 	// Start simulation
 	// Simulator must be a pointer when a finalize is needed at the end (Kokkos, omp...)
-	internal::nbX_CELLS = meshFactory.getNbXQuads();
-	internal::nbX_NODES = meshFactory.getNbXQuads() + 1;
-	internal::nbX_FACES = 0; // TODO
 	heatEquation->simulate();
 	
 	delete heatEquation;

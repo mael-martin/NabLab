@@ -10,7 +10,7 @@
 
 static size_t ___DAG_loops = 0;
 #include <algorithm>
-namespace internal {
+namespace internal_omptask {
 auto max = [](const auto& vec) -> Id { return *std::max_element(vec.begin(), vec.end()); };
 auto min = [](const auto& vec) -> Id { return *std::min_element(vec.begin(), vec.end()); };
 
@@ -468,8 +468,8 @@ void ExplicitHeatEquation::computeFaceConductivity() noexcept
 		#if NABLA_DEBUG == 1
 		fprintf(stderr, "ComputeFaceConductivity@2.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
 		#endif
-		const Id ___omp_min_CELLS   = std::min(internal::min(mesh->getCellsOfFace(___omp_base)), internal::min(mesh->getCellsOfFace(___omp_limit - 1)));
-		const Id ___omp_max_CELLS   = std::max(internal::max(mesh->getCellsOfFace(___omp_base)), internal::max(mesh->getCellsOfFace(___omp_limit - 1)));
+		const Id ___omp_min_CELLS   = std::min(internal_omptask::min(mesh->getCellsOfFace(___omp_base)), internal_omptask::min(mesh->getCellsOfFace(___omp_limit - 1)));
+		const Id ___omp_max_CELLS   = std::max(internal_omptask::max(mesh->getCellsOfFace(___omp_base)), internal_omptask::max(mesh->getCellsOfFace(___omp_limit - 1)));
 		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
 		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
 		const Id ___omp_min_FACES   = std::min(___omp_base, ___omp_limit - 1);
@@ -583,8 +583,8 @@ void ExplicitHeatEquation::computeAlphaCoeff() noexcept
 		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
 		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
 		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
-		const Id ___omp_min_FACES   = std::min(internal::min(mesh->getFacesOfCell(___omp_base)), internal::min(mesh->getFacesOfCell(___omp_limit - 1)));
-		const Id ___omp_max_FACES   = std::max(internal::max(mesh->getFacesOfCell(___omp_base)), internal::max(mesh->getFacesOfCell(___omp_limit - 1)));
+		const Id ___omp_min_FACES   = std::min(internal_omptask::min(mesh->getFacesOfCell(___omp_base)), internal_omptask::min(mesh->getFacesOfCell(___omp_limit - 1)));
+		const Id ___omp_max_FACES   = std::max(internal_omptask::max(mesh->getFacesOfCell(___omp_base)), internal_omptask::max(mesh->getFacesOfCell(___omp_limit - 1)));
 		const Id ___omp_base_FACES  = ___omp_min_FACES;
 		const Id ___omp_count_FACES = ___omp_max_FACES - ___omp_min_FACES; // Don't do +1
 		// WARN: Conversions in in/out for omp task
@@ -803,9 +803,6 @@ int main(int argc, char* argv[])
 	
 	// Start simulation
 	// Simulator must be a pointer when a finalize is needed at the end (Kokkos, omp...)
-	internal::nbX_CELLS = meshFactory.getNbXQuads();
-	internal::nbX_NODES = meshFactory.getNbXQuads() + 1;
-	internal::nbX_FACES = 0; // TODO
 	explicitHeatEquation->simulate();
 	
 	delete explicitHeatEquation;

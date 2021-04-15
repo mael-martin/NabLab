@@ -8,15 +8,6 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-#include <algorithm>
-namespace internal {
-auto max = [](const auto& vec) -> Id { return *std::max_element(vec.begin(), vec.end()); };
-auto min = [](const auto& vec) -> Id { return *std::min_element(vec.begin(), vec.end()); };
-
-static size_t nbX_CELLS = 0;
-static size_t nbX_FACES = 0;
-static size_t nbX_NODES = 0;
-}
 
 /******************** Free functions definitions ********************/
 
@@ -493,9 +484,6 @@ int main(int argc, char* argv[])
 	
 	// Start simulation
 	// Simulator must be a pointer when a finalize is needed at the end (Kokkos, omp...)
-	internal::nbX_CELLS = meshFactory.getNbXQuads();
-	internal::nbX_NODES = meshFactory.getNbXQuads() + 1;
-	internal::nbX_FACES = 0; // TODO
 	heatEquation->simulate();
 	
 	delete heatEquation;

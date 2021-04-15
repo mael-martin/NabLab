@@ -10,7 +10,7 @@
 
 static size_t ___DAG_loops = 0;
 #include <algorithm>
-namespace internal {
+namespace internal_omptask {
 auto max = [](const auto& vec) -> Id { return *std::max_element(vec.begin(), vec.end()); };
 auto min = [](const auto& vec) -> Id { return *std::min_element(vec.begin(), vec.end()); };
 
@@ -941,8 +941,8 @@ void Glace2d::computeAr() noexcept
 		#if NABLA_DEBUG == 1
 		fprintf(stderr, "ComputeAr@7.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
 		#endif
-		const Id ___omp_min_CELLS   = std::min(internal::min(mesh->getCellsOfNode(___omp_base)), internal::min(mesh->getCellsOfNode(___omp_limit - 1)));
-		const Id ___omp_max_CELLS   = std::max(internal::max(mesh->getCellsOfNode(___omp_base)), internal::max(mesh->getCellsOfNode(___omp_limit - 1)));
+		const Id ___omp_min_CELLS   = std::min(internal_omptask::min(mesh->getCellsOfNode(___omp_base)), internal_omptask::min(mesh->getCellsOfNode(___omp_limit - 1)));
+		const Id ___omp_max_CELLS   = std::max(internal_omptask::max(mesh->getCellsOfNode(___omp_base)), internal_omptask::max(mesh->getCellsOfNode(___omp_limit - 1)));
 		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
 		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
 		const Id ___omp_min_NODES   = std::min(___omp_base, ___omp_limit - 1);
@@ -1000,8 +1000,8 @@ void Glace2d::computeBr() noexcept
 		#if NABLA_DEBUG == 1
 		fprintf(stderr, "ComputeBr@7.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
 		#endif
-		const Id ___omp_min_CELLS   = std::min(internal::min(mesh->getCellsOfNode(___omp_base)), internal::min(mesh->getCellsOfNode(___omp_limit - 1)));
-		const Id ___omp_max_CELLS   = std::max(internal::max(mesh->getCellsOfNode(___omp_base)), internal::max(mesh->getCellsOfNode(___omp_limit - 1)));
+		const Id ___omp_min_CELLS   = std::min(internal_omptask::min(mesh->getCellsOfNode(___omp_base)), internal_omptask::min(mesh->getCellsOfNode(___omp_limit - 1)));
+		const Id ___omp_max_CELLS   = std::max(internal_omptask::max(mesh->getCellsOfNode(___omp_base)), internal_omptask::max(mesh->getCellsOfNode(___omp_limit - 1)));
 		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
 		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
 		const Id ___omp_min_NODES   = std::min(___omp_base, ___omp_limit - 1);
@@ -1335,8 +1335,8 @@ void Glace2d::computeFjr() noexcept
 		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
 		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
 		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
-		const Id ___omp_min_NODES   = std::min(internal::min(mesh->getNodesOfCell(___omp_base)), internal::min(mesh->getNodesOfCell(___omp_limit - 1)));
-		const Id ___omp_max_NODES   = std::max(internal::max(mesh->getNodesOfCell(___omp_base)), internal::max(mesh->getNodesOfCell(___omp_limit - 1)));
+		const Id ___omp_min_NODES   = std::min(internal_omptask::min(mesh->getNodesOfCell(___omp_base)), internal_omptask::min(mesh->getNodesOfCell(___omp_limit - 1)));
+		const Id ___omp_max_NODES   = std::max(internal_omptask::max(mesh->getNodesOfCell(___omp_base)), internal_omptask::max(mesh->getNodesOfCell(___omp_limit - 1)));
 		const Id ___omp_base_NODES  = ___omp_min_NODES;
 		const Id ___omp_count_NODES = ___omp_max_NODES - ___omp_min_NODES; // Don't do +1
 		// WARN: Conversions in in/out for omp task
@@ -1423,8 +1423,8 @@ void Glace2d::computeEn() noexcept
 		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
 		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
 		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
-		const Id ___omp_min_NODES   = std::min(internal::min(mesh->getNodesOfCell(___omp_base)), internal::min(mesh->getNodesOfCell(___omp_limit - 1)));
-		const Id ___omp_max_NODES   = std::max(internal::max(mesh->getNodesOfCell(___omp_base)), internal::max(mesh->getNodesOfCell(___omp_limit - 1)));
+		const Id ___omp_min_NODES   = std::min(internal_omptask::min(mesh->getNodesOfCell(___omp_base)), internal_omptask::min(mesh->getNodesOfCell(___omp_limit - 1)));
+		const Id ___omp_max_NODES   = std::max(internal_omptask::max(mesh->getNodesOfCell(___omp_base)), internal_omptask::max(mesh->getNodesOfCell(___omp_limit - 1)));
 		const Id ___omp_base_NODES  = ___omp_min_NODES;
 		const Id ___omp_count_NODES = ___omp_max_NODES - ___omp_min_NODES; // Don't do +1
 		// WARN: Conversions in in/out for omp task
@@ -1608,9 +1608,6 @@ int main(int argc, char* argv[])
 	
 	// Start simulation
 	// Simulator must be a pointer when a finalize is needed at the end (Kokkos, omp...)
-	internal::nbX_CELLS = meshFactory.getNbXQuads();
-	internal::nbX_NODES = meshFactory.getNbXQuads() + 1;
-	internal::nbX_FACES = 0; // TODO
 	glace2d->simulate();
 	
 	delete glace2d;
