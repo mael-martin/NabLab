@@ -11,10 +11,10 @@
 #include <cmath>
 #include "nablalib/mesh/CartesianMesh2DFactory.h"
 #include "nablalib/mesh/CartesianMesh2D.h"
-#include "nablalib/mesh/PvdFileWriter2D.h"
 #include "nablalib/utils/Utils.h"
 #include "nablalib/utils/Timer.h"
 #include "nablalib/types/Types.h"
+#include "nablalib/mesh/PvdFileWriter2D.h"
 #include "LinearAlgebra.h"
 
 using namespace nablalib::mesh;
@@ -41,6 +41,11 @@ double prodR0(double a, double b);
 
 class ImplicitHeatEquation
 {
+	/* Don't move this object around */
+	ImplicitHeatEquation(ImplicitHeatEquation &&)           = delete;
+	ImplicitHeatEquation(const ImplicitHeatEquation &)      = delete;
+	ImplicitHeatEquation& operator=(ImplicitHeatEquation &) = delete;
+
 public:
 	struct Options
 	{

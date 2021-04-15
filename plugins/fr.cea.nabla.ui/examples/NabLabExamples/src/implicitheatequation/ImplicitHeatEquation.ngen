@@ -57,7 +57,7 @@ OpenMP
 
 OpenMPTask
 {
-	outputPath = "/NablaExamples/src-gen-cpp/openmptask";
+	outputPath = "/NabLabExamples/src-gen-cpp/openmptask";
 	N_CXX_COMPILER = "/usr/bin/g++";
 }
 

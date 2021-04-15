@@ -219,14 +219,14 @@ class CppGeneratorUtils
 		if (need_ranges) {
 		ret = ''' \
 «FOR v : dep_ranges SEPARATOR ' \\\n'
-	»/* dep loop (range) */ depend(«inout»:	(this->«v.name»[«from»_«v.name.globalVariableType»]))«
+	»/* dep loop (range) */ depend(«inout»:	(«getVariableName(v)»[«from»_«v.name.globalVariableType»]))«
 ENDFOR»'''
 		}
 
 		/* All simple values */
 		if (need_simple)
 			ret = '''«ret» \
-«FOR v : dep_simple SEPARATOR ', \\\n'»/* dep loop (simpL) */ depend(«inout»:	(this->«v.name»))«ENDFOR»'''
+«FOR v : dep_simple SEPARATOR ', \\\n'»/* dep loop (simpL) */ depend(«inout»:	(«getVariableName(v)»))«ENDFOR»'''
 		
 		return ret
 	}
@@ -267,7 +267,7 @@ ENDFOR»'''
 		{
 			/* All ranges : XXX : Can't be used with partial things like 'innerCells', must be all the variable */
 			ret = '''«FOR v : dep_ranges»«FOR i : OMPTaskMaxNumberIterator» \
-/* dep loop all (rgpin) */ depend(«inout»:	(this->«v.name»[«getBaseIndex('''(this->«v.name».size())''', '''«i»''')»]))«
+/* dep loop all (rgpin) */ depend(«inout»:	(this->«v.name»[«getBaseIndex('''(«getVariableName(v)».size())''', '''«i»''')»]))«
 ENDFOR»«ENDFOR»'''
 		}
 
@@ -275,14 +275,12 @@ ENDFOR»«ENDFOR»'''
 		{
 			/* All simple values */
 			ret = '''«ret» \
-«FOR v : dep_simple SEPARATOR ' \\\n'»/* dep loop all (simpL) */ depend(«inout»:	(this->«v.name»))«ENDFOR»'''
+«FOR v : dep_simple SEPARATOR ' \\\n'»/* dep loop all (simpL) */ depend(«inout»:	(«getVariableName(v)»))«ENDFOR»'''
 		}
 
 		return ret
 	}
 
-	static def getLoopRange(CharSequence connectivityType, CharSequence taskCurrent) '''mesh->RANGE_«connectivityType»FromPartition(«taskCurrent»)'''
-	
 	/* Is a job a super task job? */
 	static def boolean jobIsSuperTask(Job it) {
 		return (

@@ -13,11 +13,11 @@
 #include <Kokkos_hwloc.hpp>
 #include "nablalib/mesh/CartesianMesh2DFactory.h"
 #include "nablalib/mesh/CartesianMesh2D.h"
-#include "nablalib/mesh/PvdFileWriter2D.h"
 #include "nablalib/utils/Utils.h"
 #include "nablalib/utils/Timer.h"
 #include "nablalib/types/Types.h"
 #include "nablalib/utils/kokkos/Parallel.h"
+#include "nablalib/mesh/PvdFileWriter2D.h"
 
 using namespace nablalib::mesh;
 using namespace nablalib::utils;
@@ -65,6 +65,11 @@ double minR0(double a, double b);
 
 class Glace2d
 {
+	/* Don't move this object around */
+	Glace2d(Glace2d &&)           = delete;
+	Glace2d(const Glace2d &)      = delete;
+	Glace2d& operator=(Glace2d &) = delete;
+
 public:
 	struct Options
 	{

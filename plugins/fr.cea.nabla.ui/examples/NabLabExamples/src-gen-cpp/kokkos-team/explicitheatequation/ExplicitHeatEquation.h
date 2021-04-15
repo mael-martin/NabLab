@@ -13,11 +13,11 @@
 #include <Kokkos_hwloc.hpp>
 #include "nablalib/mesh/CartesianMesh2DFactory.h"
 #include "nablalib/mesh/CartesianMesh2D.h"
-#include "nablalib/mesh/PvdFileWriter2D.h"
 #include "nablalib/utils/Utils.h"
 #include "nablalib/utils/Timer.h"
 #include "nablalib/types/Types.h"
 #include "nablalib/utils/kokkos/Parallel.h"
+#include "nablalib/mesh/PvdFileWriter2D.h"
 
 using namespace nablalib::mesh;
 using namespace nablalib::utils;
@@ -52,6 +52,11 @@ double prodR0(double a, double b);
 class ExplicitHeatEquation
 {
 	typedef Kokkos::TeamPolicy<Kokkos::DefaultExecutionSpace::scratch_memory_space>::member_type member_type;
+
+	/* Don't move this object around */
+	ExplicitHeatEquation(ExplicitHeatEquation &&)           = delete;
+	ExplicitHeatEquation(const ExplicitHeatEquation &)      = delete;
+	ExplicitHeatEquation& operator=(ExplicitHeatEquation &) = delete;
 
 public:
 	struct Options

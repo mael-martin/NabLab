@@ -85,7 +85,7 @@ class StlThreadIncludesContentProvider extends IncludesContentProvider
 	{
 		val includes = super.getUserIncludes(hasLevelDB, hasPostProcessing)
 		includes += "nablalib/utils/stl/Parallel.h"
-		includes += "nablalib/mesh/stl/PvdFileWriter2D.h"
+		includes += "nablalib/mesh/PvdFileWriter2D.h"
 		if (hasLevelDB) includes += "nablalib/utils/stl/Serializer.h"
 		return includes
 	}
@@ -112,7 +112,7 @@ class KokkosIncludesContentProvider extends IncludesContentProvider
 	{
 		val includes = super.getUserIncludes(hasLevelDB, hasPostProcessing)
 		includes += "nablalib/utils/kokkos/Parallel.h"
-		includes += "nablalib/mesh/kokkos/PvdFileWriter2D.h"
+		includes += "nablalib/mesh/PvdFileWriter2D.h"
 		if (hasLevelDB) includes += "nablalib/utils/kokkos/Serializer.h"
 		return includes
 	}
@@ -121,7 +121,6 @@ class KokkosIncludesContentProvider extends IncludesContentProvider
 	{
 		val userNs = super.getUserNs(hasLevelDB)
 		userNs += "nablalib::utils::kokkos"
-		userNs += "nablalib::mesh::kokkos"
 		return userNs
 	}
 }
