@@ -74,16 +74,6 @@ ImplicitHeatEquation::Options::jsonInit(const char* jsonContent)
 	assert(document.IsObject());
 	const rapidjson::Value::Object& o = document.GetObject();
 
-	// outputPath
-	assert(o.HasMember("outputPath"));
-	const rapidjson::Value& valueof_outputPath = o["outputPath"];
-	assert(valueof_outputPath.IsString());
-	outputPath = valueof_outputPath.GetString();
-	// outputPeriod
-	assert(o.HasMember("outputPeriod"));
-	const rapidjson::Value& valueof_outputPeriod = o["outputPeriod"];
-	assert(valueof_outputPeriod.IsInt());
-	outputPeriod = valueof_outputPeriod.GetInt();
 	// u0
 	if (o.HasMember("u0"))
 	{
@@ -119,6 +109,11 @@ ImplicitHeatEquation::Options::jsonInit(const char* jsonContent)
 		o["linearAlgebra"].Accept(writer);
 		linearAlgebra.jsonInit(strbuf.GetString());
 	}
+	// Non regression
+	assert(o.HasMember("nonRegression"));
+	const rapidjson::Value& valueof_nonRegression = o["nonRegression"];
+	assert(valueof_nonRegression.IsString());
+	nonRegression = valueof_nonRegression.GetString();
 }
 
 /******************** Module definition ********************/
@@ -137,8 +132,6 @@ ImplicitHeatEquation::ImplicitHeatEquation(CartesianMesh2D* aMesh, Options& aOpt
 , nbCellsOfFace(CartesianMesh2D::MaxNbCellsOfFace)
 , nbNodesOfCell(CartesianMesh2D::MaxNbNodesOfCell)
 , options(aOptions)
-, writer("ImplicitHeatEquation", options.outputPath)
-, lastDump(numeric_limits<int>::min())
 , deltat(0.001)
 , X("X", nbNodes)
 , Xc("Xc", nbCells)
@@ -402,8 +395,6 @@ void ImplicitHeatEquation::executeTimeLoopN() noexcept
 		globalTimer.start();
 		cpuTimer.start();
 		n++;
-		if (!writer.isDisabled() && n >= lastDump + options.outputPeriod)
-			dumpVariables(n);
 		if (n!=1)
 			std::cout << "[" << __CYAN__ << __BOLD__ << setw(3) << n << __RESET__ "] t = " << __BOLD__
 				<< setiosflags(std::ios::scientific) << setprecision(8) << setw(16) << t_n << __RESET__;
@@ -426,9 +417,6 @@ void ImplicitHeatEquation::executeTimeLoopN() noexcept
 		globalTimer.stop();
 	
 		// Timers display
-		if (!writer.isDisabled())
-			std::cout << " {CPU: " << __BLUE__ << cpuTimer.print(true) << __RESET__ ", IO: " << __BLUE__ << ioTimer.print(true) << __RESET__ "} ";
-		else
 			std::cout << " {CPU: " << __BLUE__ << cpuTimer.print(true) << __RESET__ ", IO: " << __RED__ << "none" << __RESET__ << "} ";
 		
 		// Progress
@@ -441,39 +429,6 @@ void ImplicitHeatEquation::executeTimeLoopN() noexcept
 		cpuTimer.reset();
 		ioTimer.reset();
 	} while (continueLoop);
-	// force a last output at the end
-	dumpVariables(n, false);
-}
-
-void ImplicitHeatEquation::dumpVariables(int iteration, bool useTimer)
-{
-	if (!writer.isDisabled())
-	{
-		if (useTimer)
-		{
-			cpuTimer.stop();
-			ioTimer.start();
-		}
-		auto quads = mesh->getGeometry()->getQuads();
-		writer.startVtpFile(iteration, t_n, nbNodes, X.data(), nbCells, quads.data());
-		writer.openNodeData();
-		writer.closeNodeData();
-		writer.openCellData();
-		{
-			writer.openCellArray("Temperature", 1);
-			for (size_t i=0 ; i<nbCells ; ++i)
-				writer.write(u_n.getValue(i));
-			writer.closeCellArray();
-		}
-		writer.closeCellData();
-		writer.closeVtpFile();
-		lastDump = n;
-		if (useTimer)
-		{
-			ioTimer.stop();
-			cpuTimer.start();
-		}
-	}
 }
 
 void ImplicitHeatEquation::simulate()
@@ -493,10 +448,7 @@ void ImplicitHeatEquation::simulate()
 	
 	// std::cout << "[" << __GREEN__ << "KOKKOS" << __RESET__ << "]    " << __BOLD__ << (is_same<MyLayout,Kokkos::LayoutLeft>::value?"Left":"Right")" << __RESET__ << " layout" << std::endl;
 	
-	if (!writer.isDisabled())
-		std::cout << "[" << __GREEN__ << "OUTPUT" << __RESET__ << "]    VTK files stored in " << __BOLD__ << writer.outputDirectory() << __RESET__ << " directory" << std::endl;
-	else
-		std::cout << "[" << __GREEN__ << "OUTPUT" << __RESET__ << "]    " << __BOLD__ << "Disabled" << __RESET__ << std::endl;
+	std::cout << "[" << __GREEN__ << "OUTPUT" << __RESET__ << "]    " << __BOLD__ << "Disabled" << __RESET__ << std::endl;
 
 	computeFaceLength(); // @1.0
 	computeV(); // @1.0
@@ -514,6 +466,103 @@ void ImplicitHeatEquation::simulate()
 	std::cout << "[CG] average iteration: " << options.linearAlgebra.m_info.m_nb_it / options.linearAlgebra.m_info.m_nb_call << std::endl;
 }
 
+
+void ImplicitHeatEquation::createDB(const std::string& db_name)
+{
+	// Creating data base
+	leveldb::DB* db;
+	leveldb::Options options;
+	options.create_if_missing = true;
+	leveldb::Status status = leveldb::DB::Open(options, db_name, &db);
+	assert(status.ok());
+	// Batch to write all data at once
+	leveldb::WriteBatch batch;
+	batch.Put("n", serialize(n));
+	batch.Put("vectOne", serialize(vectOne));
+	batch.Put("deltat", serialize(deltat));
+	batch.Put("t_n", serialize(t_n));
+	batch.Put("t_nplus1", serialize(t_nplus1));
+	batch.Put("t_n0", serialize(t_n0));
+	batch.Put("X", serialize(X));
+	batch.Put("Xc", serialize(Xc));
+	batch.Put("u_n", serialize(u_n));
+	batch.Put("u_nplus1", serialize(u_nplus1));
+	batch.Put("V", serialize(V));
+	batch.Put("D", serialize(D));
+	batch.Put("faceLength", serialize(faceLength));
+	batch.Put("faceConductivity", serialize(faceConductivity));
+	batch.Put("alpha", serialize(alpha));
+	status = db->Write(leveldb::WriteOptions(), &batch);
+	// Checking everything was ok
+	assert(status.ok());
+	std::cerr << "Reference database " << db_name << " created." << std::endl;
+	// Freeing memory
+	delete db;
+}
+
+/******************** Non regression testing ********************/
+
+bool compareDB(const std::string& current, const std::string& ref)
+{
+	// Final result
+	bool result = true;
+
+	// Loading ref DB
+	leveldb::DB* db_ref;
+	leveldb::Options options_ref;
+	options_ref.create_if_missing = false;
+	leveldb::Status status = leveldb::DB::Open(options_ref, ref, &db_ref);
+	if (!status.ok())
+	{
+		std::cerr << "No ref database to compare with ! Looking for " << ref << std::endl;
+		return false;
+	}
+	leveldb::Iterator* it_ref = db_ref->NewIterator(leveldb::ReadOptions());
+
+	// Loading current DB
+	leveldb::DB* db;
+	leveldb::Options options;
+	options.create_if_missing = false;
+	status = leveldb::DB::Open(options, current, &db);
+	assert(status.ok());
+	leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
+
+	// Results comparison
+	std::cerr << "# Comparing results ..." << std::endl;
+	for (it_ref->SeekToFirst(); it_ref->Valid(); it_ref->Next()) {
+		auto key = it_ref->key();
+		std::string value;
+		auto status = db->Get(leveldb::ReadOptions(), key, &value);
+		if (status.IsNotFound()) {
+			std::cerr << "ERROR - Key : " << key.ToString() << " not found." << endl;
+			result = false;
+		}
+		else {
+			if (value == it_ref->value().ToString())
+				std::cerr << key.ToString() << ": " << "OK" << std::endl;
+			else {
+				std::cerr << key.ToString() << ": " << "ERROR" << std::endl;
+				result = false;
+			}
+		}
+	}
+
+	// looking for key in the db that are not in the ref (new variables)
+	for (it->SeekToFirst(); it->Valid(); it->Next()) {
+		auto key = it->key();
+		std::string value;
+		if (db_ref->Get(leveldb::ReadOptions(), key, &value).IsNotFound()) {
+			std::cerr << "ERROR - Key : " << key.ToString() << " can not be compared (not present in the ref)." << std::endl;
+			result = false;
+		}
+	}
+
+	// Freeing memory
+	delete db;
+	delete db_ref;
+
+	return result;
+}
 
 int main(int argc, char* argv[]) 
 {
@@ -564,6 +613,15 @@ int main(int argc, char* argv[])
 	// Start simulation
 	// Simulator must be a pointer when a finalize is needed at the end (Kokkos, omp...)
 	implicitHeatEquation->simulate();
+	// Non regression testing
+	if (implicitHeatEquationOptions.nonRegression == "CreateReference")
+		implicitHeatEquation->createDB("ImplicitHeatEquationDB.ref");
+	if (implicitHeatEquationOptions.nonRegression == "CompareToReference") {
+		implicitHeatEquation->createDB("ImplicitHeatEquationDB.current");
+		if (!compareDB("ImplicitHeatEquationDB.current", "ImplicitHeatEquationDB.ref"))
+			ret = 1;
+		leveldb::DestroyDB("ImplicitHeatEquationDB.current", leveldb::Options());
+	}
 	
 	delete implicitHeatEquation;
 	delete mesh;

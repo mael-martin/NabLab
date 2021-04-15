@@ -27,6 +27,11 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	endif()
 endif()
 
+# FIND PACKAGES
+set(CMAKE_FIND_ROOT_PATH $ENV{HOME}/leveldb/leveldb-install)
+find_package(leveldb REQUIRED)
+find_package(Threads REQUIRED)
+
 # SUB_DIRECTORIES
 if(NOT TARGET nablalib)
 	add_subdirectory(${N_WS_PATH}/.nablab/nablalib ${CMAKE_BINARY_DIR}/nablalib)
@@ -37,7 +42,7 @@ endif()
 
 # EXECUTABLE implicitheatequation
 add_executable(implicitheatequation ImplicitHeatEquation.cc)
-target_link_libraries(implicitheatequation PUBLIC nablalib linearalgebrastl)
+target_link_libraries(implicitheatequation PUBLIC nablalib leveldb::leveldb Threads::Threads linearalgebrastl)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	target_compile_options(implicitheatequation PRIVATE -fdiagnostics-color=always)

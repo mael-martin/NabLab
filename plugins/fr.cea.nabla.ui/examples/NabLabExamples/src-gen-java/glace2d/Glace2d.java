@@ -10,6 +10,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.stream.IntStream;
 
+import org.iq80.leveldb.DB;
+import org.iq80.leveldb.WriteBatch;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -22,8 +25,6 @@ public final class Glace2d
 {
 	public final static class Options
 	{
-		public String outputPath;
-		public int outputPeriod;
 		public double stopTime;
 		public int maxIterations;
 		public double gamma;
@@ -42,15 +43,6 @@ public final class Glace2d
 			final JsonElement json = parser.parse(jsonContent);
 			assert(json.isJsonObject());
 			final JsonObject o = json.getAsJsonObject();
-			// outputPath
-			assert(o.has("outputPath"));
-			final JsonElement valueof_outputPath = o.get("outputPath");
-			outputPath = valueof_outputPath.getAsJsonPrimitive().getAsString();
-			// outputPeriod
-			assert(o.has("outputPeriod"));
-			final JsonElement valueof_outputPeriod = o.get("outputPeriod");
-			assert(valueof_outputPeriod.isJsonPrimitive());
-			outputPeriod = valueof_outputPeriod.getAsJsonPrimitive().getAsInt();
 			// stopTime
 			if (o.has("stopTime"))
 			{
@@ -141,6 +133,12 @@ public final class Glace2d
 			}
 			else
 				pIniZd = 0.1;
+			// Non regression
+			if (o.has("nonRegression"))
+			{
+				final JsonElement valueof_nonRegression = o.get("nonRegression");
+				nonRegression = valueof_nonRegression.getAsJsonPrimitive().getAsString();
+			}
 		}
 	}
 
@@ -150,10 +148,8 @@ public final class Glace2d
 
 	// User options
 	private final Options options;
-	private final PvdFileWriter2D writer;
 
 	// Global variables
-	protected int lastDump;
 	protected int n;
 	protected double t_n;
 	protected double t_nplus1;
@@ -202,10 +198,8 @@ public final class Glace2d
 
 		// User options
 		options = aOptions;
-		writer = new PvdFileWriter2D("Glace2d", options.outputPath);
 
 		// Initialize variables with default values
-		lastDump = Integer.MIN_VALUE;
 
 		// Allocate arrays
 		X_n = new double[nbNodes][2];
@@ -467,8 +461,6 @@ public final class Glace2d
 		{
 			n++;
 			System.out.printf("[%5d] t: %5.5f - deltat: %5.5f\n", n, t_n, deltat_n);
-			if (n >= lastDump + options.outputPeriod)
-				dumpVariables(n);
 			computeCjr(); // @1.0
 			computeInternalEnergy(); // @1.0
 			computeLjr(); // @2.0
@@ -514,8 +506,6 @@ public final class Glace2d
 				uj_nplus1 = tmp_uj_n;
 			} 
 		} while (continueLoop);
-		// force a last output at the end
-		dumpVariables(n);
 	}
 
 	/**
@@ -1026,6 +1016,18 @@ public final class Glace2d
 
 			// Start simulation
 			glace2d.simulate();
+
+			// Non regression testing
+			if (glace2dOptions.nonRegression != null && glace2dOptions.nonRegression.equals("CreateReference"))
+				glace2d.createDB("Glace2dDB.ref");
+			if (glace2dOptions.nonRegression != null && glace2dOptions.nonRegression.equals("CompareToReference"))
+			{
+				glace2d.createDB("Glace2dDB.current");
+				if (!LevelDBUtils.compareDB("Glace2dDB.current", "Glace2dDB.ref"))
+					ret = 1;
+				LevelDBUtils.destroyDB("Glace2dDB.current");
+				System.exit(ret);
+			}
 		}
 		else
 		{
@@ -1035,29 +1037,60 @@ public final class Glace2d
 		}
 	}
 
-	private void dumpVariables(int iteration)
+	private void createDB(String db_name) throws IOException
 	{
-		if (!writer.isDisabled())
+		org.iq80.leveldb.Options levelDBOptions = new org.iq80.leveldb.Options();
+
+		// Destroy if exists
+		factory.destroy(new File(db_name), levelDBOptions);
+
+		// Create data base
+		levelDBOptions.createIfMissing(true);
+		DB db = factory.open(new File(db_name), levelDBOptions);
+
+		WriteBatch batch = db.createWriteBatch();
+		try
 		{
-			try
-			{
-				Quad[] quads = mesh.getGeometry().getQuads();
-				writer.startVtpFile(iteration, t_n, X_n, quads);
-				writer.openNodeData();
-				writer.closeNodeData();
-				writer.openCellData();
-				writer.openCellArray("Density", 0);
-				for (int i=0 ; i<nbCells ; ++i)
-					writer.write(rho[i]);
-				writer.closeCellArray();
-				writer.closeCellData();
-				writer.closeVtpFile();
-				lastDump = n;
-			}
-			catch (java.io.FileNotFoundException e)
-			{
-				System.out.println("* WARNING: no dump of variables. FileNotFoundException: " + e.getMessage());
-			}
+			batch.put(bytes("n"), LevelDBUtils.serialize(n));
+			batch.put(bytes("t_n"), LevelDBUtils.serialize(t_n));
+			batch.put(bytes("t_nplus1"), LevelDBUtils.serialize(t_nplus1));
+			batch.put(bytes("t_n0"), LevelDBUtils.serialize(t_n0));
+			batch.put(bytes("deltat_n"), LevelDBUtils.serialize(deltat_n));
+			batch.put(bytes("deltat_nplus1"), LevelDBUtils.serialize(deltat_nplus1));
+			batch.put(bytes("deltat_n0"), LevelDBUtils.serialize(deltat_n0));
+			batch.put(bytes("X_n"), LevelDBUtils.serialize(X_n));
+			batch.put(bytes("X_nplus1"), LevelDBUtils.serialize(X_nplus1));
+			batch.put(bytes("X_n0"), LevelDBUtils.serialize(X_n0));
+			batch.put(bytes("b"), LevelDBUtils.serialize(b));
+			batch.put(bytes("bt"), LevelDBUtils.serialize(bt));
+			batch.put(bytes("Ar"), LevelDBUtils.serialize(Ar));
+			batch.put(bytes("Mt"), LevelDBUtils.serialize(Mt));
+			batch.put(bytes("ur"), LevelDBUtils.serialize(ur));
+			batch.put(bytes("c"), LevelDBUtils.serialize(c));
+			batch.put(bytes("m"), LevelDBUtils.serialize(m));
+			batch.put(bytes("p"), LevelDBUtils.serialize(p));
+			batch.put(bytes("rho"), LevelDBUtils.serialize(rho));
+			batch.put(bytes("e"), LevelDBUtils.serialize(e));
+			batch.put(bytes("E_n"), LevelDBUtils.serialize(E_n));
+			batch.put(bytes("E_nplus1"), LevelDBUtils.serialize(E_nplus1));
+			batch.put(bytes("V"), LevelDBUtils.serialize(V));
+			batch.put(bytes("deltatj"), LevelDBUtils.serialize(deltatj));
+			batch.put(bytes("uj_n"), LevelDBUtils.serialize(uj_n));
+			batch.put(bytes("uj_nplus1"), LevelDBUtils.serialize(uj_nplus1));
+			batch.put(bytes("l"), LevelDBUtils.serialize(l));
+			batch.put(bytes("Cjr_ic"), LevelDBUtils.serialize(Cjr_ic));
+			batch.put(bytes("C"), LevelDBUtils.serialize(C));
+			batch.put(bytes("F"), LevelDBUtils.serialize(F));
+			batch.put(bytes("Ajr"), LevelDBUtils.serialize(Ajr));
+
+			db.write(batch);
 		}
+		finally
+		{
+			// Make sure you close the batch to avoid resource leaks.
+			batch.close();
+		}
+		db.close();
+		System.out.println("Reference database " + db_name + " created.");
 	}
 };

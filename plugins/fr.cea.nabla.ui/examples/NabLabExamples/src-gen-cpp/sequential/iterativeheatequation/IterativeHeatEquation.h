@@ -9,16 +9,20 @@
 #include <limits>
 #include <utility>
 #include <cmath>
+#include <leveldb/db.h>
+#include <leveldb/write_batch.h>
 #include "nablalib/mesh/CartesianMesh2DFactory.h"
 #include "nablalib/mesh/CartesianMesh2D.h"
 #include "nablalib/utils/Utils.h"
 #include "nablalib/utils/Timer.h"
 #include "nablalib/types/Types.h"
+#include "nablalib/utils/Serializer.h"
 #include "nablalib/mesh/PvdFileWriter2D.h"
 
 using namespace nablalib::mesh;
 using namespace nablalib::utils;
 using namespace nablalib::types;
+using namespace nablalib::utils::stl;
 
 /******************** Free functions declarations ********************/
 
@@ -50,13 +54,12 @@ class IterativeHeatEquation
 public:
 	struct Options
 	{
-		std::string outputPath;
-		int outputPeriod;
 		double u0;
 		double stopTime;
 		int maxIterations;
 		int maxIterationsK;
 		double epsilon;
+		std::string nonRegression;
 
 		void jsonInit(const char* jsonContent);
 	};
@@ -82,17 +85,15 @@ public:
 	void computeAlphaCoeff() noexcept;
 	void tearDownTimeLoopK() noexcept;
 	void executeTimeLoopN() noexcept;
+	void createDB(const std::string& db_name);
 
 private:
-	void dumpVariables(int iteration, bool useTimer=true);
-
 	// Mesh and mesh variables
 	CartesianMesh2D* mesh;
-	size_t nbNodes, nbCells, nbFaces, nbNeighbourCells, nbNodesOfFace, nbCellsOfFace, nbNodesOfCell;
+	size_t __attribute__((unused))nbNodes, nbCells, nbFaces, nbNeighbourCells, nbNodesOfFace, nbCellsOfFace, nbNodesOfCell;
 
 	// User options
 	Options& options;
-	PvdFileWriter2D writer;
 
 	// Timers
 	Timer globalTimer;
@@ -101,7 +102,6 @@ private:
 
 public:
 	// Global variables
-	int lastDump;
 	int n;
 	int k;
 	static constexpr RealArray1D<2> vectOne = {1.0, 1.0};

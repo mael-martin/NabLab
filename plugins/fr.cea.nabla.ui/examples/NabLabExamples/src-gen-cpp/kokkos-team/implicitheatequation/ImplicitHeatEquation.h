@@ -9,6 +9,8 @@
 #include <limits>
 #include <utility>
 #include <cmath>
+#include <leveldb/db.h>
+#include <leveldb/write_batch.h>
 #include <Kokkos_Core.hpp>
 #include <Kokkos_hwloc.hpp>
 #include "nablalib/mesh/CartesianMesh2DFactory.h"
@@ -16,8 +18,10 @@
 #include "nablalib/utils/Utils.h"
 #include "nablalib/utils/Timer.h"
 #include "nablalib/types/Types.h"
+#include "nablalib/utils/Serializer.h"
 #include "nablalib/utils/kokkos/Parallel.h"
 #include "nablalib/mesh/PvdFileWriter2D.h"
+#include "nablalib/utils/kokkos/Serializer.h"
 #include "LinearAlgebra.h"
 
 using namespace nablalib::mesh;
@@ -62,12 +66,11 @@ class ImplicitHeatEquation
 public:
 	struct Options
 	{
-		std::string outputPath;
-		int outputPeriod;
 		double u0;
 		double stopTime;
 		int maxIterations;
 		LinearAlgebra linearAlgebra;
+		std::string nonRegression;
 
 		void jsonInit(const char* jsonContent);
 	};
@@ -102,10 +105,9 @@ public:
 	void computeAlphaCoeff(const member_type& teamMember) noexcept;
 	KOKKOS_INLINE_FUNCTION
 	void executeTimeLoopN() noexcept;
+	void createDB(const std::string& db_name);
 
 private:
-	void dumpVariables(int iteration, bool useTimer=true);
-
 	/**
 	 * Utility function to get work load for each team of threads
 	 * In  : thread and number of element to use for computation
@@ -115,11 +117,10 @@ private:
 
 	// Mesh and mesh variables
 	CartesianMesh2D* mesh;
-	size_t nbNodes, nbCells, nbFaces, nbNeighbourCells, nbNodesOfFace, nbCellsOfFace, nbNodesOfCell;
+	size_t __attribute__((unused))nbNodes, nbCells, nbFaces, nbNeighbourCells, nbNodesOfFace, nbCellsOfFace, nbNodesOfCell;
 
 	// User options
 	Options& options;
-	PvdFileWriter2D writer;
 
 	// Timers
 	Timer globalTimer;
@@ -128,7 +129,6 @@ private:
 
 public:
 	// Global variables
-	int lastDump;
 	int n;
 	static constexpr RealArray1D<2> vectOne = {1.0, 1.0};
 	double deltat;

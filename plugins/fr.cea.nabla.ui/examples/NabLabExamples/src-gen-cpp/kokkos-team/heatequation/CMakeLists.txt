@@ -34,6 +34,9 @@ endif()
 set(CMAKE_FIND_ROOT_PATH ${N_KOKKOS_PATH})
 find_package(Kokkos REQUIRED)
 find_package(KokkosKernels REQUIRED)
+set(CMAKE_FIND_ROOT_PATH $ENV{HOME}/leveldb/leveldb-install)
+find_package(leveldb REQUIRED)
+find_package(Threads REQUIRED)
 
 # SUB_DIRECTORIES
 if(NOT TARGET nablalib)
@@ -42,7 +45,7 @@ endif()
 
 # EXECUTABLE heatequation
 add_executable(heatequation HeatEquation.cc)
-target_link_libraries(heatequation PUBLIC nablalib Kokkos::kokkos Kokkos::kokkoskernels)
+target_link_libraries(heatequation PUBLIC nablalib Kokkos::kokkos Kokkos::kokkoskernels leveldb::leveldb Threads::Threads)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	target_compile_options(heatequation PRIVATE -fdiagnostics-color=always)

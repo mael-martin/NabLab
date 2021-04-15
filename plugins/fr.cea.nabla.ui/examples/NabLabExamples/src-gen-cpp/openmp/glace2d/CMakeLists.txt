@@ -28,6 +28,9 @@ endif()
 
 # FIND PACKAGES
 find_package(OpenMP REQUIRED)
+set(CMAKE_FIND_ROOT_PATH $ENV{HOME}/leveldb/leveldb-install)
+find_package(leveldb REQUIRED)
+find_package(Threads REQUIRED)
 
 # SUB_DIRECTORIES
 if(NOT TARGET nablalib)
@@ -36,7 +39,7 @@ endif()
 
 # EXECUTABLE glace2d
 add_executable(glace2d Glace2d.cc)
-target_link_libraries(glace2d PUBLIC nablalib OpenMP::OpenMP_CXX)
+target_link_libraries(glace2d PUBLIC nablalib OpenMP::OpenMP_CXX leveldb::leveldb Threads::Threads)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	target_compile_options(glace2d PRIVATE -fdiagnostics-color=always)

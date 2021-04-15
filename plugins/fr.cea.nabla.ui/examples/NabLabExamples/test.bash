@@ -4,6 +4,7 @@
 # openmp tasks target.
 
 test "x$CXX" = "x" && die "No CXX variable in your environment"
+export OMP_NUM_THREADS=$(nproc)
 
 ###
 # The functions to do the work

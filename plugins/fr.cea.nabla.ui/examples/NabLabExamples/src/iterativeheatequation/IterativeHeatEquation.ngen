@@ -19,16 +19,8 @@ MainModule IterativeHeatEquation iterativeHeatEquation
 	timeMax = stopTime;
 }
 
-VtkOutput
-{
-	periodReferenceVariable = iterativeHeatEquation.n;
-	outputVariables = iterativeHeatEquation.u as "Temperature";
-}
-
-//LevelDB
-//{
-//	levelDBPath = "$ENV{HOME}/leveldb/leveldb-install";
-//}
+// VtkOutput { periodReferenceVariable = iterativeHeatEquation.n; outputVariables = iterativeHeatEquation.u as "Temperature"; }
+LevelDB { levelDBPath = "$ENV{HOME}/leveldb/leveldb-install"; }
 
 Java
 {

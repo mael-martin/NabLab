@@ -26,6 +26,11 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	endif()
 endif()
 
+# FIND PACKAGES
+set(CMAKE_FIND_ROOT_PATH $ENV{HOME}/leveldb/leveldb-install)
+find_package(leveldb REQUIRED)
+find_package(Threads REQUIRED)
+
 # SUB_DIRECTORIES
 if(NOT TARGET nablalib)
 	add_subdirectory(${N_WS_PATH}/.nablab/nablalib ${CMAKE_BINARY_DIR}/nablalib)
@@ -33,7 +38,7 @@ endif()
 
 # EXECUTABLE iterativeheatequation
 add_executable(iterativeheatequation IterativeHeatEquation.cc)
-target_link_libraries(iterativeheatequation PUBLIC nablalib pthread)
+target_link_libraries(iterativeheatequation PUBLIC nablalib pthread leveldb::leveldb Threads::Threads)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	target_compile_options(iterativeheatequation PRIVATE -fdiagnostics-color=always)

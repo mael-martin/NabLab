@@ -29,6 +29,9 @@ endif()
 
 # FIND PACKAGES
 find_package(OpenMP REQUIRED)
+set(CMAKE_FIND_ROOT_PATH $ENV{HOME}/leveldb/leveldb-install)
+find_package(leveldb REQUIRED)
+find_package(Threads REQUIRED)
 
 # SUB_DIRECTORIES
 if(NOT TARGET nablalib)
@@ -40,7 +43,7 @@ endif()
 
 # EXECUTABLE implicitheatequation
 add_executable(implicitheatequation ImplicitHeatEquation.cc)
-target_link_libraries(implicitheatequation PUBLIC nablalib OpenMP::OpenMP_CXX linearalgebrastl)
+target_link_libraries(implicitheatequation PUBLIC nablalib OpenMP::OpenMP_CXX leveldb::leveldb Threads::Threads linearalgebrastl)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	target_compile_options(implicitheatequation PRIVATE -fdiagnostics-color=always)

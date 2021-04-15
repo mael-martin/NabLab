@@ -10,6 +10,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.stream.IntStream;
 
+import org.iq80.leveldb.DB;
+import org.iq80.leveldb.WriteBatch;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -22,8 +25,6 @@ public final class IterativeHeatEquation
 {
 	public final static class Options
 	{
-		public String outputPath;
-		public int outputPeriod;
 		public double u0;
 		public double stopTime;
 		public int maxIterations;
@@ -37,15 +38,6 @@ public final class IterativeHeatEquation
 			final JsonElement json = parser.parse(jsonContent);
 			assert(json.isJsonObject());
 			final JsonObject o = json.getAsJsonObject();
-			// outputPath
-			assert(o.has("outputPath"));
-			final JsonElement valueof_outputPath = o.get("outputPath");
-			outputPath = valueof_outputPath.getAsJsonPrimitive().getAsString();
-			// outputPeriod
-			assert(o.has("outputPeriod"));
-			final JsonElement valueof_outputPeriod = o.get("outputPeriod");
-			assert(valueof_outputPeriod.isJsonPrimitive());
-			outputPeriod = valueof_outputPeriod.getAsJsonPrimitive().getAsInt();
 			// u0
 			if (o.has("u0"))
 			{
@@ -91,6 +83,12 @@ public final class IterativeHeatEquation
 			}
 			else
 				epsilon = 1.0E-8;
+			// Non regression
+			if (o.has("nonRegression"))
+			{
+				final JsonElement valueof_nonRegression = o.get("nonRegression");
+				nonRegression = valueof_nonRegression.getAsJsonPrimitive().getAsString();
+			}
 		}
 	}
 
@@ -100,10 +98,8 @@ public final class IterativeHeatEquation
 
 	// User options
 	private final Options options;
-	private final PvdFileWriter2D writer;
 
 	// Global variables
-	protected int lastDump;
 	protected int n;
 	protected int k;
 	protected final double[] vectOne;
@@ -138,10 +134,8 @@ public final class IterativeHeatEquation
 
 		// User options
 		options = aOptions;
-		writer = new PvdFileWriter2D("IterativeHeatEquation", options.outputPath);
 
 		// Initialize variables with default values
-		lastDump = Integer.MIN_VALUE;
 		vectOne = new double[] {1.0, 1.0};
 		deltat = 0.001;
 
@@ -503,8 +497,6 @@ public final class IterativeHeatEquation
 		{
 			n++;
 			System.out.printf("[%5d] t: %5.5f - deltat: %5.5f\n", n, t_n, deltat);
-			if (n >= lastDump + options.outputPeriod)
-				dumpVariables(n);
 			computeTn(); // @1.0
 			setUpTimeLoopK(); // @1.0
 			executeTimeLoopK(); // @2.0
@@ -524,8 +516,6 @@ public final class IterativeHeatEquation
 				u_nplus1 = tmp_u_n;
 			} 
 		} while (continueLoop);
-		// force a last output at the end
-		dumpVariables(n);
 	}
 
 	private static boolean check(boolean a)
@@ -623,6 +613,18 @@ public final class IterativeHeatEquation
 
 			// Start simulation
 			iterativeHeatEquation.simulate();
+
+			// Non regression testing
+			if (iterativeHeatEquationOptions.nonRegression != null && iterativeHeatEquationOptions.nonRegression.equals("CreateReference"))
+				iterativeHeatEquation.createDB("IterativeHeatEquationDB.ref");
+			if (iterativeHeatEquationOptions.nonRegression != null && iterativeHeatEquationOptions.nonRegression.equals("CompareToReference"))
+			{
+				iterativeHeatEquation.createDB("IterativeHeatEquationDB.current");
+				if (!LevelDBUtils.compareDB("IterativeHeatEquationDB.current", "IterativeHeatEquationDB.ref"))
+					ret = 1;
+				LevelDBUtils.destroyDB("IterativeHeatEquationDB.current");
+				System.exit(ret);
+			}
 		}
 		else
 		{
@@ -632,29 +634,48 @@ public final class IterativeHeatEquation
 		}
 	}
 
-	private void dumpVariables(int iteration)
+	private void createDB(String db_name) throws IOException
 	{
-		if (!writer.isDisabled())
+		org.iq80.leveldb.Options levelDBOptions = new org.iq80.leveldb.Options();
+
+		// Destroy if exists
+		factory.destroy(new File(db_name), levelDBOptions);
+
+		// Create data base
+		levelDBOptions.createIfMissing(true);
+		DB db = factory.open(new File(db_name), levelDBOptions);
+
+		WriteBatch batch = db.createWriteBatch();
+		try
 		{
-			try
-			{
-				Quad[] quads = mesh.getGeometry().getQuads();
-				writer.startVtpFile(iteration, t_n, X, quads);
-				writer.openNodeData();
-				writer.closeNodeData();
-				writer.openCellData();
-				writer.openCellArray("Temperature", 0);
-				for (int i=0 ; i<nbCells ; ++i)
-					writer.write(u_n[i]);
-				writer.closeCellArray();
-				writer.closeCellData();
-				writer.closeVtpFile();
-				lastDump = n;
-			}
-			catch (java.io.FileNotFoundException e)
-			{
-				System.out.println("* WARNING: no dump of variables. FileNotFoundException: " + e.getMessage());
-			}
+			batch.put(bytes("n"), LevelDBUtils.serialize(n));
+			batch.put(bytes("k"), LevelDBUtils.serialize(k));
+			batch.put(bytes("vectOne"), LevelDBUtils.serialize(vectOne));
+			batch.put(bytes("deltat"), LevelDBUtils.serialize(deltat));
+			batch.put(bytes("t_n"), LevelDBUtils.serialize(t_n));
+			batch.put(bytes("t_nplus1"), LevelDBUtils.serialize(t_nplus1));
+			batch.put(bytes("t_n0"), LevelDBUtils.serialize(t_n0));
+			batch.put(bytes("X"), LevelDBUtils.serialize(X));
+			batch.put(bytes("Xc"), LevelDBUtils.serialize(Xc));
+			batch.put(bytes("u_n"), LevelDBUtils.serialize(u_n));
+			batch.put(bytes("u_nplus1"), LevelDBUtils.serialize(u_nplus1));
+			batch.put(bytes("u_nplus1_k"), LevelDBUtils.serialize(u_nplus1_k));
+			batch.put(bytes("u_nplus1_kplus1"), LevelDBUtils.serialize(u_nplus1_kplus1));
+			batch.put(bytes("V"), LevelDBUtils.serialize(V));
+			batch.put(bytes("D"), LevelDBUtils.serialize(D));
+			batch.put(bytes("faceLength"), LevelDBUtils.serialize(faceLength));
+			batch.put(bytes("faceConductivity"), LevelDBUtils.serialize(faceConductivity));
+			batch.put(bytes("alpha"), LevelDBUtils.serialize(alpha));
+			batch.put(bytes("residual"), LevelDBUtils.serialize(residual));
+
+			db.write(batch);
 		}
+		finally
+		{
+			// Make sure you close the batch to avoid resource leaks.
+			batch.close();
+		}
+		db.close();
+		System.out.println("Reference database " + db_name + " created.");
 	}
 };

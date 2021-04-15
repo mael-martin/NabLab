@@ -9,16 +9,20 @@
 #include <limits>
 #include <utility>
 #include <cmath>
+#include <leveldb/db.h>
+#include <leveldb/write_batch.h>
 #include "nablalib/mesh/CartesianMesh2DFactory.h"
 #include "nablalib/mesh/CartesianMesh2D.h"
 #include "nablalib/utils/Utils.h"
 #include "nablalib/utils/Timer.h"
 #include "nablalib/types/Types.h"
+#include "nablalib/utils/Serializer.h"
 #include "nablalib/mesh/PvdFileWriter2D.h"
 
 using namespace nablalib::mesh;
 using namespace nablalib::utils;
 using namespace nablalib::types;
+using namespace nablalib::utils::stl;
 
 /******************** Free functions declarations ********************/
 
@@ -57,8 +61,6 @@ class Glace2d
 public:
 	struct Options
 	{
-		std::string outputPath;
-		int outputPeriod;
 		double stopTime;
 		int maxIterations;
 		double gamma;
@@ -69,6 +71,7 @@ public:
 		double rhoIniZd;
 		double pIniZg;
 		double pIniZd;
+		std::string nonRegression;
 
 		void jsonInit(const char* jsonContent);
 	};
@@ -104,17 +107,15 @@ public:
 	void computeXn() noexcept;
 	void computeEn() noexcept;
 	void computeUn() noexcept;
+	void createDB(const std::string& db_name);
 
 private:
-	void dumpVariables(int iteration, bool useTimer=true);
-
 	// Mesh and mesh variables
 	CartesianMesh2D* mesh;
-	size_t nbNodes, nbCells, nbInnerNodes, nbTopNodes, nbBottomNodes, nbLeftNodes, nbRightNodes, nbNodesOfCell, nbCellsOfNode;
+	size_t __attribute__((unused))nbNodes, nbCells, nbInnerNodes, nbTopNodes, nbBottomNodes, nbLeftNodes, nbRightNodes, nbNodesOfCell, nbCellsOfNode;
 
 	// User options
 	Options& options;
-	PvdFileWriter2D writer;
 
 	// Timers
 	Timer globalTimer;
@@ -123,7 +124,6 @@ private:
 
 public:
 	// Global variables
-	int lastDump;
 	int n;
 	double t_n;
 	double t_nplus1;
