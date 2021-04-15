@@ -86,7 +86,7 @@ class StlThreadIncludesContentProvider extends IncludesContentProvider
 		val includes = super.getUserIncludes(hasLevelDB, hasPostProcessing)
 		includes += "nablalib/utils/stl/Parallel.h"
 		includes += "nablalib/mesh/PvdFileWriter2D.h"
-		if (hasLevelDB) includes += "nablalib/utils/stl/Serializer.h"
+		if (hasLevelDB) includes += "nablalib/utils/Serializer.h"
 		return includes
 	}
 
@@ -130,7 +130,7 @@ class SequentialIncludesContentProvider extends IncludesContentProvider
 	override getUserIncludes(boolean hasLevelDB, boolean hasPostProcessing)
 	{
 		val includes = super.getUserIncludes(hasLevelDB, hasPostProcessing)
-		if (hasLevelDB) includes += "nablalib/utils/stl/Serializer.h"
+		if (hasLevelDB) includes += "nablalib/utils/Serializer.h"
 		includes += "nablalib/mesh/PvdFileWriter2D.h"
 		return includes
 	}
