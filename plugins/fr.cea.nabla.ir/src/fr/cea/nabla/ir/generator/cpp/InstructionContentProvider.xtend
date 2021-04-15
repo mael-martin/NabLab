@@ -211,7 +211,7 @@ class StlThreadInstructionContentProvider extends InstructionContentProvider
 	'''
 		«result.type.cppType» «result.name»;
 		«iterationBlock.defineInterval('''
-		«result.name» = parallel_reduce(«iterationBlock.nbElems», «result.defaultValue.content», [&](«result.type.cppType»& accu, const size_t& «iterationBlock.indexName»)
+		«result.name» = nablalib::utils::stl::parallel_reduce(«iterationBlock.nbElems», «result.defaultValue.content», [&](«result.type.cppType»& accu, const size_t& «iterationBlock.indexName»)
 			{
 				«FOR innerInstruction : innerInstructions»
 				«innerInstruction.content»
@@ -223,7 +223,7 @@ class StlThreadInstructionContentProvider extends InstructionContentProvider
 
 	override getParallelLoopContent(Loop it)
 	'''
-		parallel_exec(«iterationBlock.nbElems», [&](const size_t& «iterationBlock.indexName»)
+		nablalib::utils::stl::parallel_exec(«iterationBlock.nbElems», [&](const size_t& «iterationBlock.indexName»)
 		{
 			«body.innerContent»
 		});
