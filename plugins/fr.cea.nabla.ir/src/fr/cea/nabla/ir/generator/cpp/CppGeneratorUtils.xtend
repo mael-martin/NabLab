@@ -155,7 +155,14 @@ class CppGeneratorUtils
 	}
 
 	/* Get variable dependencies and their ranges, etc */
-	static def getVariableName(Variable it) { isOption ? '''options.«name»''' : '''this->«name»''' }
+	static def getVariableName(Variable it) {
+		if (isConstExpr) {
+			val parentModule = EcoreUtil2.getContainerOfType(it, IrModule)
+			return '''«parentModule.className»::«name»'''
+		}
+
+		else return isOption ? '''options.«name»''' : '''this->«name»'''
+	}
 	static def isVariableRange(Variable it)
 	{
 		if (isOption)
@@ -345,7 +352,7 @@ ENDFOR»«ENDFOR»'''
 	static def getSharedVarsNames(Job it) {
 		val ins = inVars.filter[!isOption].toSet;
 		ins.addAll(outVars.filter[!isOption])
-		val ret = ins.map["this->" + name].toSet
+		val ret = ins.map[variableName].toSet
 		return ret
 	}
 	static def getSharedVarsClause(Job it) {

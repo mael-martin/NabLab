@@ -162,11 +162,10 @@ void HeatEquation::computeOutgoingFlux() noexcept
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
 		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
-		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
-		default(none) shared(stderr, mesh, this->u_n, this->center, this->surface, this->deltat, this->V, this->outgoingFlux) priority(2) \
-		/* dep loop (range) */ depend(out:	(this->outgoingFlux[___omp_base_CELLS]))
+		default(none) shared(stderr, mesh, this->u_n, this->center, this->surface, HeatEquation::deltat, this->V, this->outgoingFlux) priority(2) \
+		/* dep loop (range) */ depend(out:	(this->outgoingFlux[___omp_base]))
 		{
 			for (size_t j1Cells = ___omp_base; j1Cells < ___omp_limit; ++j1Cells)
 			{
@@ -202,11 +201,10 @@ void HeatEquation::computeSurface() noexcept
 	{
 		const Id ___omp_base  = ((nbFaces / 10) * task);
 		const Id ___omp_limit = (10 - 1 != task) ? ((nbFaces / 10) * (task + 1)) : (nbFaces);
-		const size_t ___omp_base_FACES = ___omp_base;
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X, this->surface) priority(3) \
-		/* dep loop (range) */ depend(out:	(this->surface[___omp_base_FACES]))
+		/* dep loop (range) */ depend(out:	(this->surface[___omp_base]))
 		{
 			for (size_t fFaces = ___omp_base; fFaces < ___omp_limit; ++fFaces)
 			{
@@ -240,7 +238,7 @@ void HeatEquation::computeTn() noexcept
 	/* ONLY_AFFECTATION, still need to launch a task for that
 	 * TODO: Group all affectations in one job */
 	#pragma omp task  \
-	default(none) shared(stderr, mesh, this->t_n, this->deltat, this->t_nplus1) priority(2) \
+	default(none) shared(stderr, mesh, this->t_n, HeatEquation::deltat, this->t_nplus1) priority(2) \
 	/* dep loop all (simpL) */ depend(out:	(this->t_nplus1))
 	{
 		t_nplus1 = t_n + deltat;
@@ -258,11 +256,10 @@ void HeatEquation::computeV() noexcept
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
 		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
-		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X, this->V) priority(3) \
-		/* dep loop (range) */ depend(out:	(this->V[___omp_base_CELLS]))
+		/* dep loop (range) */ depend(out:	(this->V[___omp_base]))
 		{
 			for (size_t jCells = ___omp_base; jCells < ___omp_limit; ++jCells)
 			{
@@ -297,11 +294,10 @@ void HeatEquation::iniCenter() noexcept
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
 		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
-		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X, this->center) priority(3) \
-		/* dep loop (range) */ depend(out:	(this->center[___omp_base_CELLS]))
+		/* dep loop (range) */ depend(out:	(this->center[___omp_base]))
 		{
 			for (size_t jCells = ___omp_base; jCells < ___omp_limit; ++jCells)
 			{
@@ -334,11 +330,10 @@ void HeatEquation::iniF() noexcept
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
 		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
-		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->f) priority(3) \
-		/* dep loop (range) */ depend(out:	(this->f[___omp_base_CELLS]))
+		/* dep loop (range) */ depend(out:	(this->f[___omp_base]))
 		{
 			for (size_t jCells = ___omp_base; jCells < ___omp_limit; ++jCells)
 			{
@@ -376,12 +371,11 @@ void HeatEquation::computeUn() noexcept
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
 		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
-		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
-		default(none) shared(stderr, mesh, this->f, this->deltat, this->u_n, this->outgoingFlux, this->u_nplus1) priority(1) \
-		/* dep loop (range) */ depend(in:	(this->outgoingFlux[___omp_base_CELLS])) \
-		/* dep loop (range) */ depend(out:	(this->u_nplus1[___omp_base_CELLS]))
+		default(none) shared(stderr, mesh, this->f, HeatEquation::deltat, this->u_n, this->outgoingFlux, this->u_nplus1) priority(1) \
+		/* dep loop (range) */ depend(in:	(this->outgoingFlux[___omp_base])) \
+		/* dep loop (range) */ depend(out:	(this->u_nplus1[___omp_base]))
 		{
 			for (size_t jCells = ___omp_base; jCells < ___omp_limit; ++jCells)
 			{
@@ -402,12 +396,11 @@ void HeatEquation::iniUn() noexcept
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
 		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
-		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->center, this->u_n) priority(2) \
-		/* dep loop (range) */ depend(in:	(this->center[___omp_base_CELLS])) \
-		/* dep loop (range) */ depend(out:	(this->u_n[___omp_base_CELLS]))
+		/* dep loop (range) */ depend(in:	(this->center[___omp_base])) \
+		/* dep loop (range) */ depend(out:	(this->u_n[___omp_base]))
 		{
 			for (size_t jCells = ___omp_base; jCells < ___omp_limit; ++jCells)
 			{

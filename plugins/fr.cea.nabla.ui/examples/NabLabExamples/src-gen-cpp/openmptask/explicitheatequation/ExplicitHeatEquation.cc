@@ -463,7 +463,7 @@ void ExplicitHeatEquation::initU() noexcept
 		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
-		default(none) shared(stderr, mesh, this->Xc, this->vectOne, this->u_n) priority(3) \
+		default(none) shared(stderr, mesh, this->Xc, ExplicitHeatEquation::vectOne, this->u_n) priority(3) \
 		/* dep loop (range) */ depend(in:	(this->Xc[___omp_base])) \
 		/* dep loop (range) */ depend(out:	(this->u_n[___omp_base]))
 		{
