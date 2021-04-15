@@ -31,7 +31,6 @@ import fr.cea.nabla.ir.generator.cpp.TypeContentProvider
 import java.util.stream.IntStream
 import java.util.Iterator
 import java.util.HashSet
-import java.util.Set
 import java.util.HashMap
 
 enum INDEX_TYPE { NODES, CELLS, FACES, NULL }
@@ -196,7 +195,7 @@ class CppGeneratorUtils
 		throw new Exception("Unknown conversion from '" + basetype + "' to '" + casttype + "'")
 	}
 
-	static def getDependencies_LOOP(Job it, String inout, Iterable<Variable> deps, CharSequence from, CharSequence count)
+	static def getDependencies(Job it, String inout, Iterable<Variable> deps, CharSequence from, CharSequence count)
 	{
 		/* Construct the OpenMP clause */
 		val falseIns = getFalseInVariableForJob(it);
@@ -232,7 +231,7 @@ ENDFOR»'''
 		return ret
 	}
 	
-	static def getBaseIndex_LOOP(CharSequence nbElems, CharSequence partitionId) '''((«nbElems» / «OMPTaskMaxNumber») * «partitionId»)'''
+	static def getBaseIndex(CharSequence nbElems, CharSequence partitionId) '''((«nbElems» / «OMPTaskMaxNumber») * «partitionId»)'''
 
 	static def getAffinities(Job it, Iterable<Variable> deps, CharSequence taskPartition)
 	{
@@ -244,7 +243,7 @@ ENDFOR»'''
 		return ''''''
 	}
 
-	static def getDependenciesAll_LOOP(Job it, String inout, Iterable<Variable> deps)
+	static def getDependenciesAll(Job it, String inout, Iterable<Variable> deps)
 	{
 		/* Construct the OpenMP clause(s) */
 		val falseIns = getFalseInVariableForJob(it);
@@ -268,7 +267,7 @@ ENDFOR»'''
 		{
 			/* All ranges : XXX : Can't be used with partial things like 'innerCells', must be all the variable */
 			ret = '''«FOR v : dep_ranges SEPARATOR ' \\\n'»«FOR i : OMPTaskMaxNumberIterator» \
-/* dep loop all (rgpin) */ depend(«inout»:	(this->«v.name»[«getBaseIndex_LOOP('''(this->«v.name».size())''', '''«i»''')»]))«
+/* dep loop all (rgpin) */ depend(«inout»:	(this->«v.name»[«getBaseIndex('''(this->«v.name».size())''', '''«i»''')»]))«
 ENDFOR»«ENDFOR»'''
 		}
 
@@ -313,18 +312,18 @@ ENDFOR»«ENDFOR»'''
 	}
 	
 	/* Shared variables, don't copy them into threads */
-	static def getSharedVarsNames_LOOP(Job it) {
+	static def getSharedVarsNames(Job it) {
 		val ins = inVars.filter[!isOption].toSet;
 		ins.addAll(outVars.filter[!isOption])
 		val ret = ins.map["this->" + name].toSet
 		return ret
 	}
-	static def getSharedVarsClause_LOOP(Job it, boolean isDependAll) {
-		val shared = sharedVarsNames_LOOP
+	static def getSharedVarsClause(Job it, boolean isDependAll) {
+		val shared = sharedVarsNames
 		''' \
 default(none) shared(stderr, mesh«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
 	}
-	static def getFirstPrivateVars_LOOP(Job it) {
+	static def getFirstPrivateVars(Job it) {
 		val idxs   = usedIndexType.map[t | '''___omp_base_«t», ___omp_count_«t»''' ]
 		''' \
 firstprivate(task, ___omp_base, ___omp_limit«IF idxs.size > 0», «ENDIF»«FOR i : idxs SEPARATOR ', '»«i»«ENDFOR»)'''
