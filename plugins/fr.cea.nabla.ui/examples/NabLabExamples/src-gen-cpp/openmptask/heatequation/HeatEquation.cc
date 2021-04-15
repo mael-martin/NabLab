@@ -161,19 +161,10 @@ void HeatEquation::computeOutgoingFlux() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeOutgoingFlux@1.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->u_n, this->center, this->surface, this->deltat, this->V, this->outgoingFlux) priority(2) \
 		/* dep loop (range) */ depend(out:	(this->outgoingFlux[___omp_base_CELLS]))
 		{
@@ -210,19 +201,10 @@ void HeatEquation::computeSurface() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbFaces / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbFaces / 10) * (task + 1))
-			: (nbFaces);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeSurface@1.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_FACES   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_FACES   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_FACES  = ___omp_min_FACES;
-		const Id ___omp_count_FACES = ___omp_max_FACES - ___omp_min_FACES; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbFaces / 10) * (task + 1)) : (nbFaces);
+		const size_t ___omp_base_FACES = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_FACES, ___omp_count_FACES)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X, this->surface) priority(3) \
 		/* dep loop (range) */ depend(out:	(this->surface[___omp_base_FACES]))
 		{
@@ -275,19 +257,10 @@ void HeatEquation::computeV() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeV@1.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X, this->V) priority(3) \
 		/* dep loop (range) */ depend(out:	(this->V[___omp_base_CELLS]))
 		{
@@ -323,19 +296,10 @@ void HeatEquation::iniCenter() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "IniCenter@1.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X, this->center) priority(3) \
 		/* dep loop (range) */ depend(out:	(this->center[___omp_base_CELLS]))
 		{
@@ -369,19 +333,10 @@ void HeatEquation::iniF() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "IniF@1.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->f) priority(3) \
 		/* dep loop (range) */ depend(out:	(this->f[___omp_base_CELLS]))
 		{
@@ -420,19 +375,10 @@ void HeatEquation::computeUn() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeUn@2.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->f, this->deltat, this->u_n, this->outgoingFlux, this->u_nplus1) priority(1) \
 		/* dep loop (range) */ depend(in:	(this->outgoingFlux[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(out:	(this->u_nplus1[___omp_base_CELLS]))
@@ -455,19 +401,10 @@ void HeatEquation::iniUn() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "IniUn@2.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->center, this->u_n) priority(2) \
 		/* dep loop (range) */ depend(in:	(this->center[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(out:	(this->u_n[___omp_base_CELLS]))

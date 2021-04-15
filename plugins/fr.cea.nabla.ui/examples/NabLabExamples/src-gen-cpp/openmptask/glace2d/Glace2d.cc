@@ -297,19 +297,10 @@ void Glace2d::computeCjr() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeCjr@1.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X_n, this->C) priority(11) \
 		/* dep loop (range) */ depend(out:	(this->C[___omp_base_CELLS]))
 		{
@@ -343,19 +334,10 @@ void Glace2d::computeInternalEnergy() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeInternalEnergy@1.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->E_n, this->uj_n, this->e) priority(11) \
 		/* dep loop (range) */ depend(out:	(this->e[___omp_base_CELLS]))
 		{
@@ -377,19 +359,10 @@ void Glace2d::iniCjrIc() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "IniCjrIc@1.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X_n0, this->Cjr_ic) priority(3) \
 		/* dep loop (range) */ depend(out:	(this->Cjr_ic[___omp_base_CELLS]))
 		{
@@ -457,19 +430,10 @@ void Glace2d::computeLjr() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeLjr@2.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->C, this->l) priority(10) \
 		/* dep loop (range) */ depend(in:	(this->C[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(out:	(this->l[___omp_base_CELLS]))
@@ -500,19 +464,10 @@ void Glace2d::computeV() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeV@2.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->C, this->X_n, this->V) priority(10) \
 		/* dep loop (range) */ depend(in:	(this->C[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(out:	(this->V[___omp_base_CELLS]))
@@ -547,19 +502,10 @@ void Glace2d::initialize() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "Initialize@2.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X_n0, this->Cjr_ic, this->m, this->p, this->rho, this->E_n, this->uj_n) priority(2) \
 		/* dep loop (range) */ depend(in:	(this->Cjr_ic[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(out:	(this->m[___omp_base_CELLS])) \
@@ -641,19 +587,10 @@ void Glace2d::computeDensity() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeDensity@3.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->m, this->V, this->rho) priority(9) \
 		/* dep loop (range) */ depend(in:	(this->V[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(out:	(this->rho[___omp_base_CELLS]))
@@ -769,19 +706,10 @@ void Glace2d::computeEOSp() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeEOSp@4.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->rho, this->e, this->p) priority(8) \
 		/* dep loop (range) */ depend(in:	(this->rho[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(in:	(this->e[___omp_base_CELLS])) \
@@ -805,19 +733,10 @@ void Glace2d::computeEOSc() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeEOSc@5.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->p, this->rho, this->c) priority(7) \
 		/* dep loop (range) */ depend(in:	(this->p[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(in:	(this->rho[___omp_base_CELLS])) \
@@ -841,19 +760,10 @@ void Glace2d::computeAjr() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeAjr@6.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->rho, this->c, this->l, this->C, this->Ajr) priority(6) \
 		/* dep loop (range) */ depend(in:	(this->rho[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(in:	(this->c[___omp_base_CELLS])) \
@@ -887,19 +797,10 @@ void Glace2d::computedeltatj() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "Computedeltatj@6.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->l, this->V, this->c, this->deltatj) priority(6) \
 		/* dep loop (range) */ depend(in:	(this->l[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(in:	(this->V[___omp_base_CELLS])) \
@@ -934,26 +835,13 @@ void Glace2d::computeAr() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbNodes / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbNodes / 10) * (task + 1))
-			: (nbNodes);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeAr@7.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(internal_omptask::min(mesh->getCellsOfNode(___omp_base)), internal_omptask::min(mesh->getCellsOfNode(___omp_limit - 1)));
-		const Id ___omp_max_CELLS   = std::max(internal_omptask::max(mesh->getCellsOfNode(___omp_base)), internal_omptask::max(mesh->getCellsOfNode(___omp_limit - 1)));
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
-		const Id ___omp_min_NODES   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_NODES   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_NODES  = ___omp_min_NODES;
-		const Id ___omp_count_NODES = ___omp_max_NODES - ___omp_min_NODES; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbNodes / 10) * (task + 1)) : (nbNodes);
+		const size_t ___omp_base_NODES = ___omp_base;
 		// WARN: Conversions in in/out for omp task
+		// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS, ___omp_base_NODES, ___omp_count_NODES)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->Ajr, this->Ar) priority(5) \
-		/* dep loop (range) */ depend(in:	(this->Ajr[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(out:	(this->Ar[___omp_base_NODES]))
 		{
 			for (size_t rNodes = ___omp_base; rNodes < ___omp_limit; ++rNodes)
@@ -993,28 +881,13 @@ void Glace2d::computeBr() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbNodes / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbNodes / 10) * (task + 1))
-			: (nbNodes);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeBr@7.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(internal_omptask::min(mesh->getCellsOfNode(___omp_base)), internal_omptask::min(mesh->getCellsOfNode(___omp_limit - 1)));
-		const Id ___omp_max_CELLS   = std::max(internal_omptask::max(mesh->getCellsOfNode(___omp_base)), internal_omptask::max(mesh->getCellsOfNode(___omp_limit - 1)));
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
-		const Id ___omp_min_NODES   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_NODES   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_NODES  = ___omp_min_NODES;
-		const Id ___omp_count_NODES = ___omp_max_NODES - ___omp_min_NODES; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbNodes / 10) * (task + 1)) : (nbNodes);
+		const size_t ___omp_base_NODES = ___omp_base;
 		// WARN: Conversions in in/out for omp task
+		// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS, ___omp_base_NODES, ___omp_count_NODES)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->p, this->C, this->Ajr, this->uj_n, this->b) priority(5) \
-		/* dep loop (range) */ depend(in:	(this->p[___omp_base_CELLS])) \
-		/* dep loop (range) */ depend(in:	(this->C[___omp_base_CELLS])) \
-		/* dep loop (range) */ depend(in:	(this->Ajr[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(out:	(this->b[___omp_base_NODES]))
 		{
 			for (size_t rNodes = ___omp_base; rNodes < ___omp_limit; ++rNodes)
@@ -1078,7 +951,7 @@ void Glace2d::computeDt() noexcept
  */
 void Glace2d::computeBoundaryConditions() noexcept
 {
-	#pragma omp task priority(4)  \
+	#pragma omp task priority(4) \
 	default(none) shared(stderr, mesh, this->b, this->Ar, this->bt, this->Mt) \
 	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 10) * 0)])) \
 	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 10) * 1)])) \
@@ -1182,19 +1055,10 @@ void Glace2d::computeBt() noexcept
 		for (size_t task = 0; task < 10; ++task)
 		{
 			const Id ___omp_base  = ((nbInnerNodes / 10) * task);
-			const Id ___omp_limit = (10 - 1 != task)
-				? ((nbInnerNodes / 10) * (task + 1))
-				: (nbInnerNodes);
-			assert(___omp_base != ___omp_limit);
-			#if NABLA_DEBUG == 1
-			fprintf(stderr, "ComputeBt@8.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-			#endif
-			const Id ___omp_min_NODES   = std::min(___omp_base, ___omp_limit - 1);
-			const Id ___omp_max_NODES   = std::max(___omp_base, ___omp_limit - 1);
-			const Id ___omp_base_NODES  = ___omp_min_NODES;
-			const Id ___omp_count_NODES = ___omp_max_NODES - ___omp_min_NODES; // Don't do +1
+			const Id ___omp_limit = (10 - 1 != task) ? ((nbInnerNodes / 10) * (task + 1)) : (nbInnerNodes);
+			const size_t ___omp_base_NODES = ___omp_base;
 			#pragma omp task  \
-			firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_NODES, ___omp_count_NODES)  \
+			firstprivate(task, ___omp_base, ___omp_limit, innerNodes)  \
 			default(none) shared(stderr, mesh, this->b, this->bt) priority(4) \
 			/* dep loop (range) */ depend(in:	(this->b[___omp_base_NODES])) \
 			/* dep loop (simpL) */ depend(out:	(this->bt))
@@ -1226,19 +1090,10 @@ void Glace2d::computeMt() noexcept
 		for (size_t task = 0; task < 10; ++task)
 		{
 			const Id ___omp_base  = ((nbInnerNodes / 10) * task);
-			const Id ___omp_limit = (10 - 1 != task)
-				? ((nbInnerNodes / 10) * (task + 1))
-				: (nbInnerNodes);
-			assert(___omp_base != ___omp_limit);
-			#if NABLA_DEBUG == 1
-			fprintf(stderr, "ComputeMt@8.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-			#endif
-			const Id ___omp_min_NODES   = std::min(___omp_base, ___omp_limit - 1);
-			const Id ___omp_max_NODES   = std::max(___omp_base, ___omp_limit - 1);
-			const Id ___omp_base_NODES  = ___omp_min_NODES;
-			const Id ___omp_count_NODES = ___omp_max_NODES - ___omp_min_NODES; // Don't do +1
+			const Id ___omp_limit = (10 - 1 != task) ? ((nbInnerNodes / 10) * (task + 1)) : (nbInnerNodes);
+			const size_t ___omp_base_NODES = ___omp_base;
 			#pragma omp task  \
-			firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_NODES, ___omp_count_NODES)  \
+			firstprivate(task, ___omp_base, ___omp_limit, innerNodes)  \
 			default(none) shared(stderr, mesh, this->Ar, this->Mt) priority(4) \
 			/* dep loop (range) */ depend(in:	(this->Ar[___omp_base_NODES])) \
 			/* dep loop (simpL) */ depend(out:	(this->Mt))
@@ -1288,19 +1143,10 @@ void Glace2d::computeU() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbNodes / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbNodes / 10) * (task + 1))
-			: (nbNodes);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeU@9.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_NODES   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_NODES   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_NODES  = ___omp_min_NODES;
-		const Id ___omp_count_NODES = ___omp_max_NODES - ___omp_min_NODES; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbNodes / 10) * (task + 1)) : (nbNodes);
+		const size_t ___omp_base_NODES = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_NODES, ___omp_count_NODES)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->Mt, this->bt, this->ur) priority(3) \
 		/* dep loop (simpL) */ depend(in:	(this->Mt)), \
 		/* dep loop (simpL) */ depend(in:	(this->bt)) \
@@ -1324,29 +1170,13 @@ void Glace2d::computeFjr() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeFjr@10.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
-		const Id ___omp_min_NODES   = std::min(internal_omptask::min(mesh->getNodesOfCell(___omp_base)), internal_omptask::min(mesh->getNodesOfCell(___omp_limit - 1)));
-		const Id ___omp_max_NODES   = std::max(internal_omptask::max(mesh->getNodesOfCell(___omp_base)), internal_omptask::max(mesh->getNodesOfCell(___omp_limit - 1)));
-		const Id ___omp_base_NODES  = ___omp_min_NODES;
-		const Id ___omp_count_NODES = ___omp_max_NODES - ___omp_min_NODES; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		// WARN: Conversions in in/out for omp task
+		// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS, ___omp_base_NODES, ___omp_count_NODES)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->p, this->C, this->Ajr, this->uj_n, this->ur, this->F) priority(2) \
-		/* dep loop (range) */ depend(in:	(this->p[___omp_base_CELLS])) \
-		/* dep loop (range) */ depend(in:	(this->C[___omp_base_CELLS])) \
-		/* dep loop (range) */ depend(in:	(this->Ajr[___omp_base_CELLS])) \
-		/* dep loop (range) */ depend(in:	(this->ur[___omp_base_NODES])) \
 		/* dep loop (range) */ depend(out:	(this->F[___omp_base_CELLS]))
 		{
 			for (size_t jCells = ___omp_base; jCells < ___omp_limit; ++jCells)
@@ -1377,19 +1207,10 @@ void Glace2d::computeXn() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbNodes / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbNodes / 10) * (task + 1))
-			: (nbNodes);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeXn@10.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_NODES   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_NODES   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_NODES  = ___omp_min_NODES;
-		const Id ___omp_count_NODES = ___omp_max_NODES - ___omp_min_NODES; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbNodes / 10) * (task + 1)) : (nbNodes);
+		const size_t ___omp_base_NODES = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_NODES, ___omp_count_NODES)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X_n, this->deltat_n, this->ur, this->X_nplus1) priority(2) \
 		/* dep loop (range) */ depend(in:	(this->ur[___omp_base_NODES])) \
 		/* dep loop (range) */ depend(out:	(this->X_nplus1[___omp_base_NODES]))
@@ -1412,27 +1233,13 @@ void Glace2d::computeEn() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeEn@11.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
-		const Id ___omp_min_NODES   = std::min(internal_omptask::min(mesh->getNodesOfCell(___omp_base)), internal_omptask::min(mesh->getNodesOfCell(___omp_limit - 1)));
-		const Id ___omp_max_NODES   = std::max(internal_omptask::max(mesh->getNodesOfCell(___omp_base)), internal_omptask::max(mesh->getNodesOfCell(___omp_limit - 1)));
-		const Id ___omp_base_NODES  = ___omp_min_NODES;
-		const Id ___omp_count_NODES = ___omp_max_NODES - ___omp_min_NODES; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		// WARN: Conversions in in/out for omp task
+		// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS, ___omp_base_NODES, ___omp_count_NODES)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->F, this->ur, this->E_n, this->deltat_n, this->m, this->E_nplus1) priority(1) \
-		/* dep loop (range) */ depend(in:	(this->F[___omp_base_CELLS])) \
-		/* dep loop (range) */ depend(in:	(this->ur[___omp_base_NODES])) \
 		/* dep loop (range) */ depend(out:	(this->E_nplus1[___omp_base_CELLS]))
 		{
 			for (size_t jCells = ___omp_base; jCells < ___omp_limit; ++jCells)
@@ -1465,19 +1272,10 @@ void Glace2d::computeUn() noexcept
 	for (size_t task = 0; task < 10; ++task)
 	{
 		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task)
-			? ((nbCells / 10) * (task + 1))
-			: (nbCells);
-		assert(___omp_base != ___omp_limit);
-		#if NABLA_DEBUG == 1
-		fprintf(stderr, "ComputeUn@11.0: %ld -> %ld\n", ___omp_base, ___omp_limit);
-		#endif
-		const Id ___omp_min_CELLS   = std::min(___omp_base, ___omp_limit - 1);
-		const Id ___omp_max_CELLS   = std::max(___omp_base, ___omp_limit - 1);
-		const Id ___omp_base_CELLS  = ___omp_min_CELLS;
-		const Id ___omp_count_CELLS = ___omp_max_CELLS - ___omp_min_CELLS; // Don't do +1
+		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const size_t ___omp_base_CELLS = ___omp_base;
 		#pragma omp task  \
-		firstprivate(task, ___omp_base, ___omp_limit, ___omp_base_CELLS, ___omp_count_CELLS)  \
+		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->F, this->uj_n, this->deltat_n, this->m, this->uj_nplus1) priority(1) \
 		/* dep loop (range) */ depend(in:	(this->F[___omp_base_CELLS])) \
 		/* dep loop (range) */ depend(out:	(this->uj_nplus1[___omp_base_CELLS]))

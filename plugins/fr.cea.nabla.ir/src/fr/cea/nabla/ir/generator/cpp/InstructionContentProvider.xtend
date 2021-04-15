@@ -354,11 +354,14 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val parentJob         = EcoreUtil2.getContainerOfType(it, Job)
 		val ins               = parentJob.inVars
 		val outs              = parentJob.outVars
-		if (launch_super_task) { beginTASK('''task'''); }
+		if (launch_super_task) {
+			beginTASK('''task''');
+			instructions.forEach[removeAdditionalFirstPrivVariables]
+		}
 
 		val ret = '''
 		«IF launch_super_task»
-		#pragma omp task«parentJob.priority» «getSharedVarsClause(parentJob)»«
+		#pragma omp task«parentJob.priority»«getSharedVarsClause(parentJob)»«
 			getDependenciesAll(parentJob, 'in',  ins)»«
 			getDependenciesAll(parentJob, 'out', outs)»
 		{ // BEGIN OF SUPER TASK
@@ -385,7 +388,9 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			val ins = parentJob.inVars
 			val outs = parentJob.outVars
 			val super_task = (currentTASK !== null)
-			if (!super_task) beginTASK(getAllOMPTasksAsCharSequence)
+			if (!super_task) {
+				beginTASK(getAllOMPTasksAsCharSequence)
+			}
 
 			val ret = '''
 				/* ONLY_AFFECTATION, still need to launch a task for that
@@ -415,7 +420,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val outs = parentJob.getOutVars /* Produced, unlock jobs that need them */
 		val out  = outs.head            /* Produced, unlock jobs that need them */
 		val super_task = (currentTASK !== null)
-		if (! super_task) beginTASK(getAllOMPTasksAsCharSequence)
+		if (! super_task) {
+			beginTASK(getAllOMPTasksAsCharSequence)
+			removeAdditionalFirstPrivVariables(iterationBlock)
+		}
 
 		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
@@ -546,13 +554,15 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	 * partitions, not all the neighbors). */
 	private def launchSingleTaskForPartition(Loop it, CharSequence partitionId, Set<Variable> ins, Set<Variable> outs)
 	{
-		
 		val parentJob   = EcoreUtil2.getContainerOfType(it, Job)
 		val super_task  = (currentTASK !== null)
 		val base_index  = getBaseIndex(iterationBlock.nbElems, partitionId)
 		val limit_index = '''(«OMPTaskMaxNumber» - 1 != «partitionId») ? ((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1)) : («iterationBlock.nbElems»)'''
 
-		if (!super_task) beginTASK(partitionId)
+		if (!super_task) {
+			beginTASK(partitionId)
+			removeAdditionalFirstPrivVariables(body)
+		}
 
 		val ret = '''
 		{

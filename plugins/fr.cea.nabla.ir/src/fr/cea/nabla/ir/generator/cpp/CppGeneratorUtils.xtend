@@ -28,7 +28,6 @@ import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.ItemIndex
 import fr.cea.nabla.ir.ir.Loop
 import fr.cea.nabla.ir.ir.ReductionInstruction
-import fr.cea.nabla.ir.ir.InstructionBlock
 import fr.cea.nabla.ir.ir.ConnectivityCall
 import fr.cea.nabla.ir.ir.Container
 import fr.cea.nabla.ir.generator.cpp.TypeContentProvider
@@ -37,6 +36,7 @@ import java.util.Iterator
 import java.util.HashSet
 import java.util.HashMap
 import org.eclipse.xtext.EcoreUtil2
+import fr.cea.nabla.ir.ir.IrAnnotable
 
 enum INDEX_TYPE { NODES, CELLS, FACES, NULL }
 
@@ -106,6 +106,18 @@ class CppGeneratorUtils
 			val afp   = additionalFPriv.getOrDefault(name, new HashSet())
 			afp.add(cname)
 			additionalFPriv.put(name, afp)
+		]
+	}
+	static def void removeAdditionalFirstPrivVariables(IrAnnotable it) {
+		if (it === null) return;
+		val parentJob  = EcoreUtil2.getContainerOfType(it, Job)
+		if (parentJob === null) return;
+		eAllContents.filter(ConnectivityCall).filter[!connectivityCall.connectivity.indexEqualId].forEach[ container |
+			val cname = (container as Container).uniqueName
+			val afp   = additionalFPriv.getOrDefault(parentJob.name, null)
+			if (afp === null) return;
+			afp.remove(cname)
+			additionalFPriv.put(parentJob.name, afp)
 		]
 	}
 
@@ -239,7 +251,7 @@ class CppGeneratorUtils
 		if (need_ranges) {
 		ret = ''' \
 «FOR v : dep_ranges SEPARATOR ' \\\n'
-	»/* dep loop (range) */ depend(«inout»:	(«getVariableName(v)»[«from»_«v.name.globalVariableType»]))«
+	»/* dep loop (range) */ depend(«inout»:	(«getVariableName(v)»[«from»]))«
 ENDFOR»'''
 		}
 
@@ -342,9 +354,8 @@ ENDFOR»«ENDFOR»'''
 default(none) shared(stderr, mesh«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
 	}
 	static def getFirstPrivateVars(Job it) {
-		val idxs   = usedIndexType.map[t | '''___omp_base_«t», ___omp_count_«t»''' ]
 		''' \
-firstprivate(task, ___omp_base, ___omp_limit«IF idxs.size > 0», «ENDIF»«FOR i : idxs SEPARATOR ', '»«i»«ENDFOR»«
+firstprivate(task, ___omp_base, ___omp_limit«
 	IF additionalFPriv !== null && additionalFPriv.getOrDefault(name, new HashSet()).length > 0», «
 	FOR p : additionalFPriv.get(name) SEPARATOR ', '»«p»«ENDFOR»«
 	ENDIF»)'''
