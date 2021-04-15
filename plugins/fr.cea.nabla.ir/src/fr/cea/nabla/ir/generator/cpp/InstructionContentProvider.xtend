@@ -572,15 +572,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			const Id ___omp_max_«idxType»   = std::max(«convertIndexType('___omp_base', basetype, idxType, false)», «convertIndexType('___omp_limit - 1', basetype, idxType, false)»);
 			const Id ___omp_base_«idxType»  = ___omp_min_«idxType»;
 			const Id ___omp_count_«idxType» = ___omp_max_«idxType» - ___omp_min_«idxType»; // Don't do +1
-			#if NABLA_DEBUG == 1
-			assert(___omp_count_«idxType» >= 1);
-			assert(___omp_min_«idxType»   >= 0);
-			assert(___omp_min_«idxType»   <= ___omp_max_«idxType»);
-			assert(___omp_max_«idxType»   < «
-				IF idxType == INDEX_TYPE::CELLS»nbCells«ENDIF»«
-				IF idxType == INDEX_TYPE::NODES»nbNodes«ENDIF»«
-				IF idxType == INDEX_TYPE::FACES»nbFaces«ENDIF»);
-			#endif
 			«ENDFOR»
 			«IF parentJob.usedIndexType.length > 1»
 			// WARN: Conversions in in/out for omp task

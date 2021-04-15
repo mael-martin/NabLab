@@ -266,7 +266,7 @@ ENDFOR»'''
 		if (need_ranges)
 		{
 			/* All ranges : XXX : Can't be used with partial things like 'innerCells', must be all the variable */
-			ret = '''«FOR v : dep_ranges SEPARATOR ' \\\n'»«FOR i : OMPTaskMaxNumberIterator» \
+			ret = '''«FOR v : dep_ranges»«FOR i : OMPTaskMaxNumberIterator» \
 /* dep loop all (rgpin) */ depend(«inout»:	(this->«v.name»[«getBaseIndex('''(this->«v.name».size())''', '''«i»''')»]))«
 ENDFOR»«ENDFOR»'''
 		}
