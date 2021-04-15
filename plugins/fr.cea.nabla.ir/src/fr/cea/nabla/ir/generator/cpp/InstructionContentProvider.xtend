@@ -334,7 +334,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	private def CharSequence getCurrentTASK() { return (counters.getOrDefault('Task', 0) == 1) ? auxString.get('TaskId') : null }
 	private def getChildTasks(InstructionBlock it) { return eAllContents.filter(Loop).filter[multithreadable].size + eAllContents.filter(ReductionInstruction).size }
 	private def isInsideAJob(IrAnnotable it) { (null !== EcoreUtil2.getContainerOfType(it, Job)) && (EcoreUtil2.getContainerOfType(it, Function) === null); }
-
+	
 	private def getInnerContentInternal(InstructionBlock it)
 	'''
 		«FOR i : instructions»
@@ -351,14 +351,14 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	{
 		levelINC();
 		val launch_super_task = (insideAJob && (currentLevel == 1) && (childTasks > 1))
+		val parentJob         = EcoreUtil2.getContainerOfType(it, Job)
+		val ins               = parentJob.inVars
+		val outs              = parentJob.outVars
 		if (launch_super_task) { beginTASK('''task'''); }
-		val parentJob      = EcoreUtil2.getContainerOfType(it, Job)
-		val ins            = parentJob.inVars
-		val outs           = parentJob.outVars
 
 		val ret = '''
 		«IF launch_super_task»
-		#pragma omp task«parentJob.priority» «getSharedVarsClause(parentJob, true)»«
+		#pragma omp task«parentJob.priority» «getSharedVarsClause(parentJob)»«
 			getDependenciesAll(parentJob, 'in',  ins)»«
 			getDependenciesAll(parentJob, 'out', outs)»
 		{ // BEGIN OF SUPER TASK
@@ -391,7 +391,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				«IF ! super_task»
-				#pragma omp task «getSharedVarsClause(parentJob, true)»«parentJob.priority»«
+				#pragma omp task «getSharedVarsClause(parentJob)»«parentJob.priority»«
 				                 getDependenciesAll(parentJob, 'in',  ins)»«
 				                 getDependenciesAll(parentJob, 'out', outs)»
 				{
@@ -420,7 +420,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«IF ! super_task»
-			#pragma omp task «getSharedVarsClause(parentJob, true)»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
+			#pragma omp task «getSharedVarsClause(parentJob)»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
 				getDependenciesAll(parentJob, 'in', ins)» \
 			/* dep reduction result */ depend(out:	(this->«out.name»))
 			{
@@ -549,12 +549,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		
 		val parentJob   = EcoreUtil2.getContainerOfType(it, Job)
 		val super_task  = (currentTASK !== null)
-		val basetype    = getConnectivityType
 		val base_index  = getBaseIndex(iterationBlock.nbElems, partitionId)
-		val limit_index =
-		'''(«OMPTaskMaxNumber» - 1 != «partitionId»)
-	? ((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1))
-	: («iterationBlock.nbElems»)'''
+		val limit_index = '''(«OMPTaskMaxNumber» - 1 != «partitionId») ? ((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1)) : («iterationBlock.nbElems»)'''
 
 		if (!super_task) beginTASK(partitionId)
 
@@ -562,23 +558,19 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		{
 			const Id ___omp_base  = «base_index»;
 			const Id ___omp_limit = «limit_index»;
-			assert(___omp_base != ___omp_limit);
-			#if NABLA_DEBUG == 1
-			fprintf(stderr, "«parentJob.name»@«parentJob.at»: %ld -> %ld\n", ___omp_base, ___omp_limit);
-			#endif
 			«IF ! super_task»
-			«FOR idxType : parentJob.usedIndexType»
-			const Id ___omp_min_«idxType»   = std::min(«convertIndexType('___omp_base', basetype, idxType, true )», «convertIndexType('___omp_limit - 1', basetype, idxType, true )»);
-			const Id ___omp_max_«idxType»   = std::max(«convertIndexType('___omp_base', basetype, idxType, false)», «convertIndexType('___omp_limit - 1', basetype, idxType, false)»);
-			const Id ___omp_base_«idxType»  = ___omp_min_«idxType»;
-			const Id ___omp_count_«idxType» = ___omp_max_«idxType» - ___omp_min_«idxType»; // Don't do +1
-			«ENDFOR»
-			«IF parentJob.usedIndexType.length > 1»
-			// WARN: Conversions in in/out for omp task
-			«ENDIF»
-			#pragma omp task «getFirstPrivateVars(parentJob)» «getSharedVarsClause(parentJob, false)»«parentJob.priority»«
-				getDependencies(parentJob, 'in',  ins,  '''___omp_base''', '''___omp_count''')»«
-				getDependencies(parentJob, 'out', outs, '''___omp_base''', '''___omp_count''')»
+				«IF parentJob.usedIndexType.length > 1»
+					// WARN: Conversions in in/out for omp task
+					// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
+					#pragma omp task «getFirstPrivateVars(parentJob)» «
+						getSharedVarsClause(parentJob)»«parentJob.priority»«
+						getDependencies(parentJob, 'out', outs, '''___omp_base''')»
+				«ELSE»
+					#pragma omp task «getFirstPrivateVars(parentJob)» «
+						getSharedVarsClause(parentJob)»«parentJob.priority»«
+						getDependencies(parentJob, 'in',  ins,  '''___omp_base''')»«
+						getDependencies(parentJob, 'out', outs, '''___omp_base''')»
+				«ENDIF»
 			«ENDIF»
 			{
 				for (size_t «iterationBlock.indexName» = ___omp_base; «iterationBlock.indexName» < ___omp_limit; ++«iterationBlock.indexName»)
@@ -622,9 +614,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			
 			else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
 		}
-		'''
+		val ret = '''
 			for (size_t task = 0; task < «OMPTaskMaxNumber»; ++task)
 			«launchSingleTaskForPartition(it, '''task''', ins, outs)»
 		'''
+		return ret;
 	}
 }

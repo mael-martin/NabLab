@@ -31,6 +31,7 @@ import static extension fr.cea.nabla.ir.IrRootExtensions.*
 import static extension fr.cea.nabla.ir.IrTypeExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+import fr.cea.nabla.ir.ir.Job
 
 class CppApplicationGenerator extends CppGenerator implements ApplicationGenerator
 {
@@ -52,8 +53,10 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	{
 		resetGlobalVariable
 		resetGlobalVariableProducedBySuperTask
+		resetAdditionalFirstPrivateVariables
 		ir.modules.filter[t|t!==null].forEach[registerGlobalVariable]
 		ir.modules.filter[t|t!==null].forEach[registerGlobalVariableProducedBySuperTask]
+		ir.eAllContents.filter(Job).forEach[registerAdditionalFirstPrivVariables]
 		val fileContents = new ArrayList<GenerationContent>
 		for (module : ir.modules)
 		{
