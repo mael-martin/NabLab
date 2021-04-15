@@ -170,7 +170,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«ENDIF»
 		// Mesh and mesh variables
 		«meshClassName»* mesh;
-		«FOR c : irRoot.connectivities.filter[multiple] BEFORE 'size_t ' SEPARATOR ', '»«c.nbElemsVar»«ENDFOR»;
+		«FOR c : irRoot.connectivities.filter[multiple] BEFORE 'size_t __attribute__((unused))' SEPARATOR ', '»«c.nbElemsVar»«ENDFOR»;
 
 		// User options
 		Options& options;
