@@ -8,15 +8,15 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-static size_t ___DAG_loops = 0;
+static size_t __attribute__((unused)) ___DAG_loops = 0;
 #include <algorithm>
 namespace internal_omptask {
-auto max = [](const auto& vec) -> Id { return *std::max_element(vec.begin(), vec.end()); };
-auto min = [](const auto& vec) -> Id { return *std::min_element(vec.begin(), vec.end()); };
+auto __attribute__((unused)) max = [](const auto& vec) -> Id { return *std::max_element(vec.begin(), vec.end()); };
+auto __attribute__((unused)) min = [](const auto& vec) -> Id { return *std::min_element(vec.begin(), vec.end()); };
 
-static size_t nbX_CELLS = 0;
-static size_t nbX_FACES = 0;
-static size_t nbX_NODES = 0;
+static size_t __attribute__((unused)) nbX_CELLS = 0;
+static size_t __attribute__((unused)) nbX_FACES = 0;
+static size_t __attribute__((unused)) nbX_NODES = 0;
 }
 
 /******************** Free functions definitions ********************/

@@ -22,7 +22,6 @@
 using namespace nablalib::mesh;
 using namespace nablalib::utils;
 using namespace nablalib::types;
-using namespace nablalib::utils::stl;
 
 /******************** Free functions declarations ********************/
 

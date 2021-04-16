@@ -277,7 +277,7 @@ Glace2d::Glace2d(CartesianMesh2D* aMesh, Options& aOptions)
  */
 void Glace2d::computeCjr() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		const Id jId(jCells);
 		{
@@ -302,7 +302,7 @@ void Glace2d::computeCjr() noexcept
  */
 void Glace2d::computeInternalEnergy() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		e[jCells] = E_n[jCells] - 0.5 * glace2dfreefuncs::dot(uj_n[jCells], uj_n[jCells]);
 	});
@@ -315,7 +315,7 @@ void Glace2d::computeInternalEnergy() noexcept
  */
 void Glace2d::iniCjrIc() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		const Id jId(jCells);
 		{
@@ -360,7 +360,7 @@ void Glace2d::iniTimeStep() noexcept
  */
 void Glace2d::computeLjr() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		const Id jId(jCells);
 		{
@@ -381,7 +381,7 @@ void Glace2d::computeLjr() noexcept
  */
 void Glace2d::computeV() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		const Id jId(jCells);
 		double reduction0(0.0);
@@ -406,7 +406,7 @@ void Glace2d::computeV() noexcept
  */
 void Glace2d::initialize() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		const Id jId(jCells);
 		double rho_ic;
@@ -474,7 +474,7 @@ void Glace2d::setUpTimeLoopN() noexcept
  */
 void Glace2d::computeDensity() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		rho[jCells] = m[jCells] / V[jCells];
 	});
@@ -559,7 +559,7 @@ void Glace2d::executeTimeLoopN() noexcept
  */
 void Glace2d::computeEOSp() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		p[jCells] = (options.gamma - 1.0) * rho[jCells] * e[jCells];
 	});
@@ -572,7 +572,7 @@ void Glace2d::computeEOSp() noexcept
  */
 void Glace2d::computeEOSc() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		c[jCells] = std::sqrt(options.gamma * p[jCells] / rho[jCells]);
 	});
@@ -585,7 +585,7 @@ void Glace2d::computeEOSc() noexcept
  */
 void Glace2d::computeAjr() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		const Id jId(jCells);
 		{
@@ -606,7 +606,7 @@ void Glace2d::computeAjr() noexcept
  */
 void Glace2d::computedeltatj() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		const Id jId(jCells);
 		double reduction0(0.0);
@@ -629,7 +629,7 @@ void Glace2d::computedeltatj() noexcept
  */
 void Glace2d::computeAr() noexcept
 {
-	parallel_exec(nbNodes, [&](const size_t& rNodes)
+	nablalib::utils::stl::parallel_exec(nbNodes, [&](const size_t& rNodes)
 	{
 		const Id rId(rNodes);
 		RealArray2D<2,2> reduction0({0.0, 0.0,  0.0, 0.0});
@@ -661,7 +661,7 @@ void Glace2d::computeAr() noexcept
  */
 void Glace2d::computeBr() noexcept
 {
-	parallel_exec(nbNodes, [&](const size_t& rNodes)
+	nablalib::utils::stl::parallel_exec(nbNodes, [&](const size_t& rNodes)
 	{
 		const Id rId(rNodes);
 		RealArray1D<2> reduction0({0.0, 0.0});
@@ -691,7 +691,7 @@ void Glace2d::computeBr() noexcept
 void Glace2d::computeDt() noexcept
 {
 	double reduction0;
-	reduction0 = parallel_reduce(nbCells, numeric_limits<double>::max(), [&](double& accu, const size_t& jCells)
+	reduction0 = nablalib::utils::stl::parallel_reduce(nbCells, numeric_limits<double>::max(), [&](double& accu, const size_t& jCells)
 		{
 			return (accu = glace2dfreefuncs::minR0(accu, deltatj[jCells]));
 		},
@@ -710,7 +710,7 @@ void Glace2d::computeBoundaryConditions() noexcept
 	{
 		const auto topNodes(mesh->getTopNodes());
 		const size_t nbTopNodes(topNodes.size());
-		parallel_exec(nbTopNodes, [&](const size_t& rTopNodes)
+		nablalib::utils::stl::parallel_exec(nbTopNodes, [&](const size_t& rTopNodes)
 		{
 			const Id rId(topNodes[rTopNodes]);
 			const size_t rNodes(rId);
@@ -724,7 +724,7 @@ void Glace2d::computeBoundaryConditions() noexcept
 	{
 		const auto bottomNodes(mesh->getBottomNodes());
 		const size_t nbBottomNodes(bottomNodes.size());
-		parallel_exec(nbBottomNodes, [&](const size_t& rBottomNodes)
+		nablalib::utils::stl::parallel_exec(nbBottomNodes, [&](const size_t& rBottomNodes)
 		{
 			const Id rId(bottomNodes[rBottomNodes]);
 			const size_t rNodes(rId);
@@ -738,7 +738,7 @@ void Glace2d::computeBoundaryConditions() noexcept
 	{
 		const auto leftNodes(mesh->getLeftNodes());
 		const size_t nbLeftNodes(leftNodes.size());
-		parallel_exec(nbLeftNodes, [&](const size_t& rLeftNodes)
+		nablalib::utils::stl::parallel_exec(nbLeftNodes, [&](const size_t& rLeftNodes)
 		{
 			const Id rId(leftNodes[rLeftNodes]);
 			const size_t rNodes(rId);
@@ -755,7 +755,7 @@ void Glace2d::computeBoundaryConditions() noexcept
 	{
 		const auto rightNodes(mesh->getRightNodes());
 		const size_t nbRightNodes(rightNodes.size());
-		parallel_exec(nbRightNodes, [&](const size_t& rRightNodes)
+		nablalib::utils::stl::parallel_exec(nbRightNodes, [&](const size_t& rRightNodes)
 		{
 			const Id rId(rightNodes[rRightNodes]);
 			const size_t rNodes(rId);
@@ -781,7 +781,7 @@ void Glace2d::computeBt() noexcept
 	{
 		const auto innerNodes(mesh->getInnerNodes());
 		const size_t nbInnerNodes(innerNodes.size());
-		parallel_exec(nbInnerNodes, [&](const size_t& rInnerNodes)
+		nablalib::utils::stl::parallel_exec(nbInnerNodes, [&](const size_t& rInnerNodes)
 		{
 			const Id rId(innerNodes[rInnerNodes]);
 			const size_t rNodes(rId);
@@ -803,7 +803,7 @@ void Glace2d::computeMt() noexcept
 	{
 		const auto innerNodes(mesh->getInnerNodes());
 		const size_t nbInnerNodes(innerNodes.size());
-		parallel_exec(nbInnerNodes, [&](const size_t& rInnerNodes)
+		nablalib::utils::stl::parallel_exec(nbInnerNodes, [&](const size_t& rInnerNodes)
 		{
 			const Id rId(innerNodes[rInnerNodes]);
 			const size_t rNodes(rId);
@@ -835,7 +835,7 @@ void Glace2d::computeTn() noexcept
  */
 void Glace2d::computeU() noexcept
 {
-	parallel_exec(nbNodes, [&](const size_t& rNodes)
+	nablalib::utils::stl::parallel_exec(nbNodes, [&](const size_t& rNodes)
 	{
 		ur[rNodes] = glace2dfreefuncs::matVectProduct(glace2dfreefuncs::inverse(Mt[rNodes]), bt[rNodes]);
 	});
@@ -848,7 +848,7 @@ void Glace2d::computeU() noexcept
  */
 void Glace2d::computeFjr() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		const Id jId(jCells);
 		{
@@ -871,7 +871,7 @@ void Glace2d::computeFjr() noexcept
  */
 void Glace2d::computeXn() noexcept
 {
-	parallel_exec(nbNodes, [&](const size_t& rNodes)
+	nablalib::utils::stl::parallel_exec(nbNodes, [&](const size_t& rNodes)
 	{
 		X_nplus1[rNodes] = X_n[rNodes] + deltat_n * ur[rNodes];
 	});
@@ -884,7 +884,7 @@ void Glace2d::computeXn() noexcept
  */
 void Glace2d::computeEn() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		const Id jId(jCells);
 		double reduction0(0.0);
@@ -909,7 +909,7 @@ void Glace2d::computeEn() noexcept
  */
 void Glace2d::computeUn() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		const Id jId(jCells);
 		RealArray1D<2> reduction0({0.0, 0.0});

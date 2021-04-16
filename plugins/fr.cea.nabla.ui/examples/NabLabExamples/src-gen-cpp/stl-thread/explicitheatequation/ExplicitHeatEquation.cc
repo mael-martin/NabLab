@@ -145,7 +145,7 @@ ExplicitHeatEquation::ExplicitHeatEquation(CartesianMesh2D* aMesh, Options& aOpt
  */
 void ExplicitHeatEquation::computeFaceLength() noexcept
 {
-	parallel_exec(nbFaces, [&](const size_t& fFaces)
+	nablalib::utils::stl::parallel_exec(nbFaces, [&](const size_t& fFaces)
 	{
 		const Id fId(fFaces);
 		double reduction0(0.0);
@@ -182,7 +182,7 @@ void ExplicitHeatEquation::computeTn() noexcept
  */
 void ExplicitHeatEquation::computeV() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		const Id jId(jCells);
 		double reduction0(0.0);
@@ -209,7 +209,7 @@ void ExplicitHeatEquation::computeV() noexcept
  */
 void ExplicitHeatEquation::initD() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& cCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& cCells)
 	{
 		D[cCells] = 1.0;
 	});
@@ -232,7 +232,7 @@ void ExplicitHeatEquation::initTime() noexcept
  */
 void ExplicitHeatEquation::initXc() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& cCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& cCells)
 	{
 		const Id cId(cCells);
 		RealArray1D<2> reduction0({0.0, 0.0});
@@ -257,7 +257,7 @@ void ExplicitHeatEquation::initXc() noexcept
  */
 void ExplicitHeatEquation::updateU() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& cCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& cCells)
 	{
 		const Id cId(cCells);
 		double reduction0(0.0);
@@ -283,7 +283,7 @@ void ExplicitHeatEquation::updateU() noexcept
 void ExplicitHeatEquation::computeDeltaTn() noexcept
 {
 	double reduction0;
-	reduction0 = parallel_reduce(nbCells, numeric_limits<double>::max(), [&](double& accu, const size_t& cCells)
+	reduction0 = nablalib::utils::stl::parallel_reduce(nbCells, numeric_limits<double>::max(), [&](double& accu, const size_t& cCells)
 		{
 			return (accu = explicitheatequationfreefuncs::minR0(accu, V[cCells] / D[cCells]));
 		},
@@ -298,7 +298,7 @@ void ExplicitHeatEquation::computeDeltaTn() noexcept
  */
 void ExplicitHeatEquation::computeFaceConductivity() noexcept
 {
-	parallel_exec(nbFaces, [&](const size_t& fFaces)
+	nablalib::utils::stl::parallel_exec(nbFaces, [&](const size_t& fFaces)
 	{
 		const Id fId(fFaces);
 		double reduction0(1.0);
@@ -334,7 +334,7 @@ void ExplicitHeatEquation::computeFaceConductivity() noexcept
  */
 void ExplicitHeatEquation::initU() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& cCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& cCells)
 	{
 		if (explicitheatequationfreefuncs::norm(Xc[cCells] - vectOne) < 0.5) 
 			u_n[cCells] = options.u0;
@@ -360,7 +360,7 @@ void ExplicitHeatEquation::setUpTimeLoopN() noexcept
  */
 void ExplicitHeatEquation::computeAlphaCoeff() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& cCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& cCells)
 	{
 		const Id cId(cCells);
 		double alphaDiag(0.0);

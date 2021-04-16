@@ -6,7 +6,7 @@ set(CMAKE_VERBOSE_MAKEFILE FALSE)
 # SET VARIABLES
 set(CMAKE_CXX_COMPILER /usr/bin/g++ CACHE STRING "")
 set(N_KOKKOS_PATH $ENV{HOME}/kokkos/kokkos-install)
-set(N_WS_PATH /ccc/dsku/nfs-server/temp_user/cont001/ocre/martinm/WORKSPACE_NABLAB/runtime-EclipseApplication)
+set(N_WS_PATH $ENV{HOME}/projets/NabLab/plugins/fr.cea.nabla.ui/examples)
 set(LINEARALGEBRAKOKKOS_PATH ${N_WS_PATH}/.nablab/linearalgebra/linearalgebrakokkos)
 
 # CHECK VARIABLES

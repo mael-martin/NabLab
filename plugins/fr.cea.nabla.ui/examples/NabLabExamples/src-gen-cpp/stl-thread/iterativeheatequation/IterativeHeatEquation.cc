@@ -178,7 +178,7 @@ IterativeHeatEquation::IterativeHeatEquation(CartesianMesh2D* aMesh, Options& aO
  */
 void IterativeHeatEquation::computeFaceLength() noexcept
 {
-	parallel_exec(nbFaces, [&](const size_t& fFaces)
+	nablalib::utils::stl::parallel_exec(nbFaces, [&](const size_t& fFaces)
 	{
 		const Id fId(fFaces);
 		double reduction0(0.0);
@@ -215,7 +215,7 @@ void IterativeHeatEquation::computeTn() noexcept
  */
 void IterativeHeatEquation::computeV() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& jCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& jCells)
 	{
 		const Id jId(jCells);
 		double reduction0(0.0);
@@ -242,7 +242,7 @@ void IterativeHeatEquation::computeV() noexcept
  */
 void IterativeHeatEquation::initD() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& cCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& cCells)
 	{
 		D[cCells] = 1.0;
 	});
@@ -265,7 +265,7 @@ void IterativeHeatEquation::initTime() noexcept
  */
 void IterativeHeatEquation::initXc() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& cCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& cCells)
 	{
 		const Id cId(cCells);
 		RealArray1D<2> reduction0({0.0, 0.0});
@@ -301,7 +301,7 @@ void IterativeHeatEquation::setUpTimeLoopK() noexcept
  */
 void IterativeHeatEquation::updateU() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& cCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& cCells)
 	{
 		const Id cId(cCells);
 		double reduction0(0.0);
@@ -327,7 +327,7 @@ void IterativeHeatEquation::updateU() noexcept
 void IterativeHeatEquation::computeDeltaTn() noexcept
 {
 	double reduction0;
-	reduction0 = parallel_reduce(nbCells, numeric_limits<double>::max(), [&](double& accu, const size_t& cCells)
+	reduction0 = nablalib::utils::stl::parallel_reduce(nbCells, numeric_limits<double>::max(), [&](double& accu, const size_t& cCells)
 		{
 			return (accu = iterativeheatequationfreefuncs::minR0(accu, V[cCells] / D[cCells]));
 		},
@@ -342,7 +342,7 @@ void IterativeHeatEquation::computeDeltaTn() noexcept
  */
 void IterativeHeatEquation::computeFaceConductivity() noexcept
 {
-	parallel_exec(nbFaces, [&](const size_t& fFaces)
+	nablalib::utils::stl::parallel_exec(nbFaces, [&](const size_t& fFaces)
 	{
 		const Id fId(fFaces);
 		double reduction0(1.0);
@@ -379,7 +379,7 @@ void IterativeHeatEquation::computeFaceConductivity() noexcept
 void IterativeHeatEquation::computeResidual() noexcept
 {
 	double reduction0;
-	reduction0 = parallel_reduce(nbCells, -numeric_limits<double>::max(), [&](double& accu, const size_t& jCells)
+	reduction0 = nablalib::utils::stl::parallel_reduce(nbCells, -numeric_limits<double>::max(), [&](double& accu, const size_t& jCells)
 		{
 			return (accu = iterativeheatequationfreefuncs::maxR0(accu, std::abs(u_nplus1_kplus1[jCells] - u_nplus1_k[jCells])));
 		},
@@ -424,7 +424,7 @@ void IterativeHeatEquation::executeTimeLoopK() noexcept
  */
 void IterativeHeatEquation::initU() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& cCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& cCells)
 	{
 		if (iterativeheatequationfreefuncs::norm(Xc[cCells] - vectOne) < 0.5) 
 			u_n[cCells] = options.u0;
@@ -450,7 +450,7 @@ void IterativeHeatEquation::setUpTimeLoopN() noexcept
  */
 void IterativeHeatEquation::computeAlphaCoeff() noexcept
 {
-	parallel_exec(nbCells, [&](const size_t& cCells)
+	nablalib::utils::stl::parallel_exec(nbCells, [&](const size_t& cCells)
 	{
 		const Id cId(cCells);
 		double alphaDiag(0.0);

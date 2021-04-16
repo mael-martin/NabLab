@@ -20,7 +20,10 @@ MainModule Glace2d glace2d
 }
 
 // VtkOutput { periodReferenceVariable = glace2d.n; outputVariables = glace2d.ρ as "Density"; }
-LevelDB { levelDBPath = "$ENV{HOME}/leveldb/leveldb-install"; }
+LevelDB
+{
+	levelDBPath = "$ENV{HOME}/leveldb/leveldb-install";
+}
 
 Java
 {
