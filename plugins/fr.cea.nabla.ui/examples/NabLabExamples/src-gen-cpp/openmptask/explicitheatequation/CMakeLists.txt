@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_VERBOSE_MAKEFILE FALSE)
 
 # SET VARIABLES
-set(CMAKE_CXX_COMPILER /usr/bin/g++ CACHE STRING "")
+set(CMAKE_CXX_COMPILER /usr/bin/clang++ CACHE STRING "")
 set(N_WS_PATH $ENV{HOME}/projets/NabLab/plugins/fr.cea.nabla.ui/examples)
 
 # CHECK VARIABLES
