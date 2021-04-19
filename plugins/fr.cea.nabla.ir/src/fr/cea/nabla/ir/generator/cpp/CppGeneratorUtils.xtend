@@ -29,14 +29,18 @@ import fr.cea.nabla.ir.ir.ItemIndex
 import fr.cea.nabla.ir.ir.Loop
 import fr.cea.nabla.ir.ir.ReductionInstruction
 import fr.cea.nabla.ir.ir.ConnectivityCall
+import fr.cea.nabla.ir.ir.IrAnnotable
 import fr.cea.nabla.ir.ir.Container
+import fr.cea.nabla.ir.ir.JobCaller
 import fr.cea.nabla.ir.generator.cpp.TypeContentProvider
+import org.eclipse.xtext.EcoreUtil2
 import java.util.stream.IntStream
 import java.util.Iterator
 import java.util.HashSet
 import java.util.HashMap
-import org.eclipse.xtext.EcoreUtil2
-import fr.cea.nabla.ir.ir.IrAnnotable
+import java.util.List
+import java.util.Set
+import java.util.stream.Collectors
 
 enum INDEX_TYPE { NODES, CELLS, FACES, NULL }
 
@@ -53,6 +57,7 @@ class CppGeneratorUtils
 	
 	/* FIXME: Those two need to be specified in the NGEN file */
 	static public int OMPTaskMaxNumber = 4
+	static public boolean OMPTraces = false
 	static def OMPTaskMaxNumberIterator() { iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) }
 	
 	static def getAllOMPTasks() { iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) }
@@ -319,6 +324,24 @@ ENDFOR»«ENDFOR»'''
 
 		return ret
 	}
+	
+	static def createControlTask(String varName, List<String> jobsIn)
+	{
+		val idxtype = varName.globalVariableType
+		if (idxtype == INDEX_TYPE::NULL || GlobalVariableProducedBySuperTask.contains(varName))
+		'''
+			#pragma omp task depend(in: «FOR j : jobsIn SEPARATOR ', '»«varName»_«j»«ENDFOR») depend(out: «varName»)
+			{ /* Control Task */ }
+		'''
+		else
+		'''
+			«FOR i : OMPTaskMaxNumberIterator»
+				«val base_index = '''«getBaseIndex('''«varName».size()''', '''«i»''')»'''»
+				#pragma omp task depend(in: «FOR j : jobsIn SEPARATOR ', '»(this->«varName»_«j»[«base_index»])«ENDFOR») depend(out: (this->«varName»[«base_index»]))
+				{ /* Control Task */ }
+			«ENDFOR»
+		'''
+	}
 
 	/* Is a job a super task job? */
 	static def boolean jobIsSuperTask(Job it) {
@@ -366,5 +389,12 @@ firstprivate(task, ___omp_base, ___omp_limit«
 	IF additionalFPriv !== null && additionalFPriv.getOrDefault(name, new HashSet()).length > 0», «
 	FOR p : additionalFPriv.get(name) SEPARATOR ', '»«p»«ENDFOR»«
 	ENDIF»)'''
+	}
+	
+	/* Get duplicated out variables in job caller */
+	static def Set<Variable> findDuplicates(JobCaller it) {
+		val collection = calls.map[outVars].flatten.toList
+		val uniques = new HashSet<Variable>() 
+		return collection.stream().filter([e | !uniques.add(e)]).collect(Collectors.toSet()) 
 	}
 }

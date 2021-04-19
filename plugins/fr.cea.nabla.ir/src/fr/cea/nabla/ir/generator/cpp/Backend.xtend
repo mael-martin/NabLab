@@ -10,6 +10,7 @@
 package fr.cea.nabla.ir.generator.cpp
 
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.OMPTaskMaxNumber
+import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.OMPTraces
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.registerTypeContentProvider
 import fr.cea.nabla.ir.transformers.IrTransformationStep
 import fr.cea.nabla.ir.transformers.ReplaceReductions
@@ -138,7 +139,8 @@ class OpenMpTaskBackend extends Backend
 {
 	new()
 	{
-		OMPTaskMaxNumber = 10
+		OMPTaskMaxNumber = 4
+		OMPTraces = false
 		name = 'OpenMPTask'
 		cmakeContentProvider = new OpenMpCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider

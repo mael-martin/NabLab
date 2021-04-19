@@ -13,10 +13,8 @@ import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
-import org.eclipse.xtext.EcoreUtil2
 import fr.cea.nabla.ir.ir.JobCaller
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
-import fr.cea.nabla.ir.ir.IrModule
 import fr.cea.nabla.ir.ir.TimeLoopJob
 
 class JobCallerContentProvider
@@ -39,12 +37,16 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 
 	override getCallsContent(JobCaller it)
 	{
-		val allouts = calls.map[outVars].flatten
 		var boolean execTimeLoopPresent = false;
+		val duplicatedOuts = findDuplicates
 		'''
 		// Launch all tasks for this loop...
-		«IF allouts.toList.size != allouts.toSet.size»
-		// XXX: There are duplicate out dependencies
+		«IF duplicatedOuts.size > 0»
+			// XXX: There are duplicate out dependencies: «FOR v : duplicatedOuts SEPARATOR ', '»«v.name»«ENDFOR»
+		«ENDIF»
+		«IF OMPTraces»
+			++___DAG_loops;
+			fprintf(stderr, "### NEW LOOP %ld\n", ___DAG_loops);
 		«ENDIF»
 		
 		#pragma omp parallel
@@ -57,13 +59,26 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 			«IF atJobs.filter[usedIndexType.length > 1].length > 0»
 				/* A job will do an index conversion, need to wait as it is not supported */
 				#pragma omp taskwait
+			«ELSE»
+				«val controlTaskForIns = atJobs.map[inVars].flatten.toSet»
+				«IF controlTaskForIns.retainAll(duplicatedOuts) || controlTaskForIns.size > 0»
+					«FOR v : controlTaskForIns»
+						«val joinedTasks = calls.filter[outVars.contains(v)]»
+						«createControlTask(v.name, joinedTasks.map[name].iterator.toList)»
+					«ENDFOR»
+				«ENDIF»
 			«ENDIF»
 			«FOR j : atJobs»
 				«IF j instanceof ExecuteTimeLoopJob || j instanceof TimeLoopJob»
-				«IF !execTimeLoopPresent»
-				// Wait before time loop: «execTimeLoopPresent = true»
-				}}
+					«IF !execTimeLoopPresent»
+						// Wait before time loop: «execTimeLoopPresent = true»
+						}}
+					«ENDIF»
 				«ENDIF»
+				«IF OMPTraces»
+					fprintf(stderr, "(\"T«j.callName»_«j.at»\", [«
+						FOR v : j.inVars  SEPARATOR ', '»\"«v.name»\"«ENDFOR»], [«
+						FOR v : j.outVars SEPARATOR ', '»\"«v.name»\"«ENDFOR»])\n");
 				«ENDIF»
 				«j.callName.replace('.', '->')»(); // @«j.at»«
 					IF j.usedIndexType.length > 1» (do conversions)«ENDIF»«
