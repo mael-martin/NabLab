@@ -99,6 +99,7 @@ class CppGeneratorUtils
 				j.outVars.forEach[ v | GlobalVariableProducedBySuperTask.add(v.name) ]
 		]
 	}
+	static def boolean isGlobalVariableProducedBySuperTask(String varName) { return GlobalVariableProducedBySuperTask.contains(varName) }
 	
 	/* Variables that will need to be first private */
 	static HashMap<String, HashSet<String>> additionalFPriv  = new HashMap();
@@ -337,7 +338,7 @@ ENDFOR»«ENDFOR»'''
 		'''
 			«FOR i : OMPTaskMaxNumberIterator»
 				«val base_index = '''«getBaseIndex('''«varName».size()''', '''«i»''')»'''»
-				#pragma omp task depend(in: «FOR j : jobsIn SEPARATOR ', '»(this->«varName»_«j»[«base_index»])«ENDFOR») depend(out: (this->«varName»[«base_index»]))
+				#pragma omp task depend(in: «FOR j : jobsIn SEPARATOR ', '»(this->«varName»_«j»[«i»])«ENDFOR») depend(out: (this->«varName»[«base_index»]))
 				{ /* Control Task */ }
 			«ENDFOR»
 		'''
