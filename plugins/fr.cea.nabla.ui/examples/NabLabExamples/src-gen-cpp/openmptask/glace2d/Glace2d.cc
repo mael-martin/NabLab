@@ -220,11 +220,6 @@ Glace2d::Options::jsonInit(const char* jsonContent)
 	}
 	else
 		pIniZd = 0.1;
-	// Non regression
-	assert(o.HasMember("nonRegression"));
-	const rapidjson::Value& valueof_nonRegression = o["nonRegression"];
-	assert(valueof_nonRegression.IsString());
-	nonRegression = valueof_nonRegression.GetString();
 }
 
 /******************** Module definition ********************/
@@ -287,10 +282,10 @@ Glace2d::Glace2d(CartesianMesh2D* aMesh, Options& aOptions)
  */
 void Glace2d::computeCjr() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X_n, this->C) priority(11) \
@@ -323,10 +318,10 @@ void Glace2d::computeCjr() noexcept
  */
 void Glace2d::computeInternalEnergy() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->E_n, this->uj_n, this->e) priority(11) \
@@ -347,10 +342,10 @@ void Glace2d::computeInternalEnergy() noexcept
  */
 void Glace2d::iniCjrIc() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X_n0, this->Cjr_ic) priority(3) \
@@ -417,10 +412,10 @@ void Glace2d::iniTimeStep() noexcept
  */
 void Glace2d::computeLjr() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->C, this->l) priority(10) \
@@ -450,10 +445,10 @@ void Glace2d::computeLjr() noexcept
  */
 void Glace2d::computeV() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->C, this->X_n, this->V) priority(10) \
@@ -487,10 +482,10 @@ void Glace2d::computeV() noexcept
  */
 void Glace2d::initialize() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X_n0, this->Cjr_ic, this->m, this->p, this->rho, this->E_n, this->uj_n) priority(2) \
@@ -571,10 +566,10 @@ void Glace2d::setUpTimeLoopN() noexcept
  */
 void Glace2d::computeDensity() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->m, this->V, this->rho) priority(9) \
@@ -609,37 +604,60 @@ void Glace2d::executeTimeLoopN() noexcept
 	
 		// Launch all tasks for this loop...
 		// XXX: There are duplicate out dependencies
+		++___DAG_loops;
+		fprintf(stderr, "### NEW LOOP %ld\n", ___DAG_loops);
 		
 		#pragma omp parallel
 		{
 		#pragma omp single nowait
 		{
+		fprintf(stderr, "\"computeCjr_1.0\", [\"X_n\"], [\"C\"]\n");
 		computeCjr(); // @1.0
+		fprintf(stderr, "\"computeInternalEnergy_1.0\", [\"E_n\", \"uj_n\"], [\"e\"]\n");
 		computeInternalEnergy(); // @1.0
+		fprintf(stderr, "\"computeLjr_2.0\", [\"C\"], [\"l\"]\n");
 		computeLjr(); // @2.0
+		fprintf(stderr, "\"computeV_2.0\", [\"C\", \"X_n\"], [\"V\"]\n");
 		computeV(); // @2.0
+		fprintf(stderr, "\"computeDensity_3.0\", [\"m\", \"V\"], [\"rho\"]\n");
 		computeDensity(); // @3.0
+		fprintf(stderr, "\"computeEOSp_4.0\", [\"gamma\", \"rho\", \"e\"], [\"p\"]\n");
 		computeEOSp(); // @4.0
+		fprintf(stderr, "\"computeEOSc_5.0\", [\"gamma\", \"p\", \"rho\"], [\"c\"]\n");
 		computeEOSc(); // @5.0
+		fprintf(stderr, "\"computeAjr_6.0\", [\"rho\", \"c\", \"l\", \"C\"], [\"Ajr\"]\n");
 		computeAjr(); // @6.0
+		fprintf(stderr, "\"computedeltatj_6.0\", [\"l\", \"V\", \"c\"], [\"deltatj\"]\n");
 		computedeltatj(); // @6.0
 		/* A job will do an index conversion, need to wait as it is not supported */
 		#pragma omp taskwait
+		fprintf(stderr, "\"computeAr_7.0\", [\"Ajr\"], [\"Ar\"]\n");
 		computeAr(); // @7.0 (do conversions)
+		fprintf(stderr, "\"computeBr_7.0\", [\"p\", \"C\", \"Ajr\", \"uj_n\"], [\"b\"]\n");
 		computeBr(); // @7.0 (do conversions)
+		fprintf(stderr, "\"computeDt_7.0\", [\"deltatj\", \"deltatCfl\"], [\"deltat_nplus1\"]\n");
 		computeDt(); // @7.0
+		fprintf(stderr, "\"computeBoundaryConditions_8.0\", [\"b\", \"Ar\"], [\"bt\", \"Mt\"]\n");
 		computeBoundaryConditions(); // @8.0 (super task)
+		fprintf(stderr, "\"computeBt_8.0\", [\"b\"], [\"bt\"]\n");
 		computeBt(); // @8.0
+		fprintf(stderr, "\"computeMt_8.0\", [\"Ar\"], [\"Mt\"]\n");
 		computeMt(); // @8.0
+		fprintf(stderr, "\"computeTn_8.0\", [\"t_n\", \"deltat_nplus1\"], [\"t_nplus1\"]\n");
 		computeTn(); // @8.0
+		fprintf(stderr, "\"computeU_9.0\", [\"Mt\", \"bt\"], [\"ur\"]\n");
 		computeU(); // @9.0
 		/* A job will do an index conversion, need to wait as it is not supported */
 		#pragma omp taskwait
+		fprintf(stderr, "\"computeFjr_10.0\", [\"p\", \"C\", \"Ajr\", \"uj_n\", \"ur\"], [\"F\"]\n");
 		computeFjr(); // @10.0 (do conversions)
+		fprintf(stderr, "\"computeXn_10.0\", [\"X_n\", \"deltat_n\", \"ur\"], [\"X_nplus1\"]\n");
 		computeXn(); // @10.0
 		/* A job will do an index conversion, need to wait as it is not supported */
 		#pragma omp taskwait
+		fprintf(stderr, "\"computeEn_11.0\", [\"F\", \"ur\", \"E_n\", \"deltat_n\", \"m\"], [\"E_nplus1\"]\n");
 		computeEn(); // @11.0 (do conversions)
+		fprintf(stderr, "\"computeUn_11.0\", [\"F\", \"uj_n\", \"deltat_n\", \"m\"], [\"uj_nplus1\"]\n");
 		computeUn(); // @11.0
 		}}
 		
@@ -682,10 +700,10 @@ void Glace2d::executeTimeLoopN() noexcept
  */
 void Glace2d::computeEOSp() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->rho, this->e, this->p) priority(8) \
@@ -708,10 +726,10 @@ void Glace2d::computeEOSp() noexcept
  */
 void Glace2d::computeEOSc() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->p, this->rho, this->c) priority(7) \
@@ -734,10 +752,10 @@ void Glace2d::computeEOSc() noexcept
  */
 void Glace2d::computeAjr() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->rho, this->c, this->l, this->C, this->Ajr) priority(6) \
@@ -770,10 +788,10 @@ void Glace2d::computeAjr() noexcept
  */
 void Glace2d::computedeltatj() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->l, this->V, this->c, this->deltatj) priority(6) \
@@ -807,10 +825,10 @@ void Glace2d::computedeltatj() noexcept
  */
 void Glace2d::computeAr() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbNodes / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbNodes / 10) * (task + 1)) : (nbNodes);
+		const Id ___omp_base  = ((nbNodes / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbNodes / 4) * (task + 1)) : (nbNodes);
 		// WARN: Conversions in in/out for omp task
 		// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
 		#pragma omp task  \
@@ -852,10 +870,10 @@ void Glace2d::computeAr() noexcept
  */
 void Glace2d::computeBr() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbNodes / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbNodes / 10) * (task + 1)) : (nbNodes);
+		const Id ___omp_base  = ((nbNodes / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbNodes / 4) * (task + 1)) : (nbNodes);
 		// WARN: Conversions in in/out for omp task
 		// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
 		#pragma omp task  \
@@ -897,16 +915,10 @@ void Glace2d::computeDt() noexcept
 	double reduction0(numeric_limits<double>::max());
 	#pragma omp task  \
 	default(none) shared(stderr, mesh, this->deltatj, this->deltat_nplus1) priority(5) firstprivate(reduction0, nbCells) \
-	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 10) * 0)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 10) * 1)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 10) * 2)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 10) * 3)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 10) * 4)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 10) * 5)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 10) * 6)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 10) * 7)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 10) * 8)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 10) * 9)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 4) * 0)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 4) * 1)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 4) * 2)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->deltatj[(((this->deltatj.size()) / 4) * 3)])) \
 	/* dep reduction result */ depend(out:	(this->deltat_nplus1))
 	{
 	{
@@ -926,26 +938,14 @@ void Glace2d::computeBoundaryConditions() noexcept
 {
 	#pragma omp task priority(4) \
 	default(none) shared(stderr, mesh, this->b, this->Ar, this->bt, this->Mt) \
-	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 10) * 0)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 10) * 1)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 10) * 2)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 10) * 3)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 10) * 4)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 10) * 5)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 10) * 6)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 10) * 7)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 10) * 8)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 10) * 9)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 10) * 0)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 10) * 1)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 10) * 2)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 10) * 3)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 10) * 4)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 10) * 5)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 10) * 6)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 10) * 7)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 10) * 8)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 10) * 9)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 4) * 0)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 4) * 1)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 4) * 2)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->b[(((this->b.size()) / 4) * 3)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 4) * 0)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 4) * 1)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 4) * 2)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->Ar[(((this->Ar.size()) / 4) * 3)])) \
 	/* dep loop all (simpL) */ depend(out:	(this->bt)) \
 	/* dep loop all (simpL) */ depend(out:	(this->Mt))
 	{ // BEGIN OF SUPER TASK
@@ -1025,10 +1025,10 @@ void Glace2d::computeBt() noexcept
 	{
 		const auto innerNodes(mesh->getInnerNodes());
 		const size_t nbInnerNodes(innerNodes.size());
-		for (size_t task = 0; task < 10; ++task)
+		for (size_t task = 0; task < 4; ++task)
 		{
-			const Id ___omp_base  = ((nbInnerNodes / 10) * task);
-			const Id ___omp_limit = (10 - 1 != task) ? ((nbInnerNodes / 10) * (task + 1)) : (nbInnerNodes);
+			const Id ___omp_base  = ((nbInnerNodes / 4) * task);
+			const Id ___omp_limit = (4 - 1 != task) ? ((nbInnerNodes / 4) * (task + 1)) : (nbInnerNodes);
 			#pragma omp task  \
 			firstprivate(task, ___omp_base, ___omp_limit, innerNodes)  \
 			default(none) shared(stderr, mesh, this->b, this->bt) priority(4) \
@@ -1059,10 +1059,10 @@ void Glace2d::computeMt() noexcept
 	{
 		const auto innerNodes(mesh->getInnerNodes());
 		const size_t nbInnerNodes(innerNodes.size());
-		for (size_t task = 0; task < 10; ++task)
+		for (size_t task = 0; task < 4; ++task)
 		{
-			const Id ___omp_base  = ((nbInnerNodes / 10) * task);
-			const Id ___omp_limit = (10 - 1 != task) ? ((nbInnerNodes / 10) * (task + 1)) : (nbInnerNodes);
+			const Id ___omp_base  = ((nbInnerNodes / 4) * task);
+			const Id ___omp_limit = (4 - 1 != task) ? ((nbInnerNodes / 4) * (task + 1)) : (nbInnerNodes);
 			#pragma omp task  \
 			firstprivate(task, ___omp_base, ___omp_limit, innerNodes)  \
 			default(none) shared(stderr, mesh, this->Ar, this->Mt) priority(4) \
@@ -1111,10 +1111,10 @@ void Glace2d::computeTn() noexcept
  */
 void Glace2d::computeU() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbNodes / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbNodes / 10) * (task + 1)) : (nbNodes);
+		const Id ___omp_base  = ((nbNodes / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbNodes / 4) * (task + 1)) : (nbNodes);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->Mt, this->bt, this->ur) priority(3) \
@@ -1137,10 +1137,10 @@ void Glace2d::computeU() noexcept
  */
 void Glace2d::computeFjr() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		// WARN: Conversions in in/out for omp task
 		// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
 		#pragma omp task  \
@@ -1173,10 +1173,10 @@ void Glace2d::computeFjr() noexcept
  */
 void Glace2d::computeXn() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbNodes / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbNodes / 10) * (task + 1)) : (nbNodes);
+		const Id ___omp_base  = ((nbNodes / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbNodes / 4) * (task + 1)) : (nbNodes);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X_n, this->deltat_n, this->ur, this->X_nplus1) priority(2) \
@@ -1198,10 +1198,10 @@ void Glace2d::computeXn() noexcept
  */
 void Glace2d::computeEn() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		// WARN: Conversions in in/out for omp task
 		// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
 		#pragma omp task  \
@@ -1236,10 +1236,10 @@ void Glace2d::computeEn() noexcept
  */
 void Glace2d::computeUn() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->F, this->uj_n, this->deltat_n, this->m, this->uj_nplus1) priority(1) \
@@ -1273,136 +1273,31 @@ void Glace2d::simulate()
 	std::cout << "[" << __GREEN__ << "OUTPUT" << __RESET__ << "]    " << __BOLD__ << "Disabled" << __RESET__ << std::endl;
 
 	// Launch all tasks for this loop...
+	++___DAG_loops;
+	fprintf(stderr, "### NEW LOOP %ld\n", ___DAG_loops);
 	
 	#pragma omp parallel
 	{
 	#pragma omp single nowait
 	{
+	fprintf(stderr, "\"iniCjrIc_1.0\", [\"X_n0\"], [\"Cjr_ic\"]\n");
 	iniCjrIc(); // @1.0
+	fprintf(stderr, "\"iniTime_1.0\", [], [\"t_n0\"]\n");
 	iniTime(); // @1.0
+	fprintf(stderr, "\"iniTimeStep_1.0\", [\"deltatIni\"], [\"deltat_n0\"]\n");
 	iniTimeStep(); // @1.0
+	fprintf(stderr, "\"initialize_2.0\", [\"X_n0\", \"xInterface\", \"rhoIniZg\", \"pIniZg\", \"rhoIniZd\", \"pIniZd\", \"Cjr_ic\", \"gamma\"], [\"m\", \"p\", \"rho\", \"E_n\", \"uj_n\"]\n");
 	initialize(); // @2.0
 	// Wait before time loop: true
 	}}
+	fprintf(stderr, "\"setUpTimeLoopN_2.0\", [], []\n");
 	setUpTimeLoopN(); // @2.0
+	fprintf(stderr, "\"executeTimeLoopN_3.0\", [\"t_nplus1\", \"stopTime\", \"n\", \"maxIterations\"], []\n");
 	executeTimeLoopN(); // @3.0
 	
 	std::cout << __YELLOW__ << "\n\tDone ! Took " << __MAGENTA__ << __BOLD__ << globalTimer.print() << __RESET__ << std::endl;
 }
 
-
-void Glace2d::createDB(const std::string& db_name)
-{
-	// Creating data base
-	leveldb::DB* db;
-	leveldb::Options options;
-	options.create_if_missing = true;
-	leveldb::Status status = leveldb::DB::Open(options, db_name, &db);
-	assert(status.ok());
-	// Batch to write all data at once
-	leveldb::WriteBatch batch;
-	batch.Put("n", serialize(n));
-	batch.Put("t_n", serialize(t_n));
-	batch.Put("t_nplus1", serialize(t_nplus1));
-	batch.Put("t_n0", serialize(t_n0));
-	batch.Put("deltat_n", serialize(deltat_n));
-	batch.Put("deltat_nplus1", serialize(deltat_nplus1));
-	batch.Put("deltat_n0", serialize(deltat_n0));
-	batch.Put("X_n", serialize(X_n));
-	batch.Put("X_nplus1", serialize(X_nplus1));
-	batch.Put("X_n0", serialize(X_n0));
-	batch.Put("b", serialize(b));
-	batch.Put("bt", serialize(bt));
-	batch.Put("Ar", serialize(Ar));
-	batch.Put("Mt", serialize(Mt));
-	batch.Put("ur", serialize(ur));
-	batch.Put("c", serialize(c));
-	batch.Put("m", serialize(m));
-	batch.Put("p", serialize(p));
-	batch.Put("rho", serialize(rho));
-	batch.Put("e", serialize(e));
-	batch.Put("E_n", serialize(E_n));
-	batch.Put("E_nplus1", serialize(E_nplus1));
-	batch.Put("V", serialize(V));
-	batch.Put("deltatj", serialize(deltatj));
-	batch.Put("uj_n", serialize(uj_n));
-	batch.Put("uj_nplus1", serialize(uj_nplus1));
-	batch.Put("l", serialize(l));
-	batch.Put("Cjr_ic", serialize(Cjr_ic));
-	batch.Put("C", serialize(C));
-	batch.Put("F", serialize(F));
-	batch.Put("Ajr", serialize(Ajr));
-	status = db->Write(leveldb::WriteOptions(), &batch);
-	// Checking everything was ok
-	assert(status.ok());
-	std::cerr << "Reference database " << db_name << " created." << std::endl;
-	// Freeing memory
-	delete db;
-}
-
-/******************** Non regression testing ********************/
-
-bool compareDB(const std::string& current, const std::string& ref)
-{
-	// Final result
-	bool result = true;
-
-	// Loading ref DB
-	leveldb::DB* db_ref;
-	leveldb::Options options_ref;
-	options_ref.create_if_missing = false;
-	leveldb::Status status = leveldb::DB::Open(options_ref, ref, &db_ref);
-	if (!status.ok())
-	{
-		std::cerr << "No ref database to compare with ! Looking for " << ref << std::endl;
-		return false;
-	}
-	leveldb::Iterator* it_ref = db_ref->NewIterator(leveldb::ReadOptions());
-
-	// Loading current DB
-	leveldb::DB* db;
-	leveldb::Options options;
-	options.create_if_missing = false;
-	status = leveldb::DB::Open(options, current, &db);
-	assert(status.ok());
-	leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
-
-	// Results comparison
-	std::cerr << "# Comparing results ..." << std::endl;
-	for (it_ref->SeekToFirst(); it_ref->Valid(); it_ref->Next()) {
-		auto key = it_ref->key();
-		std::string value;
-		auto status = db->Get(leveldb::ReadOptions(), key, &value);
-		if (status.IsNotFound()) {
-			std::cerr << "ERROR - Key : " << key.ToString() << " not found." << endl;
-			result = false;
-		}
-		else {
-			if (value == it_ref->value().ToString())
-				std::cerr << key.ToString() << ": " << "OK" << std::endl;
-			else {
-				std::cerr << key.ToString() << ": " << "ERROR" << std::endl;
-				result = false;
-			}
-		}
-	}
-
-	// looking for key in the db that are not in the ref (new variables)
-	for (it->SeekToFirst(); it->Valid(); it->Next()) {
-		auto key = it->key();
-		std::string value;
-		if (db_ref->Get(leveldb::ReadOptions(), key, &value).IsNotFound()) {
-			std::cerr << "ERROR - Key : " << key.ToString() << " can not be compared (not present in the ref)." << std::endl;
-			result = false;
-		}
-	}
-
-	// Freeing memory
-	delete db;
-	delete db_ref;
-
-	return result;
-}
 
 int main(int argc, char* argv[]) 
 {
@@ -1452,15 +1347,6 @@ int main(int argc, char* argv[])
 	// Start simulation
 	// Simulator must be a pointer when a finalize is needed at the end (Kokkos, omp...)
 	glace2d->simulate();
-	// Non regression testing
-	if (glace2dOptions.nonRegression == "CreateReference")
-		glace2d->createDB("Glace2dDB.ref");
-	if (glace2dOptions.nonRegression == "CompareToReference") {
-		glace2d->createDB("Glace2dDB.current");
-		if (!compareDB("Glace2dDB.current", "Glace2dDB.ref"))
-			ret = 1;
-		leveldb::DestroyDB("Glace2dDB.current", leveldb::Options());
-	}
 	
 	delete glace2d;
 	delete mesh;

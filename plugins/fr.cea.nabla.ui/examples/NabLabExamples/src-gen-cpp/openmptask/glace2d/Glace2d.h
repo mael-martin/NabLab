@@ -9,8 +9,6 @@
 #include <limits>
 #include <utility>
 #include <cmath>
-#include <leveldb/db.h>
-#include <leveldb/write_batch.h>
 #include <omp.h>
 #include <cstdio>
 #include "nablalib/mesh/CartesianMesh2DFactory.h"
@@ -18,7 +16,6 @@
 #include "nablalib/utils/Utils.h"
 #include "nablalib/utils/Timer.h"
 #include "nablalib/types/Types.h"
-#include "nablalib/utils/Serializer.h"
 #include "nablalib/mesh/PvdFileWriter2D.h"
 
 using namespace nablalib::mesh;
@@ -72,7 +69,6 @@ public:
 		double rhoIniZd;
 		double pIniZg;
 		double pIniZd;
-		std::string nonRegression;
 
 		void jsonInit(const char* jsonContent);
 	};
@@ -108,7 +104,6 @@ public:
 	void computeXn() noexcept;
 	void computeEn() noexcept;
 	void computeUn() noexcept;
-	void createDB(const std::string& db_name);
 
 private:
 	// Mesh and mesh variables

@@ -94,11 +94,6 @@ ExplicitHeatEquation::Options::jsonInit(const char* jsonContent)
 	}
 	else
 		maxIterations = 500000000;
-	// Non regression
-	assert(o.HasMember("nonRegression"));
-	const rapidjson::Value& valueof_nonRegression = o["nonRegression"];
-	assert(valueof_nonRegression.IsString());
-	nonRegression = valueof_nonRegression.GetString();
 }
 
 /******************** Module definition ********************/
@@ -464,103 +459,6 @@ void ExplicitHeatEquation::simulate()
 }
 
 
-void ExplicitHeatEquation::createDB(const std::string& db_name)
-{
-	// Creating data base
-	leveldb::DB* db;
-	leveldb::Options options;
-	options.create_if_missing = true;
-	leveldb::Status status = leveldb::DB::Open(options, db_name, &db);
-	assert(status.ok());
-	// Batch to write all data at once
-	leveldb::WriteBatch batch;
-	batch.Put("n", serialize(n));
-	batch.Put("vectOne", serialize(vectOne));
-	batch.Put("deltat", serialize(deltat));
-	batch.Put("t_n", serialize(t_n));
-	batch.Put("t_nplus1", serialize(t_nplus1));
-	batch.Put("t_n0", serialize(t_n0));
-	batch.Put("X", serialize(X));
-	batch.Put("Xc", serialize(Xc));
-	batch.Put("u_n", serialize(u_n));
-	batch.Put("u_nplus1", serialize(u_nplus1));
-	batch.Put("V", serialize(V));
-	batch.Put("D", serialize(D));
-	batch.Put("faceLength", serialize(faceLength));
-	batch.Put("faceConductivity", serialize(faceConductivity));
-	batch.Put("alpha", serialize(alpha));
-	status = db->Write(leveldb::WriteOptions(), &batch);
-	// Checking everything was ok
-	assert(status.ok());
-	std::cerr << "Reference database " << db_name << " created." << std::endl;
-	// Freeing memory
-	delete db;
-}
-
-/******************** Non regression testing ********************/
-
-bool compareDB(const std::string& current, const std::string& ref)
-{
-	// Final result
-	bool result = true;
-
-	// Loading ref DB
-	leveldb::DB* db_ref;
-	leveldb::Options options_ref;
-	options_ref.create_if_missing = false;
-	leveldb::Status status = leveldb::DB::Open(options_ref, ref, &db_ref);
-	if (!status.ok())
-	{
-		std::cerr << "No ref database to compare with ! Looking for " << ref << std::endl;
-		return false;
-	}
-	leveldb::Iterator* it_ref = db_ref->NewIterator(leveldb::ReadOptions());
-
-	// Loading current DB
-	leveldb::DB* db;
-	leveldb::Options options;
-	options.create_if_missing = false;
-	status = leveldb::DB::Open(options, current, &db);
-	assert(status.ok());
-	leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
-
-	// Results comparison
-	std::cerr << "# Comparing results ..." << std::endl;
-	for (it_ref->SeekToFirst(); it_ref->Valid(); it_ref->Next()) {
-		auto key = it_ref->key();
-		std::string value;
-		auto status = db->Get(leveldb::ReadOptions(), key, &value);
-		if (status.IsNotFound()) {
-			std::cerr << "ERROR - Key : " << key.ToString() << " not found." << endl;
-			result = false;
-		}
-		else {
-			if (value == it_ref->value().ToString())
-				std::cerr << key.ToString() << ": " << "OK" << std::endl;
-			else {
-				std::cerr << key.ToString() << ": " << "ERROR" << std::endl;
-				result = false;
-			}
-		}
-	}
-
-	// looking for key in the db that are not in the ref (new variables)
-	for (it->SeekToFirst(); it->Valid(); it->Next()) {
-		auto key = it->key();
-		std::string value;
-		if (db_ref->Get(leveldb::ReadOptions(), key, &value).IsNotFound()) {
-			std::cerr << "ERROR - Key : " << key.ToString() << " can not be compared (not present in the ref)." << std::endl;
-			result = false;
-		}
-	}
-
-	// Freeing memory
-	delete db;
-	delete db_ref;
-
-	return result;
-}
-
 int main(int argc, char* argv[]) 
 {
 	int ret = EXIT_SUCCESS;
@@ -609,15 +507,6 @@ int main(int argc, char* argv[])
 	// Start simulation
 	// Simulator must be a pointer when a finalize is needed at the end (Kokkos, omp...)
 	explicitHeatEquation->simulate();
-	// Non regression testing
-	if (explicitHeatEquationOptions.nonRegression == "CreateReference")
-		explicitHeatEquation->createDB("ExplicitHeatEquationDB.ref");
-	if (explicitHeatEquationOptions.nonRegression == "CompareToReference") {
-		explicitHeatEquation->createDB("ExplicitHeatEquationDB.current");
-		if (!compareDB("ExplicitHeatEquationDB.current", "ExplicitHeatEquationDB.ref"))
-			ret = 1;
-		leveldb::DestroyDB("ExplicitHeatEquationDB.current", leveldb::Options());
-	}
 	
 	delete explicitHeatEquation;
 	delete mesh;

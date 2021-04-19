@@ -9,14 +9,11 @@
 #include <limits>
 #include <utility>
 #include <cmath>
-#include <leveldb/db.h>
-#include <leveldb/write_batch.h>
 #include "nablalib/mesh/CartesianMesh2DFactory.h"
 #include "nablalib/mesh/CartesianMesh2D.h"
 #include "nablalib/utils/Utils.h"
 #include "nablalib/utils/Timer.h"
 #include "nablalib/types/Types.h"
-#include "nablalib/utils/Serializer.h"
 #include "nablalib/utils/stl/Parallel.h"
 #include "nablalib/mesh/PvdFileWriter2D.h"
 
@@ -59,7 +56,6 @@ public:
 		int maxIterations;
 		int maxIterationsK;
 		double epsilon;
-		std::string nonRegression;
 
 		void jsonInit(const char* jsonContent);
 	};
@@ -85,7 +81,6 @@ public:
 	void computeAlphaCoeff() noexcept;
 	void tearDownTimeLoopK() noexcept;
 	void executeTimeLoopN() noexcept;
-	void createDB(const std::string& db_name);
 
 private:
 	// Mesh and mesh variables

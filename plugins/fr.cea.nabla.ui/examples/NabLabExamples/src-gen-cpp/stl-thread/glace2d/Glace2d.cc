@@ -210,11 +210,6 @@ Glace2d::Options::jsonInit(const char* jsonContent)
 	}
 	else
 		pIniZd = 0.1;
-	// Non regression
-	assert(o.HasMember("nonRegression"));
-	const rapidjson::Value& valueof_nonRegression = o["nonRegression"];
-	assert(valueof_nonRegression.IsString());
-	nonRegression = valueof_nonRegression.GetString();
 }
 
 /******************** Module definition ********************/
@@ -944,119 +939,6 @@ void Glace2d::simulate()
 }
 
 
-void Glace2d::createDB(const std::string& db_name)
-{
-	// Creating data base
-	leveldb::DB* db;
-	leveldb::Options options;
-	options.create_if_missing = true;
-	leveldb::Status status = leveldb::DB::Open(options, db_name, &db);
-	assert(status.ok());
-	// Batch to write all data at once
-	leveldb::WriteBatch batch;
-	batch.Put("n", serialize(n));
-	batch.Put("t_n", serialize(t_n));
-	batch.Put("t_nplus1", serialize(t_nplus1));
-	batch.Put("t_n0", serialize(t_n0));
-	batch.Put("deltat_n", serialize(deltat_n));
-	batch.Put("deltat_nplus1", serialize(deltat_nplus1));
-	batch.Put("deltat_n0", serialize(deltat_n0));
-	batch.Put("X_n", serialize(X_n));
-	batch.Put("X_nplus1", serialize(X_nplus1));
-	batch.Put("X_n0", serialize(X_n0));
-	batch.Put("b", serialize(b));
-	batch.Put("bt", serialize(bt));
-	batch.Put("Ar", serialize(Ar));
-	batch.Put("Mt", serialize(Mt));
-	batch.Put("ur", serialize(ur));
-	batch.Put("c", serialize(c));
-	batch.Put("m", serialize(m));
-	batch.Put("p", serialize(p));
-	batch.Put("rho", serialize(rho));
-	batch.Put("e", serialize(e));
-	batch.Put("E_n", serialize(E_n));
-	batch.Put("E_nplus1", serialize(E_nplus1));
-	batch.Put("V", serialize(V));
-	batch.Put("deltatj", serialize(deltatj));
-	batch.Put("uj_n", serialize(uj_n));
-	batch.Put("uj_nplus1", serialize(uj_nplus1));
-	batch.Put("l", serialize(l));
-	batch.Put("Cjr_ic", serialize(Cjr_ic));
-	batch.Put("C", serialize(C));
-	batch.Put("F", serialize(F));
-	batch.Put("Ajr", serialize(Ajr));
-	status = db->Write(leveldb::WriteOptions(), &batch);
-	// Checking everything was ok
-	assert(status.ok());
-	std::cerr << "Reference database " << db_name << " created." << std::endl;
-	// Freeing memory
-	delete db;
-}
-
-/******************** Non regression testing ********************/
-
-bool compareDB(const std::string& current, const std::string& ref)
-{
-	// Final result
-	bool result = true;
-
-	// Loading ref DB
-	leveldb::DB* db_ref;
-	leveldb::Options options_ref;
-	options_ref.create_if_missing = false;
-	leveldb::Status status = leveldb::DB::Open(options_ref, ref, &db_ref);
-	if (!status.ok())
-	{
-		std::cerr << "No ref database to compare with ! Looking for " << ref << std::endl;
-		return false;
-	}
-	leveldb::Iterator* it_ref = db_ref->NewIterator(leveldb::ReadOptions());
-
-	// Loading current DB
-	leveldb::DB* db;
-	leveldb::Options options;
-	options.create_if_missing = false;
-	status = leveldb::DB::Open(options, current, &db);
-	assert(status.ok());
-	leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
-
-	// Results comparison
-	std::cerr << "# Comparing results ..." << std::endl;
-	for (it_ref->SeekToFirst(); it_ref->Valid(); it_ref->Next()) {
-		auto key = it_ref->key();
-		std::string value;
-		auto status = db->Get(leveldb::ReadOptions(), key, &value);
-		if (status.IsNotFound()) {
-			std::cerr << "ERROR - Key : " << key.ToString() << " not found." << endl;
-			result = false;
-		}
-		else {
-			if (value == it_ref->value().ToString())
-				std::cerr << key.ToString() << ": " << "OK" << std::endl;
-			else {
-				std::cerr << key.ToString() << ": " << "ERROR" << std::endl;
-				result = false;
-			}
-		}
-	}
-
-	// looking for key in the db that are not in the ref (new variables)
-	for (it->SeekToFirst(); it->Valid(); it->Next()) {
-		auto key = it->key();
-		std::string value;
-		if (db_ref->Get(leveldb::ReadOptions(), key, &value).IsNotFound()) {
-			std::cerr << "ERROR - Key : " << key.ToString() << " can not be compared (not present in the ref)." << std::endl;
-			result = false;
-		}
-	}
-
-	// Freeing memory
-	delete db;
-	delete db_ref;
-
-	return result;
-}
-
 int main(int argc, char* argv[]) 
 {
 	int ret = EXIT_SUCCESS;
@@ -1105,15 +987,6 @@ int main(int argc, char* argv[])
 	// Start simulation
 	// Simulator must be a pointer when a finalize is needed at the end (Kokkos, omp...)
 	glace2d->simulate();
-	// Non regression testing
-	if (glace2dOptions.nonRegression == "CreateReference")
-		glace2d->createDB("Glace2dDB.ref");
-	if (glace2dOptions.nonRegression == "CompareToReference") {
-		glace2d->createDB("Glace2dDB.current");
-		if (!compareDB("Glace2dDB.current", "Glace2dDB.ref"))
-			ret = 1;
-		leveldb::DestroyDB("Glace2dDB.current", leveldb::Options());
-	}
 	
 	delete glace2d;
 	delete mesh;

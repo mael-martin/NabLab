@@ -135,11 +135,6 @@ IterativeHeatEquation::Options::jsonInit(const char* jsonContent)
 	}
 	else
 		epsilon = 1.0E-8;
-	// Non regression
-	assert(o.HasMember("nonRegression"));
-	const rapidjson::Value& valueof_nonRegression = o["nonRegression"];
-	assert(valueof_nonRegression.IsString());
-	nonRegression = valueof_nonRegression.GetString();
 }
 
 /******************** Module definition ********************/
@@ -188,10 +183,10 @@ IterativeHeatEquation::IterativeHeatEquation(CartesianMesh2D* aMesh, Options& aO
  */
 void IterativeHeatEquation::computeFaceLength() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbFaces / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbFaces / 10) * (task + 1)) : (nbFaces);
+		const Id ___omp_base  = ((nbFaces / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbFaces / 4) * (task + 1)) : (nbFaces);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X, this->faceLength) priority(4) \
@@ -243,10 +238,10 @@ void IterativeHeatEquation::computeTn() noexcept
  */
 void IterativeHeatEquation::computeV() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X, this->V) priority(4) \
@@ -281,10 +276,10 @@ void IterativeHeatEquation::computeV() noexcept
  */
 void IterativeHeatEquation::initD() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->D) priority(4) \
@@ -322,10 +317,10 @@ void IterativeHeatEquation::initTime() noexcept
  */
 void IterativeHeatEquation::initXc() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->X, this->Xc) priority(4) \
@@ -369,10 +364,10 @@ void IterativeHeatEquation::setUpTimeLoopK() noexcept
  */
 void IterativeHeatEquation::updateU() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->alpha, this->u_nplus1_k, this->u_n, this->u_nplus1_kplus1) priority(2) \
@@ -408,26 +403,14 @@ void IterativeHeatEquation::computeDeltaTn() noexcept
 	double reduction0(numeric_limits<double>::max());
 	#pragma omp task  \
 	default(none) shared(stderr, mesh, this->V, this->D, this->deltat) priority(3) firstprivate(reduction0, nbCells) \
-	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 10) * 0)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 10) * 1)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 10) * 2)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 10) * 3)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 10) * 4)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 10) * 5)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 10) * 6)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 10) * 7)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 10) * 8)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 10) * 9)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 10) * 0)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 10) * 1)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 10) * 2)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 10) * 3)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 10) * 4)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 10) * 5)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 10) * 6)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 10) * 7)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 10) * 8)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 10) * 9)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 4) * 0)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 4) * 1)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 4) * 2)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->V[(((this->V.size()) / 4) * 3)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 4) * 0)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 4) * 1)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 4) * 2)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->D[(((this->D.size()) / 4) * 3)])) \
 	/* dep reduction result */ depend(out:	(this->deltat))
 	{
 	{
@@ -445,10 +428,10 @@ void IterativeHeatEquation::computeDeltaTn() noexcept
  */
 void IterativeHeatEquation::computeFaceConductivity() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbFaces / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbFaces / 10) * (task + 1)) : (nbFaces);
+		const Id ___omp_base  = ((nbFaces / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbFaces / 4) * (task + 1)) : (nbFaces);
 		// WARN: Conversions in in/out for omp task
 		// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
 		#pragma omp task  \
@@ -497,16 +480,10 @@ void IterativeHeatEquation::computeResidual() noexcept
 	double reduction0(-numeric_limits<double>::max());
 	#pragma omp task  \
 	default(none) shared(stderr, mesh, this->u_nplus1_kplus1, this->u_nplus1_k, this->residual) priority(1) firstprivate(reduction0, nbCells) \
-	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 10) * 0)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 10) * 1)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 10) * 2)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 10) * 3)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 10) * 4)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 10) * 5)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 10) * 6)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 10) * 7)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 10) * 8)])) \
-	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 10) * 9)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 4) * 0)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 4) * 1)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 4) * 2)])) \
+	/* dep loop all (rgpin) */ depend(in:	(this->u_nplus1_kplus1[(((this->u_nplus1_kplus1.size()) / 4) * 3)])) \
 	/* dep reduction result */ depend(out:	(this->residual))
 	{
 	{
@@ -531,12 +508,16 @@ void IterativeHeatEquation::executeTimeLoopK() noexcept
 		k++;
 	
 		// Launch all tasks for this loop...
+		++___DAG_loops;
+		fprintf(stderr, "### NEW LOOP %ld\n", ___DAG_loops);
 		
 		#pragma omp parallel
 		{
 		#pragma omp single nowait
 		{
+		fprintf(stderr, "\"updateU_1.0\", [\"alpha\", \"u_nplus1_k\", \"u_n\"], [\"u_nplus1_kplus1\"]\n");
 		updateU(); // @1.0
+		fprintf(stderr, "\"computeResidual_2.0\", [\"u_nplus1_kplus1\", \"u_nplus1_k\"], [\"residual\"]\n");
 		computeResidual(); // @2.0
 		}}
 		
@@ -561,10 +542,10 @@ void IterativeHeatEquation::executeTimeLoopK() noexcept
  */
 void IterativeHeatEquation::initU() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		#pragma omp task  \
 		firstprivate(task, ___omp_base, ___omp_limit)  \
 		default(none) shared(stderr, mesh, this->Xc, IterativeHeatEquation::vectOne, this->u_n) priority(3) \
@@ -599,10 +580,10 @@ void IterativeHeatEquation::setUpTimeLoopN() noexcept
  */
 void IterativeHeatEquation::computeAlphaCoeff() noexcept
 {
-	for (size_t task = 0; task < 10; ++task)
+	for (size_t task = 0; task < 4; ++task)
 	{
-		const Id ___omp_base  = ((nbCells / 10) * task);
-		const Id ___omp_limit = (10 - 1 != task) ? ((nbCells / 10) * (task + 1)) : (nbCells);
+		const Id ___omp_base  = ((nbCells / 4) * task);
+		const Id ___omp_limit = (4 - 1 != task) ? ((nbCells / 4) * (task + 1)) : (nbCells);
 		// WARN: Conversions in in/out for omp task
 		// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
 		#pragma omp task  \
@@ -664,16 +645,22 @@ void IterativeHeatEquation::executeTimeLoopN() noexcept
 				<< setiosflags(std::ios::scientific) << setprecision(8) << setw(16) << t_n << __RESET__;
 	
 		// Launch all tasks for this loop...
+		++___DAG_loops;
+		fprintf(stderr, "### NEW LOOP %ld\n", ___DAG_loops);
 		
 		#pragma omp parallel
 		{
 		#pragma omp single nowait
 		{
+		fprintf(stderr, "\"computeTn_1.0\", [\"t_n\", \"deltat\"], [\"t_nplus1\"]\n");
 		computeTn(); // @1.0
 		// Wait before time loop: true
 		}}
+		fprintf(stderr, "\"setUpTimeLoopK_1.0\", [], []\n");
 		setUpTimeLoopK(); // @1.0
+		fprintf(stderr, "\"executeTimeLoopK_2.0\", [\"residual\", \"epsilon\", \"k\", \"maxIterationsK\"], []\n");
 		executeTimeLoopK(); // @2.0
+		fprintf(stderr, "\"tearDownTimeLoopK_3.0\", [], []\n");
 		tearDownTimeLoopK(); // @3.0
 		
 	
@@ -714,133 +701,45 @@ void IterativeHeatEquation::simulate()
 	std::cout << "[" << __GREEN__ << "OUTPUT" << __RESET__ << "]    " << __BOLD__ << "Disabled" << __RESET__ << std::endl;
 
 	// Launch all tasks for this loop...
+	++___DAG_loops;
+	fprintf(stderr, "### NEW LOOP %ld\n", ___DAG_loops);
 	
 	#pragma omp parallel
 	{
 	#pragma omp single nowait
 	{
+	fprintf(stderr, "\"computeFaceLength_1.0\", [\"X\"], [\"faceLength\"]\n");
 	computeFaceLength(); // @1.0
+	fprintf(stderr, "\"computeV_1.0\", [\"X\"], [\"V\"]\n");
 	computeV(); // @1.0
+	fprintf(stderr, "\"initD_1.0\", [], [\"D\"]\n");
 	initD(); // @1.0
+	fprintf(stderr, "\"initTime_1.0\", [], [\"t_n0\"]\n");
 	initTime(); // @1.0
+	fprintf(stderr, "\"initXc_1.0\", [\"X\"], [\"Xc\"]\n");
 	initXc(); // @1.0
 	/* A job will do an index conversion, need to wait as it is not supported */
 	#pragma omp taskwait
+	fprintf(stderr, "\"computeDeltaTn_2.0\", [\"V\", \"D\"], [\"deltat\"]\n");
 	computeDeltaTn(); // @2.0
+	fprintf(stderr, "\"computeFaceConductivity_2.0\", [\"D\"], [\"faceConductivity\"]\n");
 	computeFaceConductivity(); // @2.0 (do conversions)
+	fprintf(stderr, "\"initU_2.0\", [\"Xc\", \"vectOne\", \"u0\"], [\"u_n\"]\n");
 	initU(); // @2.0
 	// Wait before time loop: true
 	}}
+	fprintf(stderr, "\"setUpTimeLoopN_2.0\", [], []\n");
 	setUpTimeLoopN(); // @2.0
 	/* A job will do an index conversion, need to wait as it is not supported */
 	#pragma omp taskwait
+	fprintf(stderr, "\"computeAlphaCoeff_3.0\", [\"deltat\", \"V\", \"faceLength\", \"faceConductivity\", \"Xc\"], [\"alpha\"]\n");
 	computeAlphaCoeff(); // @3.0 (do conversions)
+	fprintf(stderr, "\"executeTimeLoopN_4.0\", [\"t_nplus1\", \"stopTime\", \"n\", \"maxIterations\"], []\n");
 	executeTimeLoopN(); // @4.0
 	
 	std::cout << __YELLOW__ << "\n\tDone ! Took " << __MAGENTA__ << __BOLD__ << globalTimer.print() << __RESET__ << std::endl;
 }
 
-
-void IterativeHeatEquation::createDB(const std::string& db_name)
-{
-	// Creating data base
-	leveldb::DB* db;
-	leveldb::Options options;
-	options.create_if_missing = true;
-	leveldb::Status status = leveldb::DB::Open(options, db_name, &db);
-	assert(status.ok());
-	// Batch to write all data at once
-	leveldb::WriteBatch batch;
-	batch.Put("n", serialize(n));
-	batch.Put("k", serialize(k));
-	batch.Put("vectOne", serialize(vectOne));
-	batch.Put("deltat", serialize(deltat));
-	batch.Put("t_n", serialize(t_n));
-	batch.Put("t_nplus1", serialize(t_nplus1));
-	batch.Put("t_n0", serialize(t_n0));
-	batch.Put("X", serialize(X));
-	batch.Put("Xc", serialize(Xc));
-	batch.Put("u_n", serialize(u_n));
-	batch.Put("u_nplus1", serialize(u_nplus1));
-	batch.Put("u_nplus1_k", serialize(u_nplus1_k));
-	batch.Put("u_nplus1_kplus1", serialize(u_nplus1_kplus1));
-	batch.Put("V", serialize(V));
-	batch.Put("D", serialize(D));
-	batch.Put("faceLength", serialize(faceLength));
-	batch.Put("faceConductivity", serialize(faceConductivity));
-	batch.Put("alpha", serialize(alpha));
-	batch.Put("residual", serialize(residual));
-	status = db->Write(leveldb::WriteOptions(), &batch);
-	// Checking everything was ok
-	assert(status.ok());
-	std::cerr << "Reference database " << db_name << " created." << std::endl;
-	// Freeing memory
-	delete db;
-}
-
-/******************** Non regression testing ********************/
-
-bool compareDB(const std::string& current, const std::string& ref)
-{
-	// Final result
-	bool result = true;
-
-	// Loading ref DB
-	leveldb::DB* db_ref;
-	leveldb::Options options_ref;
-	options_ref.create_if_missing = false;
-	leveldb::Status status = leveldb::DB::Open(options_ref, ref, &db_ref);
-	if (!status.ok())
-	{
-		std::cerr << "No ref database to compare with ! Looking for " << ref << std::endl;
-		return false;
-	}
-	leveldb::Iterator* it_ref = db_ref->NewIterator(leveldb::ReadOptions());
-
-	// Loading current DB
-	leveldb::DB* db;
-	leveldb::Options options;
-	options.create_if_missing = false;
-	status = leveldb::DB::Open(options, current, &db);
-	assert(status.ok());
-	leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
-
-	// Results comparison
-	std::cerr << "# Comparing results ..." << std::endl;
-	for (it_ref->SeekToFirst(); it_ref->Valid(); it_ref->Next()) {
-		auto key = it_ref->key();
-		std::string value;
-		auto status = db->Get(leveldb::ReadOptions(), key, &value);
-		if (status.IsNotFound()) {
-			std::cerr << "ERROR - Key : " << key.ToString() << " not found." << endl;
-			result = false;
-		}
-		else {
-			if (value == it_ref->value().ToString())
-				std::cerr << key.ToString() << ": " << "OK" << std::endl;
-			else {
-				std::cerr << key.ToString() << ": " << "ERROR" << std::endl;
-				result = false;
-			}
-		}
-	}
-
-	// looking for key in the db that are not in the ref (new variables)
-	for (it->SeekToFirst(); it->Valid(); it->Next()) {
-		auto key = it->key();
-		std::string value;
-		if (db_ref->Get(leveldb::ReadOptions(), key, &value).IsNotFound()) {
-			std::cerr << "ERROR - Key : " << key.ToString() << " can not be compared (not present in the ref)." << std::endl;
-			result = false;
-		}
-	}
-
-	// Freeing memory
-	delete db;
-	delete db_ref;
-
-	return result;
-}
 
 int main(int argc, char* argv[]) 
 {
@@ -890,15 +789,6 @@ int main(int argc, char* argv[])
 	// Start simulation
 	// Simulator must be a pointer when a finalize is needed at the end (Kokkos, omp...)
 	iterativeHeatEquation->simulate();
-	// Non regression testing
-	if (iterativeHeatEquationOptions.nonRegression == "CreateReference")
-		iterativeHeatEquation->createDB("IterativeHeatEquationDB.ref");
-	if (iterativeHeatEquationOptions.nonRegression == "CompareToReference") {
-		iterativeHeatEquation->createDB("IterativeHeatEquationDB.current");
-		if (!compareDB("IterativeHeatEquationDB.current", "IterativeHeatEquationDB.ref"))
-			ret = 1;
-		leveldb::DestroyDB("IterativeHeatEquationDB.current", leveldb::Options());
-	}
 	
 	delete iterativeHeatEquation;
 	delete mesh;

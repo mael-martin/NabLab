@@ -9,8 +9,6 @@
 #include <limits>
 #include <utility>
 #include <cmath>
-#include <leveldb/db.h>
-#include <leveldb/write_batch.h>
 #include <omp.h>
 #include <cstdio>
 #include "nablalib/mesh/CartesianMesh2DFactory.h"
@@ -18,7 +16,6 @@
 #include "nablalib/utils/Utils.h"
 #include "nablalib/utils/Timer.h"
 #include "nablalib/types/Types.h"
-#include "nablalib/utils/Serializer.h"
 #include "nablalib/mesh/PvdFileWriter2D.h"
 #include "LinearAlgebra.h"
 
@@ -58,7 +55,6 @@ public:
 		double stopTime;
 		int maxIterations;
 		LinearAlgebra linearAlgebra;
-		std::string nonRegression;
 
 		void jsonInit(const char* jsonContent);
 	};
@@ -80,7 +76,6 @@ public:
 	void setUpTimeLoopN() noexcept;
 	void computeAlphaCoeff() noexcept;
 	void executeTimeLoopN() noexcept;
-	void createDB(const std::string& db_name);
 
 private:
 	// Mesh and mesh variables

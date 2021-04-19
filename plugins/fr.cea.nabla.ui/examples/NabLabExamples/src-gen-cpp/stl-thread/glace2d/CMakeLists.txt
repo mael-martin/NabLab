@@ -26,11 +26,6 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	endif()
 endif()
 
-# FIND PACKAGES
-set(CMAKE_FIND_ROOT_PATH $ENV{HOME}/leveldb/leveldb-install)
-find_package(leveldb REQUIRED)
-find_package(Threads REQUIRED)
-
 # SUB_DIRECTORIES
 if(NOT TARGET nablalib)
 	add_subdirectory(${N_WS_PATH}/.nablab/nablalib ${CMAKE_BINARY_DIR}/nablalib)
@@ -38,7 +33,7 @@ endif()
 
 # EXECUTABLE glace2d
 add_executable(glace2d Glace2d.cc)
-target_link_libraries(glace2d PUBLIC nablalib pthread leveldb::leveldb Threads::Threads)
+target_link_libraries(glace2d PUBLIC nablalib pthread)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	target_compile_options(glace2d PRIVATE -fdiagnostics-color=always)
