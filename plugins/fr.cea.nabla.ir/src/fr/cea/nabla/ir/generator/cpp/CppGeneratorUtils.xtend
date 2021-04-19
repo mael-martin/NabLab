@@ -256,6 +256,14 @@ class CppGeneratorUtils
 		val dep_simple  = dependencies.filter(v|!v.isVariableRange).toSet;
 		dep_simple.addAll(forced_simple) /* Forced simple */
 
+		/* Treat all duplicated outputs dependencies */
+		val HashMap<String, String> correctionForDuplicatedOuts = new HashMap();
+		if (isDuplicatedOutJob && inout == 'out') {
+			findDuplicatesOuts.forEach[ v | 
+				correctionForDuplicatedOuts.put(v.name, v.name + '_' + name)
+			]
+		}
+
 		val need_ranges = dep_ranges.length >= 1;
 		val need_simple = dep_simple.length >= 1;
 		var ret         = ''''''
@@ -264,14 +272,16 @@ class CppGeneratorUtils
 		if (need_ranges) {
 		ret = ''' \
 «FOR v : dep_ranges SEPARATOR ' \\\n'
-	»/* dep loop (range) */ depend(«inout»:	(«getVariableName(v)»[«from»]))«
+	»/* dep loop (range) */ depend(«inout»:	(«
+	applyCorrectionForDuplicatedOutput(v, correctionForDuplicatedOuts)»[«from»]))«
 ENDFOR»'''
 		}
 
 		/* All simple values */
 		if (need_simple)
 			ret = '''«ret» \
-«FOR v : dep_simple SEPARATOR ', \\\n'»/* dep loop (simpL) */ depend(«inout»:	(«getVariableName(v)»))«ENDFOR»'''
+«FOR v : dep_simple SEPARATOR ', \\\n'»/* dep loop (simpL) */ depend(«inout»:	(«
+applyCorrectionForDuplicatedOutput(v, correctionForDuplicatedOuts)»))«ENDFOR»'''
 		
 		return ret
 	}
@@ -300,19 +310,30 @@ ENDFOR»'''
 		val forced_simple = dependencies.filter[v|GlobalVariableProducedBySuperTask.contains(v.name)].toSet
 		dependencies.removeAll(forced_simple)
 
-		val dep_ranges  = dependencies.filter(v|v.isVariableRange);
+		val dep_ranges  = dependencies.filter(v|v.isVariableRange).toSet;
 		val dep_simple  = dependencies.filter(v|!v.isVariableRange).toSet;
 		dep_simple.addAll(forced_simple) /* Forced simple */
 
+		var ret = ''''''
+		
+		/* Treat all duplicated outputs dependencies */
+		val HashMap<String, String> correctionForDuplicatedOuts = new HashMap();
+		if (isDuplicatedOutJob && inout == 'out') {
+			findDuplicatesOuts.forEach[ v | 
+				correctionForDuplicatedOuts.put(v.name, v.name + '_' + name)
+			]
+		}
+
 		val need_ranges = dep_ranges.length >= 1;
 		val need_simple = dep_simple.length >= 1;
-		var ret = ''''''
 
 		if (need_ranges)
 		{
 			/* All ranges : XXX : Can't be used with partial things like 'innerCells', must be all the variable */
-			ret = '''«FOR v : dep_ranges»«FOR i : OMPTaskMaxNumberIterator» \
-/* dep loop all (rgpin) */ depend(«inout»:	(this->«v.name»[«getBaseIndex('''(«getVariableName(v)».size())''', '''«i»''')»]))«
+			ret = '''«ret»«FOR v : dep_ranges»«FOR i : OMPTaskMaxNumberIterator» \
+/* dep loop all (rgpin) */ depend(«inout»:	(«
+applyCorrectionForDuplicatedOutput(v, correctionForDuplicatedOuts)»[«
+getBaseIndex('''(«getVariableName(v)».size())''', '''«i»''')»]))«
 ENDFOR»«ENDFOR»'''
 		}
 
@@ -320,7 +341,8 @@ ENDFOR»«ENDFOR»'''
 		{
 			/* All simple values */
 			ret = '''«ret» \
-«FOR v : dep_simple SEPARATOR ' \\\n'»/* dep loop all (simpL) */ depend(«inout»:	(«getVariableName(v)»))«ENDFOR»'''
+«FOR v : dep_simple SEPARATOR ' \\\n'»/* dep loop all (simpL) */ depend(«inout»:	(«
+applyCorrectionForDuplicatedOutput(v, correctionForDuplicatedOuts)»))«ENDFOR»'''
 		}
 
 		return ret
@@ -393,9 +415,29 @@ firstprivate(task, ___omp_base, ___omp_limit«
 	}
 	
 	/* Get duplicated out variables in job caller */
+	static def String applyCorrectionForDuplicatedOutput(Variable v, HashMap<String, String> corrections) {
+		val correction = corrections.getOrDefault(v.name, null)
+		if (correction === null) return getVariableName(v)
+		else                     return correction
+	}
+	static def applyCorrectionForDuplicatedOutputIndex(Variable v, String total, String sliceNumber, HashMap<String, String> corrections) {
+		var correction = corrections.getOrDefault(v.name, null)
+		if (correction === null) return getBaseIndex(total, sliceNumber)
+		else                     return '''«sliceNumber»'''
+	}
 	static def Set<Variable> findDuplicates(JobCaller it) {
 		val collection = calls.map[outVars].flatten.toList
 		val uniques = new HashSet<Variable>() 
 		return collection.stream().filter([e | !uniques.add(e)]).collect(Collectors.toSet()) 
+	}
+	static def Set<Job> getDuplicateOutJobs(JobCaller it) {
+		val duplicatedOuts = findDuplicates
+		return calls.filter[outVars.map[t|duplicatedOuts.contains(t)].reduce[p1, p2 | p1 || p2]].toSet
+	}
+	static def boolean isDuplicatedOutJob(Job it) { return caller.duplicateOutJobs.filter[j|j.name == name].size > 0 }
+	static def Set<Variable> findDuplicatesOuts(Job it) {
+		val allOutsDuplicated = findDuplicates(caller)
+		allOutsDuplicated.retainAll(outVars)
+		return allOutsDuplicated
 	}
 }
