@@ -413,10 +413,28 @@ firstprivate(task, ___omp_base, ___omp_limit«
 	}
 	
 	/* Get duplicated out variables in job caller */
+	static private def int getJobIndexInList(Job it, Job[] list) {
+		val int index = list.indexed.map[ pair |
+			val i = pair.key
+			val j = pair.value
+			return (j.name == name) ? i : list.size
+		].reduce[ p1, p2 |
+			return (p1 == list.size) ? p2 : p1
+		]
+		if (index == list.size)
+			throw new Exception("Can't find job " + it + ' (' + name + '@' + at + ') in list')
+		else
+			return index
+	}
 	static def boolean isVariableProduceByPredecessorJob(Job it, Variable v) {
 		if (it === null || caller === null)
 			return false;
-		val predProducedVars = caller.calls.filter[ j | j.at <= at && j.name != name].map[outVars].flatten.toSet
+		val Job[] jobList    = caller.calls
+		val jobIndexInList   = getJobIndexInList(jobList);
+		val predProducedVars = jobList.indexed.filter[ pair |
+			val j = pair.value
+			return (pair.key >= jobIndexInList) && j.at <= at && j.name != name
+		].map[pair|pair.value].map[outVars].flatten.toSet
 		return predProducedVars.contains(v)
 	}
 	static def Set<Variable> findDuplicates(JobCaller it) {
