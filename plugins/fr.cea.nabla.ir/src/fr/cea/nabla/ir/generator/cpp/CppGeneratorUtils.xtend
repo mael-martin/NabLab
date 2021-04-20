@@ -255,14 +255,6 @@ class CppGeneratorUtils
 		val dep_simple  = dependencies.filter(v|!v.isVariableRange).toSet;
 		dep_simple.addAll(forced_simple) /* Forced simple */
 
-		/* Treat all duplicated outputs dependencies */
-		val HashMap<String, String> correctionForDuplicatedOuts = new HashMap();
-		if (inout == 'out' && isDuplicatedOutJob) {
-			findDuplicatesOuts.forEach[ v | 
-				correctionForDuplicatedOuts.put(v.name, v.name + '_' + name)
-			]
-		}
-
 		val need_ranges = dep_ranges.length >= 1;
 		val need_simple = dep_simple.length >= 1;
 		var ret         = ''''''
@@ -271,16 +263,19 @@ class CppGeneratorUtils
 		if (need_ranges) {
 		ret = ''' \
 «FOR v : dep_ranges SEPARATOR ' \\\n'
-	»/* dep loop (range) */ depend(«inout»:	(«
-	applyCorrectionForDuplicatedOutput(v, correctionForDuplicatedOuts)»[«from»]))«
+	»/* dep loop (range) */ depend(«
+	IF inout == 'out' && isVariableProduceByPredecessorJob(v)»inout:«ELSE»«inout»:	«ENDIF»(«
+	getVariableName(v)»[«from»]))«
 ENDFOR»'''
 		}
 
 		/* All simple values */
 		if (need_simple)
 			ret = '''«ret» \
-«FOR v : dep_simple SEPARATOR ', \\\n'»/* dep loop (simpL) */ depend(«inout»:	(«
-applyCorrectionForDuplicatedOutput(v, correctionForDuplicatedOuts)»))«ENDFOR»'''
+«FOR v : dep_simple SEPARATOR ', \\\n'»/* dep loop (simpL) */ depend(«
+	IF inout == 'out' && isVariableProduceByPredecessorJob(v)»inout:«ELSE»«inout»:	«ENDIF»(«
+	getVariableName(v)»))«
+ENDFOR»'''
 		
 		return ret
 	}
@@ -329,19 +324,23 @@ applyCorrectionForDuplicatedOutput(v, correctionForDuplicatedOuts)»))«ENDFOR»
 		if (need_ranges)
 		{
 			/* All ranges : XXX : Can't be used with partial things like 'innerCells', must be all the variable */
-			ret = '''«ret»«FOR v : dep_ranges»«FOR i : OMPTaskMaxNumberIterator» \
-/* dep loop all (rgpin) */ depend(«inout»:	(«
-applyCorrectionForDuplicatedOutput(v, correctionForDuplicatedOuts)»[«
-getBaseIndex('''(«getVariableName(v)».size())''', '''«i»''')»]))«
-ENDFOR»«ENDFOR»'''
+			ret = '''«ret»«
+FOR v : dep_ranges»«FOR i : OMPTaskMaxNumberIterator» \
+/* dep loop all (rgpin) */ depend(«
+	IF inout == 'out' && isVariableProduceByPredecessorJob(v)»inout:«ELSE»«inout»:	«ENDIF»(«
+	getVariableName(v)»[«
+	getBaseIndex('''(«getVariableName(v)».size())''', '''«i»''')»]))«
+	ENDFOR»«ENDFOR»'''
 		}
 
 		if (need_simple)
 		{
 			/* All simple values */
 			ret = '''«ret» \
-«FOR v : dep_simple SEPARATOR ' \\\n'»/* dep loop all (simpL) */ depend(«inout»:	(«
-applyCorrectionForDuplicatedOutput(v, correctionForDuplicatedOuts)»))«ENDFOR»'''
+«FOR v : dep_simple SEPARATOR ' \\\n'»/* dep loop all (simpL) */ depend(«
+	IF inout == 'out' && isVariableProduceByPredecessorJob(v)»inout:«ELSE»«inout»:	«ENDIF»(«
+	getVariableName(v)»))«
+ENDFOR»'''
 		}
 
 		return ret
@@ -414,15 +413,11 @@ firstprivate(task, ___omp_base, ___omp_limit«
 	}
 	
 	/* Get duplicated out variables in job caller */
-	static def String applyCorrectionForDuplicatedOutput(Variable v, HashMap<String, String> corrections) {
-		val correction = corrections.getOrDefault(v.name, null)
-		if (correction === null) return getVariableName(v)
-		else                     return correction
-	}
-	static def applyCorrectionForDuplicatedOutputIndex(Variable v, String total, String sliceNumber, HashMap<String, String> corrections) {
-		var correction = corrections.getOrDefault(v.name, null)
-		if (correction === null) return getBaseIndex(total, sliceNumber)
-		else                     return '''«sliceNumber»'''
+	static def boolean isVariableProduceByPredecessorJob(Job it, Variable v) {
+		if (it === null || caller === null)
+			return false;
+		val predProducedVars = caller.calls.filter[ j | j.at <= at && j.name != name].map[outVars].flatten.toSet
+		return predProducedVars.contains(v)
 	}
 	static def Set<Variable> findDuplicates(JobCaller it) {
 		if (it === null)

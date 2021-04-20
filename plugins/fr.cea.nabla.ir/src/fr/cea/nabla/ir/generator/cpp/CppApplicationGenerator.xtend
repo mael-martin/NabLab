@@ -214,20 +214,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	'''
 	#define NABLALIB_DEBUG 0
 	#define NABLA_DEBUG    0
-	«FOR jc : eAllContents.filter(JobCaller).iteratorToIterable»
-		«val totalDuplicated = findDuplicates(jc)»
-		«val joinedTasks = jc.calls.filter[outVars.map[t|totalDuplicated.contains(t)].reduce[p1, p2| p1 || p2]]»
-		«FOR j : joinedTasks»
-			«val duplicatedOuts = findDuplicates(jc).filter[t|j.outVars.contains(t)]»
-			«FOR v : duplicatedOuts»
-				«IF isGlobalVariableProducedBySuperTask(v.name) || v.name.globalVariableType == INDEX_TYPE::NULL»
-					static int «v.name»_«j.name»; /* Simple control variable */
-				«ELSE»
-					static int «v.name»_«j.name»[«OMPTaskMaxNumber»]; /* Range control variable */
-				«ENDIF»
-			«ENDFOR»
-		«ENDFOR»
-	«ENDFOR»
 	«fileHeader»
 
 	#include "«className».h"

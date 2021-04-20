@@ -59,14 +59,6 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 			«IF atJobs.filter[usedIndexType.length > 1].length > 0»
 				/* A job will do an index conversion, need to wait as it is not supported */
 				#pragma omp taskwait
-			«ELSE»
-				«val controlTaskForIns = atJobs.map[inVars].flatten.toSet»
-				«IF controlTaskForIns.retainAll(duplicatedOuts) || controlTaskForIns.size > 0»
-					«FOR v : controlTaskForIns»
-						«val joinedTasks = calls.filter[outVars.contains(v)]»
-						«createControlTask(v.name, joinedTasks.map[name].iterator.toList)»
-					«ENDFOR»
-				«ENDIF»
 			«ENDIF»
 			«FOR j : atJobs»
 				«IF j instanceof ExecuteTimeLoopJob || j instanceof TimeLoopJob»
@@ -82,7 +74,7 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 				«ENDIF»
 				«j.callName.replace('.', '->')»(); // @«j.at»«
 					IF j.usedIndexType.length > 1» (do conversions)«ENDIF»«
-					IF jobIsSuperTask(j)» (super task)«ENDIF»
+					IF jobIsSuperTask(j)» (super task)«ENDIF»«IF isDuplicatedOutJob(j)» (race condition on out var)«ENDIF»
 			«ENDFOR»
 		«ENDFOR»
 		«IF ! execTimeLoopPresent»
