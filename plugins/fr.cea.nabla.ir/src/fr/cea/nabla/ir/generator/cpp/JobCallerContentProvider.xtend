@@ -69,7 +69,7 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 				«ENDIF»
 				«IF OMPTraces»
 					fprintf(stderr, "(\"T«j.callName»_«j.at»\", [«
-						FOR v : j.inVars  SEPARATOR ', '»\"«v.name»\"«ENDFOR»], [«
+						FOR v : j.minimalInVars  SEPARATOR ', '»\"«v.name»\"«ENDFOR»], [«
 						FOR v : j.outVars SEPARATOR ', '»\"«v.name»\"«ENDFOR»])\n");
 				«ENDIF»
 				«j.callName.replace('.', '->')»(); // @«j.at»«

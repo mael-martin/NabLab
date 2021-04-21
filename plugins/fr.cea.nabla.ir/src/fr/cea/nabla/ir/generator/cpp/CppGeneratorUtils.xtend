@@ -478,6 +478,8 @@ ENDFOR»'''
 		return outVars.reject[ v | otherOuts.contains(v) ]
 	}
 	static def getMinimalInVars(Job it) {
+		if (it === null)
+			return new HashSet();
 		return MinimalInVariablesPerJobs.getOrDefault(name, new HashSet())
 	}
 	

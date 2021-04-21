@@ -352,7 +352,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		levelINC();
 		val launch_super_task = (insideAJob && (currentLevel == 1) && (childTasks > 1))
 		val parentJob         = EcoreUtil2.getContainerOfType(it, Job)
-		val ins               = parentJob.inVars
+		val ins               = parentJob.minimalInVars
 		val outs              = parentJob.outVars
 		if (launch_super_task) {
 			beginTASK('''task''');
@@ -385,7 +385,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			'''«left.codeName».setValue(«formatIteratorsAndIndices(left.target.type, left.iterators, left.indices)», «right.content»);'''
 		else if (parentJob !== null && parentJob.eAllContents.filter(Instruction).size == 1)
 		{
-			val ins = parentJob.inVars
+			val ins = parentJob.minimalInVars
 			val outs = parentJob.outVars
 			val super_task = (currentTASK !== null)
 			if (!super_task) {
@@ -416,9 +416,9 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	override getReductionContent(ReductionInstruction it)
 	{
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
-		val ins  = parentJob.getInVars  /* Need to be computed before, consumed */
-		val outs = parentJob.getOutVars /* Produced, unlock jobs that need them */
-		val out  = outs.head            /* Produced, unlock jobs that need them */
+		val ins  = parentJob.minimalInVars /* Need to be computed before, consumed */
+		val outs = parentJob.outVars       /* Produced, unlock jobs that need them */
+		val out  = outs.head               /* Produced, unlock jobs that need them */
 		val super_task = (currentTASK !== null)
 		if (! super_task) {
 			beginTASK(getAllOMPTasksAsCharSequence)
@@ -598,8 +598,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	private def launchTasks(Loop it)
 	{
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
-		val ins       = parentJob.inVars  /* Need to be computed before, consumed. */
-		val outs      = parentJob.outVars /* Produced, unlock jobs that need them. */
+		val ins       = parentJob.minimalInVars /* Need to be computed before, consumed. */
+		val outs      = parentJob.outVars       /* Produced, unlock jobs that need them. */
 		if (eAllContents.filter(ItemIdDefinition).size == 0)
 		{
 			val String itemname = iterationBlock.indexName.toString

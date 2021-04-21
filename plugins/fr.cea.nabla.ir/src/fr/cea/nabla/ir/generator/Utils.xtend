@@ -25,6 +25,7 @@ import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.IrRootExtensions.*
 import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.Utils.*
+import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.getMinimalInVars
 
 class Utils
 {
@@ -89,8 +90,11 @@ class Utils
 	'''
 		/**
 		 * Job «getCodeName» called @«at» in «caller.codeName» method.
-		 * In variables: «FOR v : inVars.sortBy[name] SEPARATOR ', '»«v.getName»«ENDFOR»
-		 * Out variables: «FOR v : outVars.sortBy[name] SEPARATOR ', '»«v.getName»«ENDFOR»
+		 * In variables:         «FOR v : inVars.sortBy[name] SEPARATOR ', '»«v.name»«ENDFOR»«
+		 IF minimalInVars.size > 0»
+		 	* Minimal In variables: «FOR v : minimalInVars SEPARATOR ', '»«v.name»«ENDFOR»
+		 «ENDIF»
+		 * Out variables:        «FOR v : outVars.sortBy[name] SEPARATOR ', '»«v.name»«ENDFOR»
 		 */
 	'''
 
