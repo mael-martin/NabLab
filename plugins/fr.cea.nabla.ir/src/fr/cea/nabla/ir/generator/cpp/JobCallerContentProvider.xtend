@@ -74,7 +74,8 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 				«ENDIF»
 				«j.callName.replace('.', '->')»(); // @«j.at»«
 					IF j.usedIndexType.length > 1» (do conversions)«ENDIF»«
-					IF jobIsSuperTask(j)» (super task)«ENDIF»«IF isDuplicatedOutJob(j)» (race condition on out var)«ENDIF»
+					IF jobIsSuperTask(j)» (super task)«ENDIF»«IF isDuplicatedOutJob(j)» (race condition on out var)«ENDIF» MinIns: «
+					FOR v : j.minimalInVars SEPARATOR ', '»«v.name»«ENDFOR»
 			«ENDFOR»
 		«ENDFOR»
 		«IF ! execTimeLoopPresent»

@@ -31,9 +31,16 @@ import fr.cea.nabla.ir.ir.ReductionInstruction
 import fr.cea.nabla.ir.ir.ConnectivityCall
 import fr.cea.nabla.ir.ir.IrAnnotable
 import fr.cea.nabla.ir.ir.Container
+import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.JobCaller
+import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.generator.cpp.TypeContentProvider
+import fr.cea.nabla.ir.JobDependencies
 import org.eclipse.xtext.EcoreUtil2
+import org.jgrapht.alg.cycle.CycleDetector
+import org.jgrapht.alg.shortestpath.FloydWarshallShortestPaths
+import org.jgrapht.graph.DefaultWeightedEdge
+import org.jgrapht.graph.DirectedWeightedPseudograph
 import java.util.stream.IntStream
 import java.util.Iterator
 import java.util.HashSet
@@ -55,13 +62,85 @@ class CppGeneratorUtils
 	static TypeContentProvider typeContentProvider = new StlThreadTypeContentProvider();
 	static def void registerTypeContentProvider(TypeContentProvider typeCtxProv) { typeContentProvider = typeCtxProv; }
 	
+	static HashMap<String, HashSet<String>> AccumulatedInVariablesPerJobs = new HashMap();
+	static HashMap<String, HashSet<Variable>> MinimalInVariablesPerJobs   = new HashMap();
+	static def void resetMinimalInVariables() {
+		MinimalInVariablesPerJobs.clear
+		AccumulatedInVariablesPerJobs.clear
+	}
+	static def computeMinimalInVariables(JobCaller jc) {
+		/* Null check safety */
+		if (jc === null)
+			return null;
+			
+		/* Only the things that will be // */
+		val jobs    = jc.calls.reject[ j | j instanceof TimeLoopJob || j instanceof ExecuteTimeLoopJob]
+		val jobdeps = new JobDependencies()
+
+		/* Init fulfilled variables for job is not needed, it will be
+		 * directly computed from the IN and AccumulatedID. Init accumulated
+		 * in variables for job */
+		jobs.forEach[
+			val HashSet<String> initAccIn = new HashSet();
+			initAccIn.addAll(inVars.map[name])
+			AccumulatedInVariablesPerJobs.put(name, initAccIn)
+		]
+		
+		/* Compute fulfillment of variables by the jobs:
+		 * - a variable is fulfilled if it is ensured that it is produced after the job ended
+		 * - so a fulfilled variable, is a variable that is produced by the job, or a predecessor job
+		 * - if a variable is subject to override, only the last job to produce it will fulfill it
+		 * - all the fulfilled needed variables are the `IN \ Accumulated IN`
+		 * - the Accumulated IN is the set of variables that are fulfilled before the job can begin */
+
+		var boolean modified = true;
+		while (modified) {
+			/* We apply the formula
+			 * 		`AccumulatedIN(j) = Union_{j' predecessor j}(IN(j'))`
+			 * while the stable state is not reached.
+			 * TODO: Use a BFS to do that, not a while(modified) */
+			
+			for (from : jobs) {
+				for (to : jobdeps.getNextJobs(from).filter[x | jobs.contains(x)]) {
+					/* In the DAG, have the edge `from -> to`. Here we do the following step:
+					 * `AccumulatedIN(j) += IN(j')` */
+
+					val accumulatedInTo   = AccumulatedInVariablesPerJobs.get(to.name);
+					val accumulatedInFrom = AccumulatedInVariablesPerJobs.get(from.name);
+					val sizeBeforeAddAll  = accumulatedInTo.size
+					accumulatedInTo.addAll(accumulatedInFrom)
+					modified = (sizeBeforeAddAll != accumulatedInTo.size)
+				}
+			}
+		}
+		
+		/* Now apply the formula: `NeededFulfilledVars = IN \ AccumulatedIN of predecessors` */
+		for (from : jobs) {
+			for (to : jobdeps.getNextJobs(from).filter[x | jobs.contains(x)]) {
+				val INS               = to.inVars;
+				val accumulatedInFrom = AccumulatedInVariablesPerJobs.get(from.name);
+				val minimalINS        = new HashSet();
+				minimalINS.addAll(INS.reject[v | accumulatedInFrom.contains(v.name)])
+				MinimalInVariablesPerJobs.put(to.name, minimalINS)
+			}
+		}
+	}
+	
 	/* FIXME: Those two need to be specified in the NGEN file */
 	static public int OMPTaskMaxNumber = 4
 	static public boolean OMPTraces = false
-	static def OMPTaskMaxNumberIterator() { iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) }
+	static def OMPTaskMaxNumberIterator() {
+		iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
+	}
 	
-	static def getAllOMPTasks() { iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) }
-	static def getAllOMPTasksAsCharSequence() '''{«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', '»«i»«ENDFOR»}'''
+	static def getAllOMPTasks() {
+		iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
+	}
+	static def getAllOMPTasksAsCharSequence()
+	'''{«
+	FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', '»«
+		i»«
+	ENDFOR»}'''
 	
 	/* Global variable => index type */
 	static HashMap<String, INDEX_TYPE> GlobalVariableIndexTypes = new HashMap();
@@ -390,6 +469,16 @@ ENDFOR»'''
 		val ret = inVars.toSet;
 		ret.addAll(outVars)
 		return ret;
+	}
+	static def getInoutVars(Job it) {
+		outVars.filter[ v | isVariableProduceByPredecessorJob(v) ]
+	}
+	static def getExclusivOutVars(Job it) {
+		val otherOuts = caller.calls.filter[j | j != it].map[outVars].flatten
+		return outVars.reject[ v | otherOuts.contains(v) ]
+	}
+	static def getMinimalInVars(Job it) {
+		return MinimalInVariablesPerJobs.getOrDefault(name, new HashSet())
 	}
 	
 	/* Shared variables, don't copy them into threads */

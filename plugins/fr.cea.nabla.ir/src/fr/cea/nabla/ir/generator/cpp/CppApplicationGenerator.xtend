@@ -55,9 +55,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		resetGlobalVariable
 		resetGlobalVariableProducedBySuperTask
 		resetAdditionalFirstPrivateVariables
+		resetMinimalInVariables
 		ir.modules.filter[t|t!==null].forEach[registerGlobalVariable]
 		ir.modules.filter[t|t!==null].forEach[registerGlobalVariableProducedBySuperTask]
 		ir.eAllContents.filter(Job).forEach[registerAdditionalFirstPrivVariables]
+		ir.eAllContents.filter(JobCaller).forEach[computeMinimalInVariables]
 		val fileContents = new ArrayList<GenerationContent>
 		for (module : ir.modules)
 		{
