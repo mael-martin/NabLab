@@ -69,13 +69,12 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 				«ENDIF»
 				«IF OMPTraces»
 					fprintf(stderr, "(\"T«j.callName»_«j.at»\", [«
-						FOR v : j.minimalInVars  SEPARATOR ', '»\"«v.name»\"«ENDFOR»], [«
+						FOR v : (j.minimalInVars + j.inoutVars) /* Need to re-do the 'minimal ins' if inoutVars != Ø */ SEPARATOR ', '»\"«v.name»\"«ENDFOR»], [«
 						FOR v : j.outVars SEPARATOR ', '»\"«v.name»\"«ENDFOR»])\n");
 				«ENDIF»
 				«j.callName.replace('.', '->')»(); // @«j.at»«
 					IF j.usedIndexType.length > 1» (do conversions)«ENDIF»«
-					IF jobIsSuperTask(j)» (super task)«ENDIF»«IF isDuplicatedOutJob(j)» (race condition on out var)«ENDIF» MinIns: «
-					FOR v : j.minimalInVars SEPARATOR ', '»«v.name»«ENDFOR»
+					IF jobIsSuperTask(j)» (super task)«ENDIF»«IF isDuplicatedOutJob(j)» (race condition on out var)«ENDIF»
 			«ENDFOR»
 		«ENDFOR»
 		«IF ! execTimeLoopPresent»
