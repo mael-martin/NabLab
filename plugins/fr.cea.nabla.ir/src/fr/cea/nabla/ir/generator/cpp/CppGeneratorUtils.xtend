@@ -342,8 +342,7 @@ class CppGeneratorUtils
 		if (need_ranges) {
 		ret = ''' \
 «FOR v : dep_ranges SEPARATOR ' \\\n'
-	»/* dep loop (range) */ depend(«
-	IF inout == 'out' && isVariableProduceByPredecessorJob(v)»inout:«ELSE»«inout»:	«ENDIF»(«
+	»/* dep loop (range) */ depend(«inout»:	(«
 	getVariableName(v)»[«from»]))«
 ENDFOR»'''
 		}
@@ -351,8 +350,7 @@ ENDFOR»'''
 		/* All simple values */
 		if (need_simple)
 			ret = '''«ret» \
-«FOR v : dep_simple SEPARATOR ', \\\n'»/* dep loop (simpL) */ depend(«
-	IF inout == 'out' && isVariableProduceByPredecessorJob(v)»inout:«ELSE»«inout»:	«ENDIF»(«
+«FOR v : dep_simple SEPARATOR ', \\\n'»/* dep loop (simpL) */ depend(«inout»:	(«
 	getVariableName(v)»))«
 ENDFOR»'''
 		
@@ -405,8 +403,7 @@ ENDFOR»'''
 			/* All ranges : XXX : Can't be used with partial things like 'innerCells', must be all the variable */
 			ret = '''«ret»«
 FOR v : dep_ranges»«FOR i : OMPTaskMaxNumberIterator» \
-/* dep loop all (rgpin) */ depend(«
-	IF inout == 'out' && isVariableProduceByPredecessorJob(v)»inout:«ELSE»«inout»:	«ENDIF»(«
+/* dep loop all (rgpin) */ depend(«inout»:	(«
 	getVariableName(v)»[«
 	getBaseIndex('''(«getVariableName(v)».size())''', '''«i»''')»]))«
 	ENDFOR»«ENDFOR»'''
@@ -416,8 +413,7 @@ FOR v : dep_ranges»«FOR i : OMPTaskMaxNumberIterator» \
 		{
 			/* All simple values */
 			ret = '''«ret» \
-«FOR v : dep_simple SEPARATOR ' \\\n'»/* dep loop all (simpL) */ depend(«
-	IF inout == 'out' && isVariableProduceByPredecessorJob(v)»inout:«ELSE»«inout»:	«ENDIF»(«
+«FOR v : dep_simple SEPARATOR ' \\\n'»/* dep loop all (simpL) */ depend(«inout»:	(«
 	getVariableName(v)»))«
 ENDFOR»'''
 		}
