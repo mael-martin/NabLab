@@ -207,7 +207,10 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	private def getGlobalVariableDeclarations(IrModule it)
 	'''
 		// Global variables
-		«FOR v : variables.filter[!option]»
+		«FOR v : variables.filter[!option].filter[constExpr || const]»
+			«v.variableDeclaration»
+		«ENDFOR»
+		«FOR v : variables.filter[!option].filter[!constExpr && !const]»
 			«v.variableDeclaration»
 		«ENDFOR»
 	'''
