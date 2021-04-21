@@ -38,12 +38,13 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 	override getCallsContent(JobCaller it)
 	{
 		var boolean execTimeLoopPresent = false;
-		val duplicatedOuts = findDuplicates
+		val duplicates = findDuplicates
+		if (duplicates.size > 0) {
+			val dup_str = duplicates.map[name].reduce[ p1, p2 | p1 + ', ' + p2 ]
+			throw new Exception(duplicates.size + " job(s) generate the same variable, duplicated variable(s) are/is " + dup_str)
+		}
 		'''
 		// Launch all tasks for this loop...
-		«IF duplicatedOuts.size > 0»
-			// XXX: There are duplicate out dependencies: «FOR v : duplicatedOuts SEPARATOR ', '»«v.name»«ENDFOR»
-		«ENDIF»
 		«IF OMPTraces»
 			++___DAG_loops;
 			fprintf(stderr, "### NEW LOOP %ld\n", ___DAG_loops);
