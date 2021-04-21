@@ -90,11 +90,8 @@ class Utils
 	'''
 		/**
 		 * Job «getCodeName» called @«at» in «caller.codeName» method.
-		 * In variables:         «FOR v : inVars.sortBy[name] SEPARATOR ', '»«v.name»«ENDFOR»«
-		 IF minimalInVars.size > 0»
-		 	* Minimal In variables: «FOR v : minimalInVars SEPARATOR ', '»«v.name»«ENDFOR»
-		 «ENDIF»
-		 * Out variables:        «FOR v : outVars.sortBy[name] SEPARATOR ', '»«v.name»«ENDFOR»
+		 * In [«FOR v : minimalInVars BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
+		 * Out [«FOR v : outVars.sortBy[name] BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
 		 */
 	'''
 

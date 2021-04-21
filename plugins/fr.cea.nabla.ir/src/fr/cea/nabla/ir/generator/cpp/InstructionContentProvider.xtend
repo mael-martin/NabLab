@@ -361,9 +361,11 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		val ret = '''
 		«IF launch_super_task»
+		// clang-format off
 		#pragma omp task«parentJob.priority»«getSharedVarsClause(parentJob)»«
 			getDependenciesAll(parentJob, 'in',  ins)»«
 			getDependenciesAll(parentJob, 'out', outs)»
+		// clang-format on
 		{ // BEGIN OF SUPER TASK
 		«ENDIF»
 		«IF launch_super_task»	«ENDIF»«innerContentInternal»
@@ -396,9 +398,11 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				«IF ! super_task»
+				// clang-format off
 				#pragma omp task «getSharedVarsClause(parentJob)»«parentJob.priority»«
 				                 getDependenciesAll(parentJob, 'in',  ins)»«
 				                 getDependenciesAll(parentJob, 'out', outs)»
+				// clang-format on
 				{
 				«ENDIF»
 					«left.content» = «right.content»;
@@ -428,9 +432,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ret = '''
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«IF ! super_task»
-			#pragma omp task «getSharedVarsClause(parentJob)»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«
-				getDependenciesAll(parentJob, 'in', ins)» \
-			/* dep reduction result */ depend(out:	(this->«out.name»))
+			// clang-format off
+			#pragma omp task «getSharedVarsClause(parentJob)»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«getDependenciesAll(parentJob, 'in', ins)» \
+			depend(out:	(this->«out.name»))
+			// clang-format on
 			{
 			«ENDIF»
 			{
@@ -572,14 +577,19 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				«IF parentJob.usedIndexType.length > 1»
 					// WARN: Conversions in in/out for omp task
 					// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
+					// clang-format off
 					#pragma omp task «getFirstPrivateVars(parentJob)» «
 						getSharedVarsClause(parentJob)»«parentJob.priority»«
+						getDependenciesAll(parentJob, 'in',  ins)»«
 						getDependencies(parentJob, 'out', outs, '''___omp_base''')»
+					// clang-format on
 				«ELSE»
+					// clang-format off
 					#pragma omp task «getFirstPrivateVars(parentJob)» «
 						getSharedVarsClause(parentJob)»«parentJob.priority»«
 						getDependencies(parentJob, 'in',  ins,  '''___omp_base''')»«
 						getDependencies(parentJob, 'out', outs, '''___omp_base''')»
+					// clang-format on
 				«ENDIF»
 			«ENDIF»
 			{

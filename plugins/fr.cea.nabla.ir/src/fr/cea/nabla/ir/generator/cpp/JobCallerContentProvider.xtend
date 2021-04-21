@@ -56,12 +56,7 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 		{
 		«val jobsByAt = calls.groupBy[at]»
 		«FOR at : jobsByAt.keySet.sort»
-			«val atJobs = jobsByAt.get(at)»
-			«IF atJobs.filter[usedIndexType.length > 1].length > 0»
-				/* A job will do an index conversion, need to wait as it is not supported */
-				#pragma omp taskwait
-			«ENDIF»
-			«FOR j : atJobs»
+			«FOR j : jobsByAt.get(at)»
 				«IF j instanceof ExecuteTimeLoopJob || j instanceof TimeLoopJob»
 					«IF !execTimeLoopPresent»
 						// Wait before time loop: «execTimeLoopPresent = true»
@@ -70,7 +65,7 @@ class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 				«ENDIF»
 				«IF OMPTraces»
 					fprintf(stderr, "(\"T«j.callName»_«j.at»\", [«
-						FOR v : (j.minimalInVars + j.inoutVars) /* Need to re-do the 'minimal ins' if inoutVars != Ø */ SEPARATOR ', '»\"«v.name»\"«ENDFOR»], [«
+						FOR v : j.minimalInVars /* inoutVars == Ø */ SEPARATOR ', '»\"«v.name»\"«ENDFOR»], [«
 						FOR v : j.outVars SEPARATOR ', '»\"«v.name»\"«ENDFOR»])\n");
 				«ENDIF»
 				«j.callName.replace('.', '->')»(); // @«j.at»«

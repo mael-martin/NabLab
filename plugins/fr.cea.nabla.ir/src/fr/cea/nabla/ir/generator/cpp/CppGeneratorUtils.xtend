@@ -120,7 +120,7 @@ class CppGeneratorUtils
 				val INS               = to.inVars;
 				val accumulatedInFrom = AccumulatedInVariablesPerJobs.get(from.name);
 				val minimalINS        = new HashSet();
-				minimalINS.addAll(INS.reject[v | accumulatedInFrom.contains(v.name)])
+				minimalINS.addAll(INS.reject[v | v.isConst || v.isConstExpr || accumulatedInFrom.contains(v.name)])
 				MinimalInVariablesPerJobs.put(to.name, minimalINS)
 			}
 		}
@@ -419,15 +419,19 @@ depend(«inout»:	(«
 		val idxtype = varName.globalVariableType
 		if (idxtype == INDEX_TYPE::NULL || GlobalVariableProducedBySuperTask.contains(varName))
 		'''
+			// clang-format off
 			#pragma omp task depend(in: «FOR j : jobsIn SEPARATOR ', '»«varName»_«j»«ENDFOR») depend(out: this->«varName»)
 			{ /* Control Task */ }
+			// clang-format on
 		'''
 		else
 		'''
 			«FOR i : OMPTaskMaxNumberIterator»
 				«val base_index = '''«getBaseIndex('''«varName».size()''', '''«i»''')»'''»
+				// clang-format off
 				#pragma omp task depend(in: «FOR j : jobsIn SEPARATOR ', '»(this->«varName»_«j»[«i»])«ENDFOR») depend(out: (this->«varName»[«base_index»]))
 				{ /* Control Task */ }
+				// clang-format on
 			«ENDFOR»
 		'''
 	}
