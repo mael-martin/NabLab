@@ -233,16 +233,16 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDIF»
 	
 	«IF isOpenMpTask»
-	static size_t __attribute__((unused)) ___DAG_loops = 0;
-	#include <algorithm>
-	namespace internal_omptask {
-	auto __attribute__((unused)) max = [](const auto& vec) -> Id { return *std::max_element(vec.begin(), vec.end()); };
-	auto __attribute__((unused)) min = [](const auto& vec) -> Id { return *std::min_element(vec.begin(), vec.end()); };
-	
-	static size_t __attribute__((unused)) nbX_CELLS = 0;
-	static size_t __attribute__((unused)) nbX_FACES = 0;
-	static size_t __attribute__((unused)) nbX_NODES = 0;
-	}
+		static size_t __attribute__((unused)) ___DAG_loops = 0;
+		#include <algorithm>
+		namespace internal_omptask {
+		auto __attribute__((unused)) max = [](const auto& vec) -> Id { return *std::max_element(vec.begin(), vec.end()); };
+		auto __attribute__((unused)) min = [](const auto& vec) -> Id { return *std::min_element(vec.begin(), vec.end()); };
+		
+		static size_t __attribute__((unused)) nbX_CELLS = 0;
+		static size_t __attribute__((unused)) nbX_FACES = 0;
+		static size_t __attribute__((unused)) nbX_NODES = 0;
+		}
 	«ENDIF»
 	«val internFunctions = functions.filter(InternFunction)»
 	«IF !internFunctions.empty»

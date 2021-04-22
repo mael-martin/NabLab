@@ -142,7 +142,7 @@ class OpenMpTaskBackend extends Backend
 		OMPTaskMaxNumber = 10
 		OMPTraces = false
 		name = 'OpenMPTask'
-		cmakeContentProvider = new OpenMpCMakeContentProvider
+		cmakeContentProvider = new OpenMpTaskCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
 		instructionContentProvider = new OpenMpTaskInstructionContentProvider(typeContentProvider, expressionContentProvider)
