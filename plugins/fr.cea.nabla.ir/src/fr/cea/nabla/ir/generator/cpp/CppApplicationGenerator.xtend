@@ -315,10 +315,45 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«FOR v : variablesWithDefaultValue.filter[x | !x.constExpr]»
 	, «v.name»(«expressionContentProvider.getContent(v.defaultValue)»)
 	«ENDFOR»
-	«FOR v : variables.filter[needStaticAllocation]»
-	, «v.name»(«typeContentProvider.getCstrInit(v.type, v.name)»)
-	«ENDFOR»
+	«IF ! (typeContentProvider instanceof StlThreadTypeContentProvider)»
+		«FOR v : variables.filter[needStaticAllocation]»
+		, «v.name»(«typeContentProvider.getCstrInit(v.type, v.name)»)
+		«ENDFOR»
+	«ENDIF»
 	{
+		«IF typeContentProvider instanceof StlThreadTypeContentProvider»
+			/* BEGIN: First touch for data vectors */
+			{
+				/* Reserve the space */
+				«FOR v : variables.filter[needStaticAllocation]»
+				«v.name».reserve(«v.name.globalVariableMaxElementNumber»);
+				«ENDFOR»
+				
+				/* Init */
+				size_t current_task = 0;
+				for (size_t i = 0; i < «OMPTaskMaxNumber»; ++i)
+				#pragma omp task firstprivate(i) shared(current_task)
+				{
+					«FOR idxtype : presentGlobalVariableTypes»
+					«val idxlimit = idxtype.variableIndexTypeLimit»
+					size_t limit_«idxtype» = (i != «OMPTaskMaxNumber - 1») ? ((«idxlimit» / «OMPTaskMaxNumber») * (i + 1)) : «idxlimit»;
+					«ENDFOR»
+					
+					while (i != current_task) {
+						#pragma omp taskyield
+					}
+
+					«FOR v : variables.filter[needStaticAllocation]»
+					«val conn_type = v.type as ConnectivityType»
+					 «v.name».resize(«typeContentProvider.getCstrResize(v.name, conn_type.base, '''limit_«v.name.globalVariableType»''', conn_type.connectivities)»);
+					«ENDFOR»
+					
+					++current_task;
+				}
+			}
+			/* END: First touch for data vectors */
+		«ENDIF»
+		
 		«val dynamicArrayVariables = variables.filter[needDynamicAllocation]»
 		«IF !dynamicArrayVariables.empty»
 			// Allocate dynamic arrays (RealArrays with at least a dynamic dimension)

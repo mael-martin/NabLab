@@ -163,8 +163,22 @@ class CppGeneratorUtils
 			typeContentProvider.getCppTypeEnum(t.type) == CPP_TYPE::CONNECTIVITY
 		]) { registerGlobalVariable(v.name, (v.type as ConnectivityType).connectivities.head.name) }
 	}
+	static def Set<INDEX_TYPE> getPresentGlobalVariableTypes() {
+		GlobalVariableIndexTypes.values.toSet
+	}
+	static def String getVariableIndexTypeLimit(INDEX_TYPE idxtype) {
+		switch idxtype {
+		case INDEX_TYPE::CELLS: return 'nbCells'
+		case INDEX_TYPE::NODES: return 'nbNodes'
+		case INDEX_TYPE::FACES: return 'nbFaces'
+		case INDEX_TYPE::NULL:  throw new Exception("No contained element for variable, index type is INDEX_TYPE::NULL")
+		}
+	}
 	static def INDEX_TYPE getGlobalVariableType(String varName) {
 		return GlobalVariableIndexTypes.getOrDefault(varName, INDEX_TYPE::NULL);
+	}
+	static def String getGlobalVariableMaxElementNumber(String varName) {
+		return GlobalVariableIndexTypes.getOrDefault(varName, INDEX_TYPE::NULL).variableIndexTypeLimit
 	}
 	static def void resetGlobalVariable() { GlobalVariableIndexTypes.clear }
 	

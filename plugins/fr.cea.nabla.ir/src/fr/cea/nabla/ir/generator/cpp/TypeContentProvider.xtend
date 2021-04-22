@@ -32,6 +32,7 @@ abstract class TypeContentProvider
 
 	protected abstract def CharSequence getCppType(BaseType baseType, Iterable<Connectivity> connectivities)
 	protected abstract def CharSequence getCstrInit(String name, BaseType baseType, Iterable<Connectivity> connectivities)
+	protected abstract def CharSequence getCstrResize(String name, BaseType baseType, CharSequence limit, Iterable<Connectivity> connectivities)
 	protected abstract def CharSequence formatIterators(ConnectivityType type, Iterable<String> iterators)
 	
 	def getCppTypeEnum(IrType it)
@@ -191,6 +192,16 @@ class StlThreadTypeContentProvider extends TypeContentProvider
 		else 'std::vector<' + getCppType(baseType, connectivities.tail) + '>'
 	}
 
+	override CharSequence getCstrResize(String name, BaseType baseType, CharSequence limit, Iterable<Connectivity> connectivities)
+	{
+		switch connectivities.size
+		{
+			case 0: throw new RuntimeException("Ooops. Can not be there, normally...")
+			case 1: limit
+			default: '''«limit», «getCppType(baseType, connectivities.tail)»(«getCstrInit(name, baseType, connectivities.tail)»)''' 
+		}
+	}
+
 	override getCstrInit(String name, BaseType baseType, Iterable<Connectivity> connectivities)
 	{
 		switch connectivities.size
@@ -210,6 +221,11 @@ class KokkosTypeContentProvider extends TypeContentProvider
 	override getCppType(BaseType baseType, Iterable<Connectivity> connectivities) 
 	{
 		'Kokkos::View<' + baseType.cppType + connectivities.map['*'].join + '>'
+	}
+
+	override CharSequence getCstrResize(String name, BaseType baseType, CharSequence limit, Iterable<Connectivity> connectivities)
+	{
+		throw new Exception('Operation not supported by KokkosTypeContentProvider')
 	}
 
 	override getCstrInit(String name, BaseType baseType, Iterable<Connectivity> connectivities)
