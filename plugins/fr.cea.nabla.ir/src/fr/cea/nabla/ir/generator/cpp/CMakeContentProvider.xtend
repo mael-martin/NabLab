@@ -172,11 +172,12 @@ class OpenMpTaskCMakeContentProvider extends CMakeContentProvider
 {
 	override getFindPackageContent()
 	'''
-		execute_process(COMMAND mpcalloc_cflags  OUTPUT_VARIABLE MPCALLOCATOR_CFLAGS  OUTPUT_STRIP_TRAILING_WHITESPACE)
-		execute_process(COMMAND mpcalloc_ldflags OUTPUT_VARIABLE MPCALLOCATOR_LDFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
-		message(WARNING "You must run the compiled binary prefixed by the 'mpcalloc_preload' command")
-		add_compile_options("${MPCALLOCATOR_CFLAGS}")
-		link_libraries("${MPCALLOCATOR_LDFLAGS}")
+		# Don't enable MPC_Allocator for the moment
+		# execute_process(COMMAND mpcalloc_cflags  OUTPUT_VARIABLE MPCALLOCATOR_CFLAGS  OUTPUT_STRIP_TRAILING_WHITESPACE)
+		# execute_process(COMMAND mpcalloc_ldflags OUTPUT_VARIABLE MPCALLOCATOR_LDFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
+		# message(WARNING "You must run the compiled binary prefixed by the 'mpcalloc_preload' command")
+		# add_compile_options("${MPCALLOCATOR_CFLAGS}")
+		# link_libraries("${MPCALLOCATOR_LDFLAGS}")
 		find_package(OpenMP REQUIRED)
 	'''
 
