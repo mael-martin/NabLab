@@ -69,6 +69,19 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		fileContents += new GenerationContent('CMakeLists.txt', backend.cmakeContentProvider.getContentFor(ir, levelDBPath, cMakeVars), false)
 		return fileContents
 	}
+	
+	private def getAllocator(IrModule it) {
+		'''
+			#ifndef NABLA_ALLOCATOR
+			«IF backend instanceof OpenMpTaskBackend»
+			#define NABLA_ALLOCATOR mmap_allocator
+			«ELSE»
+			#define NABLA_ALLOCATOR std::allocator
+			«ENDIF»
+			#include "nablalib/utils/Vector.h"
+			#endif /* NABLA_ALLOCATOR */
+		'''
+	}
 
 	private def getHeaderFileContent(IrModule it)
 	'''
@@ -76,6 +89,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 	#ifndef «name.HDefineName»
 	#define «name.HDefineName»
+	
+	/* First thing to define the allocator */
+	«allocator»
 
 	«backend.includesContentProvider.getIncludes(!levelDBPath.nullOrEmpty, (irRoot.postProcessing !== null))»
 	«FOR provider : extensionProviders»

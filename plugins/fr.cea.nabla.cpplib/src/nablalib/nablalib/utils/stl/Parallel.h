@@ -16,10 +16,12 @@
 #include <algorithm>
 #include <numeric>
 
+#include "nablalib/utils/Vector.h"
+
 namespace nablalib::utils::stl
 {
 
-// ------------------------------ Would love to be private  ------------------------------ 
+// ------------------------------ Would love to be private  ------------------------------
 namespace internal
 {
 // Internal call for parallel process, not meant to be use outside the parallel_exec
@@ -49,7 +51,7 @@ void parallel_exec_internal(const size_t nb_thread, const size_t nb_elmt,
 // Internal call for parallel reduce, not meant to be use outside the parallel_reduce
 template <typename T, typename BinOp, typename JoinOp>
 T parallel_reduce_internal(const size_t nb_thread, const size_t nb_elmt,
-                           std::vector<size_t>::iterator begin, std::vector<size_t>::iterator end,
+                           nabla_vector<size_t>::iterator begin, nabla_vector<size_t>::iterator end,
                            const T init_val, BinOp bin_op, JoinOp join_op) noexcept
 {
   const size_t chunck_size(std::floor(nb_elmt / nb_thread));  // chuncks are simples, we should do better...
@@ -67,7 +69,7 @@ T parallel_reduce_internal(const size_t nb_thread, const size_t nb_elmt,
   auto result = parallel_reduce_internal(nb_thread, nb_elmt, begin, next, init_val, bin_op, join_op);
   return join_op(result, future.get());
 }
-}  // ------------------------------ end of namespace internal  ------------------------------ 
+}  // ------------------------------ end of namespace internal  ------------------------------
 
 // Some kind of bad static openMP parallel for
 // Given a range number of elements, the lambda function parameter is called upon each element.
@@ -81,7 +83,7 @@ void parallel_exec(const size_t nb_elmt, F&& lambda) noexcept
     nb_thread = std::thread::hardware_concurrency();
   else
     std::cerr << "WARNING: can't figure out optimal threads number, using 2 by default." << std::endl;
-    
+
   // Actually calling multithreaded lambda function over nb_elmt
   internal::parallel_exec_internal(nb_thread, nb_elmt, 0, nb_elmt, lambda);
 }
@@ -98,10 +100,10 @@ T parallel_reduce(const size_t nb_elmt, const T init_val, BinOp&& bin_op, JoinOp
     nb_thread = std::thread::hardware_concurrency();
   else
     std::cerr << "WARNING: can't figure out optimal threads number, using 2 by default." << std::endl;
-    
+
   // Actually calling multithreaded lambda function over nb_elmt
   // We need an indexes vector to handle dereference operator in bin_op for accumulate call
-  std::vector<size_t> indexes(nb_elmt);
+  nabla_vector<size_t> indexes(nb_elmt);
   std::iota(indexes.begin(), indexes.end(), 0);
   return internal::parallel_reduce_internal(nb_thread, nb_elmt, indexes.begin(), indexes.end(),
                                             init_val, bin_op, join_op);

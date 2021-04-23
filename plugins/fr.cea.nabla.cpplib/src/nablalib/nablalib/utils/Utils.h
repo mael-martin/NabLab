@@ -11,9 +11,9 @@
 #define NABLALIB_UTILS_UTILS_H_
 
 #include <array>
-#include <vector>
 #include <stdexcept>
 #include <string>
+#include "nablalib/utils/Vector.h"
 #include "nablalib/utils/Timer.h"
 
 #ifndef WIN32
@@ -56,18 +56,18 @@ namespace nablalib::utils
 	      return i;
 	  throw std::out_of_range("Value not in array");
 	}
-	
+
 	// Vector overload
 	// TODO: can do better with a container type trait like with operator[] and size method
 	template <typename T>
-	size_t indexOf(const std::vector<T>& vector, const T& value)
+	size_t indexOf(const nabla_vector<T>& vector, const T& value)
 	{
 	  for (size_t i(0) ; i < vector.size(); ++i)
 	    if (vector[i] == value)
 	      return i;
 	  throw std::out_of_range("Value not in vector");
 	}
-	
+
 
   // Estimated simulation time
   const utils::Timer::duration_type eta(const int& it, const int& max_it, const double& t, const double& max_t,

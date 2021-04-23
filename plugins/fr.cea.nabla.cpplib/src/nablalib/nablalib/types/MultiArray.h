@@ -1,6 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2020 CEA
- * This program and the accompanying materials are made available under the 
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
  *
@@ -17,6 +17,8 @@
 #include <functional>
 #include <utility>
 
+#include "nablalib/utils/Vector.h"
+
 namespace nablalib::types
 {
 
@@ -30,7 +32,7 @@ namespace nablalib::types
 #define TYPE_CHECK(T1, T2) \
         typename std::enable_if_t<std::is_arithmetic_v<T1> && std::is_arithmetic_v<T2> && \
                                   std::is_convertible_v<T1, T2>>* = nullptr
-                                
+
 // Meaning T1 and T2 are of the same type   is an array of dimension N
 #define DIM_CHECK(T1, T2) \
         typename std::enable_if_t<std::is_same_v<T1, T2>>* = nullptr
@@ -40,17 +42,17 @@ namespace nablalib::types
 // Generic Multi-Dimension template
 // When specifying a 0 dimension MultiArray, it becomes dynamic, using std::vector inheritance instead of std::array
 template <typename T, size_t DIM_1, size_t... DIM_N>
-struct MultiArray : public std::conditional_t<(DIM_1>0), std::array<MultiArray<T, DIM_N...>, DIM_1>, std::vector<MultiArray<T, DIM_N...>>>
+struct MultiArray : public std::conditional_t<(DIM_1>0), std::array<MultiArray<T, DIM_N...>, DIM_1>, nabla_vector<MultiArray<T, DIM_N...>>>
 {
   // Template dimensions backup
   static constexpr std::array<size_t, 1 + sizeof...(DIM_N)> dimensions = {DIM_1, DIM_N...};
-  
+
   // Helper for wrapping dynamic memory allocation when MultiArray inherite from vector
   template<typename SIZE_1, typename... SIZE_N>
   typename std::enable_if_t<std::is_integral_v<std::decay_t<SIZE_1>> && (std::is_integral_v<std::decay_t<SIZE_N>> && ...), void> initSize(SIZE_1 size_1, SIZE_N... size_n) {
     static_assert(1 + sizeof...(size_n) == dimensions.size());
     if (!dimensions.front())
-      reinterpret_cast<std::vector<MultiArray<T, DIM_N...>>*>(this)->resize(size_1);
+      reinterpret_cast<nabla_vector<MultiArray<T, DIM_N...>>*>(this)->resize(size_1);
     for (size_t i(0); i < this->size(); ++i)
       this->operator[](i).initSize(size_n...);
   }
@@ -81,7 +83,7 @@ struct MultiArray : public std::conditional_t<(DIM_1>0), std::array<MultiArray<T
   MultiArray operator+(ArrayT a) const {
     return arrayOp(a, std::plus<>());
   }
-  
+
   // Unary -
   MultiArray operator-() const {
     return scalarOp(-1.0, std::multiplies<>());
@@ -95,7 +97,7 @@ struct MultiArray : public std::conditional_t<(DIM_1>0), std::array<MultiArray<T
   MultiArray operator-(ArrayT a) const {
     return arrayOp(a, std::minus<>());
   }
-  
+
   // Binary *
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray<RES_TYPE(T, ScalarT), DIM_1, DIM_N...> operator*(ScalarT x) const {
@@ -105,7 +107,7 @@ struct MultiArray : public std::conditional_t<(DIM_1>0), std::array<MultiArray<T
   MultiArray operator*(ArrayT a) const {
     return arrayOp(a, std::multiplies<>());
   }
-  
+
   // Binary /
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray<RES_TYPE(T, ScalarT), DIM_1, DIM_N...> operator/(ScalarT x) const {
@@ -115,7 +117,7 @@ struct MultiArray : public std::conditional_t<(DIM_1>0), std::array<MultiArray<T
   MultiArray operator/(ArrayT a) const {
     return arrayOp(a, std::divides<>());
   }
-  
+
   // ********** Generic method wich calls relevant operation, in-place (input is changed) **********
   // Scalar operations
   template <typename ScalarT, typename BinaryOp>
@@ -130,7 +132,7 @@ struct MultiArray : public std::conditional_t<(DIM_1>0), std::array<MultiArray<T
                    [&](auto& i, auto& j){return i.arrayOpInPlace(j, op);});
     return *this;
   }
-  
+
   // +=
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray& operator+=(ScalarT x) {
@@ -140,7 +142,7 @@ struct MultiArray : public std::conditional_t<(DIM_1>0), std::array<MultiArray<T
   MultiArray& operator+=(ArrayT a) {
     return arrayOpInPlace(a, std::plus<>());
   }
-  
+
   // -=
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray& operator-=(ScalarT x) {
@@ -150,7 +152,7 @@ struct MultiArray : public std::conditional_t<(DIM_1>0), std::array<MultiArray<T
   MultiArray& operator-=(ArrayT a) {
     return arrayOpInPlace(a, std::minus<>());
   }
-  
+
   // *=
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray& operator*=(ScalarT x) {
@@ -160,7 +162,7 @@ struct MultiArray : public std::conditional_t<(DIM_1>0), std::array<MultiArray<T
   MultiArray& operator*=(ArrayT a) {
     return arrayOpInPlace(a, std::multiplies<>());
   }
-  
+
   // /=
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray& operator/=(ScalarT x) {
@@ -176,17 +178,17 @@ struct MultiArray : public std::conditional_t<(DIM_1>0), std::array<MultiArray<T
 /******************************************************************************/
 // Specialized for 1 dimension to stop recursive calls
 template<typename T, size_t DIM>
-struct MultiArray<T, DIM> : public std::conditional_t<(DIM>0), std::array<T, DIM>, std::vector<T>>
+struct MultiArray<T, DIM> : public std::conditional_t<(DIM>0), std::array<T, DIM>, nabla_vector<T>>
 {
   // Template dimensions backup
   static constexpr std::array<size_t, 1> dimensions = {DIM};
-  
+
   template<typename SIZE>
   typename std::enable_if_t<std::is_integral_v<std::decay_t<SIZE>>, void> initSize(SIZE size) {
     if (!dimensions.front())
-      reinterpret_cast<std::vector<T>*>(this)->resize(size);
+      reinterpret_cast<nabla_vector<T>*>(this)->resize(size);
   }
-  
+
   // ********** Generic method wich calls relevant operation, return by value semantic **********
   // Scalar operations
   template <typename ScalarT, typename BinaryOp>
@@ -205,7 +207,7 @@ struct MultiArray<T, DIM> : public std::conditional_t<(DIM>0), std::array<T, DIM
                                                    static_cast<T>(j));});
     return result;
   }
-  
+
   // Binary +
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray<RES_TYPE(T, ScalarT), DIM> operator+(ScalarT x) const {
@@ -215,7 +217,7 @@ struct MultiArray<T, DIM> : public std::conditional_t<(DIM>0), std::array<T, DIM
   MultiArray operator+(ArrayT a) const {
     return arrayOp(a, std::plus<>());
   }
-  
+
   // Unary -
   MultiArray operator-() const {
     return scalarOp(-1.0, std::multiplies<>());
@@ -229,7 +231,7 @@ struct MultiArray<T, DIM> : public std::conditional_t<(DIM>0), std::array<T, DIM
   MultiArray operator-(ArrayT a) const {
     return arrayOp(a, std::minus<>());
   }
-  
+
   // Binary *
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray<RES_TYPE(T, ScalarT), DIM> operator*(ScalarT x) const {
@@ -239,7 +241,7 @@ struct MultiArray<T, DIM> : public std::conditional_t<(DIM>0), std::array<T, DIM
   MultiArray operator*(ArrayT a) const {
     return arrayOp(a, std::multiplies<>());
   }
-  
+
   // Binary /
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray<RES_TYPE(T, ScalarT), DIM> operator/(ScalarT x) const {
@@ -249,7 +251,7 @@ struct MultiArray<T, DIM> : public std::conditional_t<(DIM>0), std::array<T, DIM
   MultiArray operator/(ArrayT a) const {
     return arrayOp(a, std::divides<>());
   }
-  
+
   // ********** Generic method wich calls relevant operation, in-place (input is changed) **********
   // Scalar operations
   template <typename ScalarT, typename BinaryOp>
@@ -265,7 +267,7 @@ struct MultiArray<T, DIM> : public std::conditional_t<(DIM>0), std::array<T, DIM
                                                    static_cast<T>(j));});
     return *this;
   }
-  
+
   // +=
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray& operator+=(ScalarT x) {
@@ -275,7 +277,7 @@ struct MultiArray<T, DIM> : public std::conditional_t<(DIM>0), std::array<T, DIM
   MultiArray& operator+=(ArrayT a) {
     return arrayOpInPlace(a, std::plus<>());
   }
-  
+
   // -=
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray& operator-=(ScalarT x) {
@@ -285,7 +287,7 @@ struct MultiArray<T, DIM> : public std::conditional_t<(DIM>0), std::array<T, DIM
   MultiArray& operator-=(ArrayT a) {
     return arrayOpInPlace(a, std::minus<>());
   }
-  
+
   // *=
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray& operator*=(ScalarT x) {
@@ -295,7 +297,7 @@ struct MultiArray<T, DIM> : public std::conditional_t<(DIM>0), std::array<T, DIM
   MultiArray& operator*=(ArrayT a) {
     return arrayOpInPlace(a, std::multiplies<>());
   }
-  
+
   // /=
   template <typename ScalarT, TYPE_CHECK(T, ScalarT)>
   MultiArray& operator/=(ScalarT x) {
