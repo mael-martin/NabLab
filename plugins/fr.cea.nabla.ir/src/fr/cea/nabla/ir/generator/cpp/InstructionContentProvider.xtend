@@ -344,7 +344,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		«IF (instructions.size == 2) &&
 		    (instructions.toList.head instanceof ReductionInstruction) &&
 		    (instructions.toList.last instanceof Affectation)»
-		}}
+		}
 		«ENDIF»
 	'''
 	override dispatch getInnerContent(InstructionBlock it)
@@ -419,37 +419,37 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 	override getReductionContent(ReductionInstruction it)
 	{
+		// Ignore super task here
+		beginTASK(getAllOMPTasksAsCharSequence)
+		removeAdditionalFirstPrivVariables(iterationBlock)
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
-		val ins  = parentJob.minimalInVars /* Need to be computed before, consumed */
-		val outs = parentJob.outVars       /* Produced, unlock jobs that need them */
-		val out  = outs.head               /* Produced, unlock jobs that need them */
-		val super_task = (currentTASK !== null)
-		if (! super_task) {
-			beginTASK(getAllOMPTasksAsCharSequence)
-			removeAdditionalFirstPrivVariables(iterationBlock)
-		}
+		val outs      = parentJob.outVars
+		val out       = outs.head
 
 		val ret = '''
-			«result.type.cppType» «result.name»(«result.defaultValue.content»);
-			«IF ! super_task»
-			// clang-format off
-			#pragma omp task «getSharedVarsClause(parentJob)»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems») \
-			depend(out:	(this->«out.name»))
-			// clang-format on
-			«ENDIF»
+			«result.type.cppType» «result.name»_tab[«OMPTaskMaxNumber»];
+
+			for (size_t i = 0; i < «OMPTaskMaxNumber»; ++i)
 			{
-				// clang-format off
-				#pragma omp taskgroup task_reduction(min: «result.name»)
-				// clang-format on
-				{
-					for (size_t i = 0; i < «OMPTaskMaxNumber»; ++i)
-					{
-						«getPartialReduction(it, '''i''')»
-					}
-				#pragma omp taskwait
+				«result.name»_tab[i] = «result.defaultValue.content»;
+				«getPartialReduction(it, '''i''')»
+			}
+
+			// clang-format off
+			#pragma omp task shared(this->«out.name», «result.name»_tab) \
+			depend(in:  «FOR i : OMPTaskMaxNumberIterator SEPARATOR ', '»(«result.name»_tab[«i»])«ENDFOR») \
+			depend(out: (this->«out.name»))
+			// clang-format on
+			{
+			«result.type.cppType» «result.name» = «result.defaultValue.content»;
+			for (size_t i = 0; i < «OMPTaskMaxNumber»; ++i)
+			{
+				«result.name» = «binaryFunction.codeName»(«result.name»_tab[i], «result.name»);
+				fprintf(stderr, "Reduction -> %f\n", «result.name»_tab[i]);
+			}
 		'''
 
-		if (! super_task) endTASK()
+		endTASK()
 		return ret
 	}
 	
@@ -461,12 +461,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		const Id ___omp_base  = «getBaseIndex(iterationBlock, partitionId)»;
 		const Id ___omp_limit = «getLimitIndex(iterationBlock, partitionId)»;
 		// clang-format off
-		#pragma omp task «getSharedVarsClause(parentJob)»«parentJob.priority» \
-		firstprivate(___omp_base, ___omp_limit) \
-		in_reduction(min: «result.name»)«getDependencies(parentJob, 'in', ins, '''___omp_base''')»
+		#pragma omp task «getSharedVarsClause(parentJob, #['''«result.name»_tab'''])»«parentJob.priority» firstprivate(___omp_base, ___omp_limit, i) «getDependencies(parentJob, 'in', ins, '''___omp_base''')» depend(out:	(«result.name»_tab[i]))
 		// clang-format on
 		«iterationBlock.defineInterval('''
-		«overrideIterationBlock(it, '''___omp_base''', '''___omp_limit''', '''«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);''')»
+		«overrideIterationBlock(it, '''___omp_base''', '''___omp_limit''', '''«result.name»_tab[i] = «binaryFunction.codeName»(«result.name»_tab[i], «lambda.content»);''')»
 		''')»
 	'''
 	}

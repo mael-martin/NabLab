@@ -497,10 +497,13 @@ depend(«inout»:	(«
 		val ret = ins.map[variableName].toSet
 		return ret
 	}
-	static def getSharedVarsClause(Job it) {
+	static def getSharedVarsClause(Job it) { getSharedVarsClause(it, #[]) }
+	static def getSharedVarsClause(Job it, List<String> additional) {
 		val shared = sharedVarsNames
 		''' \
-default(none) shared(stderr, mesh«IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»)'''
+default(none) shared(stderr, mesh«
+IF shared.size > 0», «FOR v : shared SEPARATOR ', '»«v»«ENDFOR»«ENDIF»«
+FOR a : additional BEFORE ', ' SEPARATOR ', '»«a»«ENDFOR»)'''
 	}
 	static def getFirstPrivateVars(Job it) {
 		''' \
