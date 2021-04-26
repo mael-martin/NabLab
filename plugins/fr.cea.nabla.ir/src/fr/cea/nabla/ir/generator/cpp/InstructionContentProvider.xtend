@@ -344,7 +344,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		«IF (instructions.size == 2) &&
 		    (instructions.toList.head instanceof ReductionInstruction) &&
 		    (instructions.toList.last instanceof Affectation)»
-		}
+		}}
 		«ENDIF»
 	'''
 	override dispatch getInnerContent(InstructionBlock it)
@@ -433,23 +433,42 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			«result.type.cppType» «result.name»(«result.defaultValue.content»);
 			«IF ! super_task»
 			// clang-format off
-			#pragma omp task «getSharedVarsClause(parentJob)»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems»)«getDependenciesAll(parentJob, 'in', ins)» \
+			#pragma omp task «getSharedVarsClause(parentJob)»«parentJob.priority» firstprivate(«result.name», «iterationBlock.nbElems») \
 			depend(out:	(this->«out.name»))
 			// clang-format on
-			{
 			«ENDIF»
 			{
-				«iterationBlock.defineInterval('''
-			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
-				«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
-			''')»
-			«IF ! super_task»
-			}
-			«ENDIF»
+				// clang-format off
+				#pragma omp taskgroup task_reduction(min: «result.name»)
+				// clang-format on
+				{
+					for (size_t i = 0; i < «OMPTaskMaxNumber»; ++i)
+					{
+						«getPartialReduction(it, '''i''')»
+					}
+				#pragma omp taskwait
 		'''
 
 		if (! super_task) endTASK()
 		return ret
+	}
+	
+	private def getPartialReduction(ReductionInstruction it, CharSequence partitionId)
+	{
+		val parentJob  = EcoreUtil2.getContainerOfType(it, Job)
+		val ins        = parentJob.minimalInVars /* Need to be computed before, consumed */
+	'''
+		const Id ___omp_base  = «getBaseIndex(iterationBlock, partitionId)»;
+		const Id ___omp_limit = «getLimitIndex(iterationBlock, partitionId)»;
+		// clang-format off
+		#pragma omp task «getSharedVarsClause(parentJob)»«parentJob.priority» \
+		firstprivate(___omp_base, ___omp_limit) \
+		in_reduction(min: «result.name»)«getDependencies(parentJob, 'in', ins, '''___omp_base''')»
+		// clang-format on
+		«iterationBlock.defineInterval('''
+		«overrideIterationBlock(it, '''___omp_base''', '''___omp_limit''', '''«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);''')»
+		''')»
+	'''
 	}
 
 	protected override CharSequence getSequentialLoopContent(Loop it)
@@ -555,15 +574,25 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		return getConnectivityType(itemname)
 	}
 
-	/* TODO: Take into account which directions are used (to only pin 1 or 2
-	 * partitions, not all the neighbors). */
+	private def overrideIterationBlock(Loop it, CharSequence base, CharSequence limit)
+	'''
+		for (size_t «iterationBlock.indexName» = «base»; «iterationBlock.indexName» < «limit»; ++«iterationBlock.indexName»)
+		{
+			«body.innerContent»
+		}
+	'''
+	private def overrideIterationBlock(ReductionInstruction it, CharSequence base, CharSequence limit, CharSequence reductionContent)
+	'''
+		for (size_t «iterationBlock.indexName» = «base»; «iterationBlock.indexName» < «limit»; ++«iterationBlock.indexName»)
+		{
+			«reductionContent»
+		}
+	'''
+
 	private def launchSingleTaskForPartition(Loop it, CharSequence partitionId, Set<Variable> ins, Set<Variable> outs)
 	{
-		val parentJob   = EcoreUtil2.getContainerOfType(it, Job)
-		val super_task  = (currentTASK !== null)
-		val base_index  = getBaseIndex(iterationBlock.nbElems, partitionId)
-		val limit_index = '''(«OMPTaskMaxNumber» - 1 != «partitionId») ? ((«iterationBlock.nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1)) : («iterationBlock.nbElems»)'''
-
+		val parentJob  = EcoreUtil2.getContainerOfType(it, Job)
+		val super_task = (currentTASK !== null)
 		if (!super_task) {
 			beginTASK(partitionId)
 			removeAdditionalFirstPrivVariables(body)
@@ -571,12 +600,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		val ret = '''
 		{
-			const Id ___omp_base  = «base_index»;
-			const Id ___omp_limit = «limit_index»;
+			const Id ___omp_base  = «getBaseIndex(iterationBlock, partitionId)»;
+			const Id ___omp_limit = «getLimitIndex(iterationBlock, partitionId)»;
 			«IF ! super_task»
 				«IF parentJob.usedIndexType.length > 1»
-					// WARN: Conversions in in/out for omp task
-					// No 'in' dependencies because there is a `#pragma omp taskwait` at the begin of the `at`
 					// clang-format off
 					#pragma omp task «getFirstPrivateVars(parentJob)» «
 						getSharedVarsClause(parentJob)»«parentJob.priority»«
@@ -592,18 +619,19 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 					// clang-format on
 				«ENDIF»
 			«ENDIF»
-			{
-				for (size_t «iterationBlock.indexName» = ___omp_base; «iterationBlock.indexName» < ___omp_limit; ++«iterationBlock.indexName»)
-				{
-					«body.innerContent»
-				}
-			}
+			«overrideIterationBlock(it, '''___omp_base''', '''___omp_limit''')»
 		}
 		'''
 
 		if (!super_task) endTASK()
 		return ret
 	}
+	
+	/* Get base and limit index for each loop in tasks */
+	private def getBaseIndex(IterationBlock it, CharSequence partitionId)
+		'''«getBaseIndex(nbElems, partitionId)»'''
+	private def getLimitIndex(IterationBlock it, CharSequence partitionId)
+		'''(«OMPTaskMaxNumber» - 1 != «partitionId») ? ((«nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1)) : («nbElems»)'''
 	
 	private def launchTasks(Loop it)
 	{
