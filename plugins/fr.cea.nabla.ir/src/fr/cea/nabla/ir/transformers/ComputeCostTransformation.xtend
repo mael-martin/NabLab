@@ -10,8 +10,6 @@
 package fr.cea.nabla.ir.transformers
 
 import java.util.HashMap
-import java.util.HashSet
-import java.util.Set
 import java.util.Map
 
 import org.eclipse.xtend.lib.annotations.Data
@@ -49,15 +47,85 @@ import fr.cea.nabla.ir.ir.VariableDeclaration
 import fr.cea.nabla.ir.ir.ItemIndexDefinition
 import fr.cea.nabla.ir.ir.ItemIdDefinition
 import fr.cea.nabla.ir.ir.SetDefinition
-
-import fr.cea.nabla.ir.ir.BaseType
-import fr.cea.nabla.ir.ir.PrimitiveType
-import fr.cea.nabla.ir.ir.Variable
-import fr.cea.nabla.ir.ir.Expression
-import fr.cea.nabla.ir.ir.IterableInstruction
-import fr.cea.nabla.ir.ir.IterationBlock
 import fr.cea.nabla.ir.ir.InstructionJob
 import fr.cea.nabla.ir.ir.TimeLoopJob
+
+/* Approximate the number of connectivities' element number on connectivity call.
+ * One simple rule: all methods must return a positive integer or zero.
+ */
+@Data
+abstract class GeometryInformations
+{
+	def abstract int getCellsNumber();
+	def abstract int getNodesNumber();
+	def abstract int getFacesNumber();
+	
+	protected def abstract int getOuterCellsIntersectionNumber();
+	protected def abstract int getOuterNodesIntersectionNumber();
+	protected def abstract int getOuterFacesIntersectionNumber();
+	
+	def int getInnerCellsNumber() { cellsNumber - outerCellsNumber }
+	def int getOuterCellsNumber() { topCellsNumber + bottomCellsNumber + rightCellsNumber + leftCellsNumber - outerCellsIntersectionNumber }
+	def abstract int getTopCellsNumber();
+	def abstract int getBottomCellsNumber();
+	def abstract int getLeftCellsNumber();
+	def abstract int getRightCellsNumber();
+
+	def int getInnerNodesNumber() { nodesNumber - outerNodesNumber }
+	def int getOuterNodesNumber() { topNodesNumber + bottomNodesNumber + rightNodesNumber + leftNodesNumber - outerNodesIntersectionNumber }
+	def abstract int getTopNodesNumber();
+	def abstract int getBottomNodesNumber();
+	def abstract int getLeftNodesNumber();
+	def abstract int getRightNodesNumber();
+
+	def int getInnerFacesNumber() { facesNumber - outerFacesNumber }
+	def int getOuterFacesNumber() { topFacesNumber + bottomFacesNumber + rightFacesNumber + leftFacesNumber - outerFacesIntersectionNumber }
+	def abstract int getTopFacesNumber();
+	def abstract int getBottomFacesNumber();
+	def abstract int getLeftFacesNumber();
+	def abstract int getRightFacesNumber();
+}
+
+@Data
+class Mesh2DGeometryInformations extends GeometryInformations
+{
+	int X;
+	int Y;
+	
+	new(int x, int y)
+	{
+		this.X = x;
+		this.Y = y;
+		if (x <= 2 || y <= 2)
+			throw new Exception("With the Mesh2DGeomtry, x and y must at least be equal to 3")
+	}
+
+	/* Intersections between the outer connectivities */
+	override protected getOuterCellsIntersectionNumber() { 4 }
+	override protected getOuterNodesIntersectionNumber() { 4 }
+	override protected getOuterFacesIntersectionNumber() { 0 }
+	
+	/* Use approximations sometimes, not really important */
+	override getCellsNumber() { X * Y }
+	override getNodesNumber() { (X + 1) * (Y + 1) }
+	override getFacesNumber() { 4 * cellsNumber }
+	
+	override getTopCellsNumber()    { X               }
+	override getBottomCellsNumber() { topCellsNumber  }
+	override getLeftCellsNumber()   { Y               }
+	override getRightCellsNumber()  { leftCellsNumber }
+	
+	override getTopNodesNumber()    { X + 1           }
+	override getBottomNodesNumber() { topNodesNumber  }
+	override getLeftNodesNumber()   { Y + 1           }
+	override getRightNodesNumber()  { leftNodesNumber }
+	
+	override getTopFacesNumber()    { topCellsNumber   }
+	override getBottomFacesNumber() { topFacesNumber   }
+	override getLeftFacesNumber()   { rightCellsNumber }
+	override getRightFacesNumber()  { leftFacesNumber  }
+	
+}
 
 @Data
 class ComputeCostTransformation extends IrTransformationStep
@@ -79,12 +147,21 @@ class ComputeCostTransformation extends IrTransformationStep
 	/* HashMaps to store cost of functions, jobs, etc */
 	static Map<String, Integer> functionCostMap = new HashMap();
 	static Map<String, Integer> jobCostMap      = new HashMap();
+	
+	/* FIXME: Hack, force X and Y and Mesh2D geometry, get for glace2D, used json in tests */
+	int HACK_X = 200
+	int HACK_Y = 20
+	
+	GeometryInformations geometry;
 
 	new()
 	{
 		super('Compute cost of jobs and functions')
 		functionCostMap.clear
 		jobCostMap.clear
+		
+		/* Default for the moment */
+		geometry = new Mesh2DGeometryInformations(HACK_X, HACK_Y)
 	}
 
 	override transform(IrRoot ir) 
@@ -197,7 +274,7 @@ class ComputeCostTransformation extends IrTransformationStep
 			Parenthesis:      return evaluateCost(expression)
 			FunctionCall:     return evaluateCost(function)
 			Function:         return evaluateCost(it as Function)
-			ArgOrVarRef:      return 1 + indices.map[evaluateCost].reduce[ p1, p2 | p1 + p2 ] /* 1 because A[x] = ... */
+			ArgOrVarRef:      return 1 + (indices.map[evaluateCost].reduce[ p1, p2 | p1 + p2 ] ?: 0) /* 1 because A[x] = ... */
 			
 			/* Connectivity call and others... */
 			Cardinality: return evaluateCost(container)
