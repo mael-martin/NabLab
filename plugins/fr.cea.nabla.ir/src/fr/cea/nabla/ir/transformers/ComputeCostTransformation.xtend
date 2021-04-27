@@ -205,16 +205,15 @@ class ComputeCostTransformation extends IrTransformationStep
 			InternFunction: {
 				var cost = functionCostMap.getOrDefault(name, 0)
 				if (cost == 0) {
-					trace('        Evaluate cost of INTERN function ' + name)
 					cost = 0
-					trace('        Cost of INTERN function ' + name + ' evaluated to: ' + cost)
+					trace('        INTERN function ' + name + ', cost evaluated to: ' + cost)
 					functionCostMap.put(name, cost)
 				}
 				return cost
 			}
 
 			ExternFunction: {
-				trace("        Can't evaluate cost of EXTERN function " + name + ", set it to default (" + defaultUnknownCost + ")")
+				trace("        EXTERN function " + name + ", set default cost default (" + defaultUnknownCost + ")")
 				return defaultUnknownCost
 			}
 
@@ -224,14 +223,16 @@ class ComputeCostTransformation extends IrTransformationStep
 
 	private def int evaluateCost(Job it)
 	{
+		if (it === null)
+			return 0;
+			
 		switch it {
 			/* A job instruction, may be transformed by the OpenMPTask backend */
 			InstructionJob: {
 				var cost = jobCostMap.getOrDefault(name, 0)
 				if (cost == 0) {
-					trace('        Evaluate cost of job ' + name)
 					cost = evaluateCost(instruction)
-					trace('        Cost of job ' + name + ' evaluated to: ' + cost)
+					trace('        Job ' + name + ', cost evaluated to: ' + cost)
 					jobCostMap.put(name, cost)
 				}
 				return cost
@@ -239,7 +240,7 @@ class ComputeCostTransformation extends IrTransformationStep
 
 			/* Ignored jobs, won't be transformed in a particular way with the OpenMPTask backend */
 			TimeLoopJob: {
-				trace('        Skip cost evaluation of time loop job ' + name)
+				trace('        Job ' + name + ', skipped (TimeLoopJob)')
 				return 0
 			}
 			
@@ -263,7 +264,7 @@ class ComputeCostTransformation extends IrTransformationStep
 
 			/* Loops */
 			Loop: evaluateCost(body) * evaluateRep(it as Loop).intValue
-			ReductionInstruction: innerInstructions.map[evaluateCost].reduce[ p1, p2 | p1 + p2 ] * evaluateRep(it as ReductionInstruction).intValue
+			ReductionInstruction: (innerInstructions.map[evaluateCost].reduce[ p1, p2 | p1 + p2 ] ?: 1) * evaluateRep(it as ReductionInstruction).intValue
 			
 			/* Edge case things and panic */
 			Exit:    return 1
@@ -321,6 +322,9 @@ class ComputeCostTransformation extends IrTransformationStep
 	
 	private def double evaluateRep(Container it)
 	{
+		if (it === null)
+			return 0;
+
 		switch it {
 			/* Get the repetition of a connectivity */
 			ConnectivityCall: {
