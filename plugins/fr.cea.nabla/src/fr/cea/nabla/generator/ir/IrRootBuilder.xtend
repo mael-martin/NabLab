@@ -20,6 +20,7 @@ import fr.cea.nabla.ir.transformers.OptimizeConnectivities
 import fr.cea.nabla.ir.transformers.ReplaceAffectations
 import fr.cea.nabla.ir.transformers.ReplaceReductions
 import fr.cea.nabla.ir.transformers.ReplaceUtf8Chars
+import fr.cea.nabla.ir.transformers.ComputeCostTransformation
 import fr.cea.nabla.nablagen.NablagenApplication
 import fr.cea.nabla.nablagen.TargetType
 import org.eclipse.emf.ecore.EObject
@@ -86,7 +87,8 @@ class IrRootBuilder
 			new OptimizeConnectivities(#['cells', 'nodes', 'faces']),
 			new ReplaceReductions(replaceAllReductions),
 			new ReplaceAffectations,
-			new FillJobHLTs])
+			new FillJobHLTs,
+			new ComputeCostTransformation])
 		commonTransformation.transformIr(ir, [msg | dispatcher.post(MessageType::Exec, msg)])
 		val endTime = System.currentTimeMillis
 		dispatcher.post(MessageType.Exec, "NabLab to IR model transformation ended in " + (endTime-startTime)/1000.0 + "s")
