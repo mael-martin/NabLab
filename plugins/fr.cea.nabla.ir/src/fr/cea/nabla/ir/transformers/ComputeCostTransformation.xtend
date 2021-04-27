@@ -49,6 +49,8 @@ import fr.cea.nabla.ir.ir.ItemIdDefinition
 import fr.cea.nabla.ir.ir.SetDefinition
 import fr.cea.nabla.ir.ir.InstructionJob
 import fr.cea.nabla.ir.ir.TimeLoopJob
+import fr.cea.nabla.ir.ir.ConnectivityCall
+import fr.cea.nabla.ir.ir.Iterator
 
 /* Approximate the number of connectivities' element number on connectivity call.
  * One simple rule: all methods must return a positive integer or zero.
@@ -233,10 +235,7 @@ class ComputeCostTransformation extends IrTransformationStep
 	{
 		switch it {
 			/* Simple things, constants, set them to correct things */
-			VariableDeclaration: return 1
-			ItemIndexDefinition: return 1
-			ItemIdDefinition:    return 1
-			SetDefinition:       return 1
+			VariableDeclaration | ItemIndexDefinition | ItemIdDefinition | SetDefinition: return 1
 			
 			/* Recursive things */
 			InstructionBlock: return instructions.map[evaluateCost].reduce[ p1, p2 | p1 + p2 ]
@@ -246,19 +245,14 @@ class ComputeCostTransformation extends IrTransformationStep
 									 + evaluateCost(condition)).intValue
 
 			/* Loops */
-			Loop: evaluateCost(body) * evaluateRep(it as Loop)
-			ReductionInstruction: innerInstructions.map[evaluateCost].reduce[ p1, p2 | p1 + p2 ] * evaluateRep(it as ReductionInstruction)
+			Loop: evaluateCost(body) * evaluateRep(it as Loop).intValue
+			ReductionInstruction: innerInstructions.map[evaluateCost].reduce[ p1, p2 | p1 + p2 ] * evaluateRep(it as ReductionInstruction).intValue
 			
 			/* Edge case things and panic */
 			Exit:    return 1
 			While:   throw new Exception("Unsupported 'While' Instruction")
 			default: throw new Exception("Unknown Instruction type for " + it.toString + ", can't evaluate cost")
 		}
-	}
-	
-	private def int evaluateCost(Container it)
-	{
-		throw new Exception("Not implemented")
 	}
 	
 	private def int evaluateCost(Expression it)
@@ -276,17 +270,11 @@ class ComputeCostTransformation extends IrTransformationStep
 			Function:         return evaluateCost(it as Function)
 			ArgOrVarRef:      return 1 + (indices.map[evaluateCost].reduce[ p1, p2 | p1 + p2 ] ?: 0) /* 1 because A[x] = ... */
 			
-			/* Connectivity call and others... */
-			Cardinality: return evaluateCost(container)
+			/* Connectivity call and others are calculated before the simulation begins */
+			Cardinality: return 1
 			
 			/* Constants */
-			IntConstant:      return 1
-			RealConstant:     return 1
-			BoolConstant:     return 1
-			MinConstant:      return 1
-			MaxConstant:      return 1
-			BaseTypeConstant: return 1
-			VectorConstant:   return 1
+			IntConstant | RealConstant | BoolConstant | MinConstant | MaxConstant | BaseTypeConstant | VectorConstant: return 1
 
 			/* The values for then/else are arbitrary, add a way for the user to change them/to calculate them */
 			ContractedIf: return ( evaluateCost(thenExpression) * defaultLikelyProbability
@@ -311,20 +299,30 @@ class ComputeCostTransformation extends IrTransformationStep
 	
 	/* Repetition evaluation methods */
 	
-	private def int evaluateRep(Instruction it)
+	private def double evaluateRep(Container it)
 	{
 		switch it {
-			/* Iterable instructions */
-			Loop: {
-				throw new Exception("Not implemented")
-			}
-			ReductionInstruction: {
+			/* Get the repetition of a connectivity */
+			ConnectivityCall: {
 				throw new Exception("Not implemented")
 			}
 
+			default: throw new Exception("Unknown Container type for " + it.toString + ", can't evaluate its repetition")
+		}
+	}
+	
+	private def double evaluateRep(Instruction it)
+	{
+		switch it {
+			/* Iterable instructions */
+			Loop | ReductionInstruction: {
+				val connectivity = eAllContents.filter(Iterator).map[container].filter(ConnectivityCall).head
+				return evaluateRep(connectivity)
+			}
+			
 			/* Conditional, get the probability */
 			If: {
-				throw new Exception("Not implemented")
+				return defaultLikelyProbability
 			}
 
 			/* Loop, get the expected iterations => Poisson law with If? */
