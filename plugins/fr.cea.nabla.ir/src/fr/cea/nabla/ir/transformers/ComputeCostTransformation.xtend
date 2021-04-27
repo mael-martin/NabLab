@@ -168,6 +168,24 @@ class ComputeCostTransformation extends IrTransformationStep
 	static Map<String, Integer> functionCostMap = new HashMap();
 	static Map<String, Integer> jobCostMap      = new HashMap();
 	
+	static def int getJobCost(Job it) {
+		if (it === null)
+			throw new Exception("Invalid parameter, passing 'null' as a Job")
+
+		switch it {
+			InstructionJob: {
+				val int ret = jobCostMap.getOrDefault(name, 0)
+				if (ret == 0)
+					throw new Exception("Cost of job '" + name + "' was not computed during transformation steps")
+				return ret
+				}
+
+			/* Things not handled */
+			TimeLoopJob: return 0
+			default: throw new Exception("Unknown Job type for " + it.toString)
+		}
+	}
+
 	/* FIXME: Hack, force X and Y and Mesh2D geometry, get for glace2D, used json in tests */
 	int HACK_X = 200
 	int HACK_Y = 20

@@ -37,10 +37,6 @@ import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.generator.cpp.TypeContentProvider
 import fr.cea.nabla.ir.JobDependencies
 import org.eclipse.xtext.EcoreUtil2
-import org.jgrapht.alg.cycle.CycleDetector
-import org.jgrapht.alg.shortestpath.FloydWarshallShortestPaths
-import org.jgrapht.graph.DefaultWeightedEdge
-import org.jgrapht.graph.DirectedWeightedPseudograph
 import java.util.stream.IntStream
 import java.util.Iterator
 import java.util.HashSet

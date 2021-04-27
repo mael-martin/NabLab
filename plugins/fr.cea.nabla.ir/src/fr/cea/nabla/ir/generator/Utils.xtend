@@ -21,6 +21,7 @@ import fr.cea.nabla.ir.ir.ReductionInstruction
 import fr.cea.nabla.ir.ir.Variable
 import org.eclipse.emf.ecore.EObject
 
+import static extension fr.cea.nabla.ir.transformers.ComputeCostTransformation.*
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.IrRootExtensions.*
 import static extension fr.cea.nabla.ir.JobCallerExtensions.*
@@ -92,6 +93,7 @@ class Utils
 		 * Job «getCodeName» called @«at» in «caller.codeName» method.
 		 * In [«FOR v : minimalInVars BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
 		 * Out [«FOR v : outVars.sortBy[name] BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
+		 * Cost: «val jc = jobCost»«IF jc != 0»«jc»«ELSE»N/A«ENDIF»
 		 */
 	'''
 
