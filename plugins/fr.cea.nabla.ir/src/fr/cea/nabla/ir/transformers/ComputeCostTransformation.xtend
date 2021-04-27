@@ -51,6 +51,7 @@ import fr.cea.nabla.ir.ir.InstructionJob
 import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.ConnectivityCall
 import fr.cea.nabla.ir.ir.Iterator
+import fr.cea.nabla.ir.ir.Return
 
 /* Approximate the number of connectivities' element number on connectivity call.
  * One simple rule: all methods must return a positive integer or zero. */
@@ -205,7 +206,7 @@ class ComputeCostTransformation extends IrTransformationStep
 			InternFunction: {
 				var cost = functionCostMap.getOrDefault(name, 0)
 				if (cost == 0) {
-					cost = 0
+					cost = evaluateCost(body)
 					trace('        INTERN function ' + name + ', cost evaluated to: ' + cost)
 					functionCostMap.put(name, cost)
 				}
@@ -267,6 +268,7 @@ class ComputeCostTransformation extends IrTransformationStep
 			ReductionInstruction: (innerInstructions.map[evaluateCost].reduce[ p1, p2 | p1 + p2 ] ?: 1) * evaluateRep(it as ReductionInstruction).intValue
 			
 			/* Edge case things and panic */
+			Return:  evaluateCost(expression)
 			Exit:    return 1
 			While:   throw new Exception("Unsupported 'While' Instruction")
 			default: throw new Exception("Unknown Instruction type for " + it.toString + ", can't evaluate cost")
