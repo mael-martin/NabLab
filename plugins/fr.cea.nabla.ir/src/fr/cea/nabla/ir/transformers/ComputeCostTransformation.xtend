@@ -9,31 +9,18 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.transformers
 
-import static extension fr.cea.nabla.ir.transformers.IrTransformationUtils.*
-
-import java.util.ArrayList
-import java.util.List
 import java.util.HashMap
 import java.util.HashSet
 import java.util.Set
 import java.util.Map
 
 import org.eclipse.xtend.lib.annotations.Data
-import org.eclipse.emf.ecore.util.EcoreUtil
-import org.eclipse.emf.ecore.EObject
 
 import fr.cea.nabla.ir.ir.IrRoot
 import fr.cea.nabla.ir.ir.Instruction
-import fr.cea.nabla.ir.ir.IrFactory
 import fr.cea.nabla.ir.ir.Affectation
 import fr.cea.nabla.ir.ir.ArgOrVarRef
-import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.Expression
-import fr.cea.nabla.ir.ir.PrimitiveType
-import fr.cea.nabla.ir.ir.Variable
-import fr.cea.nabla.ir.ir.Expression
-import fr.cea.nabla.ir.ir.IterableInstruction
-import fr.cea.nabla.ir.ir.IterationBlock
 import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.ReductionInstruction
 import fr.cea.nabla.ir.ir.Function
@@ -56,13 +43,48 @@ import fr.cea.nabla.ir.ir.MaxConstant
 import fr.cea.nabla.ir.ir.FunctionCall
 import fr.cea.nabla.ir.ir.BaseTypeConstant
 import fr.cea.nabla.ir.ir.VectorConstant
+import fr.cea.nabla.ir.ir.InstructionBlock
+import fr.cea.nabla.ir.ir.Exit
+import fr.cea.nabla.ir.ir.VariableDeclaration
+import fr.cea.nabla.ir.ir.ItemIndexDefinition
+import fr.cea.nabla.ir.ir.ItemIdDefinition
+import fr.cea.nabla.ir.ir.SetDefinition
+
+import fr.cea.nabla.ir.ir.BaseType
+import fr.cea.nabla.ir.ir.PrimitiveType
+import fr.cea.nabla.ir.ir.Variable
+import fr.cea.nabla.ir.ir.Expression
+import fr.cea.nabla.ir.ir.IterableInstruction
+import fr.cea.nabla.ir.ir.IterationBlock
+import fr.cea.nabla.ir.ir.InstructionJob
+import fr.cea.nabla.ir.ir.TimeLoopJob
 
 @Data
 class ComputeCostTransformation extends IrTransformationStep
 {
+	/* Default probabilities for likely and unlikely */
+	static final double defaultLikelyProbability    = 0.7
+	static final double defaultUnlikelyProbability  = 1 - defaultLikelyProbability
+
+	/* Operation costs, see which values are correct */
+	static final int    operationCostADDITION       = 1
+	static final int    operationCostSUBSTRACTION   = operationCostADDITION
+	static final int    operationCostMULTIPLICATION = 3 * operationCostADDITION
+	static final int    operationCostDIVISION       = 3 * operationCostMULTIPLICATION
+	static final int    operationCostREMINDER       = operationCostDIVISION
+	
+	/* A default cost, for external functions */
+	static final int    defaultUnknownCost          = 10
+	
+	/* HashMaps to store cost of functions, jobs, etc */
+	static Map<String, Integer> functionCostMap = new HashMap();
+	static Map<String, Integer> jobCostMap      = new HashMap();
+
 	new()
 	{
 		super('Compute cost of jobs and functions')
+		functionCostMap.clear
+		jobCostMap.clear
 	}
 
 	override transform(IrRoot ir) 
@@ -83,28 +105,78 @@ class ComputeCostTransformation extends IrTransformationStep
 	private def int evaluateCost(Function it)
 	{
 		switch it {
-			InternFunction: evaluateCost(it as InternFunction)
-			ExternFunction: evaluateCost(it as ExternFunction)
+			/* Compute the cost of an intern function, cache it in HashMap */
+			InternFunction: {
+				var cost = functionCostMap.getOrDefault(name, 0)
+				if (cost == 0) {
+					trace('        Evaluate cost of INTERN function ' + name)
+					cost = 0
+					trace('        Cost of INTERN function ' + name + ' evaluated to: ' + cost)
+					functionCostMap.put(name, cost)
+				}
+				return cost
+			}
+
+			ExternFunction: {
+				trace("        Can't evaluate cost of EXTERN function " + name + ", set it to default (" + defaultUnknownCost + ")")
+				return defaultUnknownCost
+			}
+
 			default: throw new Exception("Unknown function type for " + it.toString + ", can't evaluate its cost")
 		}
 	}
 
-	private def int evaluateCost(InternFunction it)
-	{
-		trace('        Evaluate cost of intern function ' + name)
-		return 0;
-	}
-
-	private def int evaluateCost(ExternFunction it)
-	{
-		trace("        Can't evaluate cost of extern function " + name + ", set it to default")
-		return 0;
-	}
-
 	private def int evaluateCost(Job it)
 	{
-		trace('        Evaluate cost of job ' + name)
-		return 0;
+		switch it {
+			/* A job instruction, may be transformed by the OpenMPTask backend */
+			InstructionJob: {
+				var cost = jobCostMap.getOrDefault(name, 0)
+				if (cost == 0) {
+					trace('        Evaluate cost of job ' + name)
+					cost = evaluateCost(instruction)
+					trace('        Cost of job ' + name + ' evaluated to: ' + cost)
+					jobCostMap.put(name, cost)
+				}
+				return cost
+			}
+
+			/* Ignored jobs, won't be transformed in a particular way with the OpenMPTask backend */
+			TimeLoopJob: {
+				trace('        Skip cost evaluation of time loop job ' + name)
+				return 0
+			}
+			
+			/* Panic */
+			default: throw new Exception("Unknown Job type for " + it.toString + ", can't evaluate its cost")
+		}
+	}
+	
+	private def int evaluateCost(Instruction it)
+	{
+		switch it {
+			/* Simple things, constants, set them to correct things */
+			VariableDeclaration: return 1
+			ItemIndexDefinition: return 1
+			ItemIdDefinition:    return 1
+			SetDefinition:       return 1
+			
+			/* Recursive things */
+			InstructionBlock: return instructions.map[evaluateCost].reduce[ p1, p2 | p1 + p2 ]
+			Affectation:      return 1 + evaluateCost(left) + evaluateCost(right)
+			If:               return ( evaluateCost(thenInstruction) * defaultLikelyProbability
+									 + evaluateCost(elseInstruction) * defaultUnlikelyProbability
+									 + evaluateCost(condition)).intValue
+
+			/* Loops */
+			Loop: evaluateCost(body) * evaluateRep(it as Loop)
+			ReductionInstruction: innerInstructions.map[evaluateCost].reduce[ p1, p2 | p1 + p2 ] * evaluateRep(it as ReductionInstruction)
+			
+			/* Edge case things and panic */
+			Exit:    return 1
+			While:   throw new Exception("Unsupported 'While' Instruction")
+			default: throw new Exception("Unknown Instruction type for " + it.toString + ", can't evaluate cost")
+		}
 	}
 	
 	private def int evaluateCost(Container it)
@@ -140,7 +212,9 @@ class ComputeCostTransformation extends IrTransformationStep
 			VectorConstant:   return 1
 
 			/* The values for then/else are arbitrary, add a way for the user to change them/to calculate them */
-			ContractedIf: return (evaluateCost(thenExpression) * 0.7 + evaluateCost(elseExpression) * 0.3).intValue
+			ContractedIf: return ( evaluateCost(thenExpression) * defaultLikelyProbability
+								 + evaluateCost(elseExpression) * defaultUnlikelyProbability
+								 + evaluateCost(condition)).intValue
 			
 			/* Panic */
 			default: throw new Exception("Unknown Expression type for " + it.toString + ", can't evaluate its cost")
@@ -150,10 +224,11 @@ class ComputeCostTransformation extends IrTransformationStep
 	private def int evaluateOperatorCost(String op)
 	{
 		/* Evaluate cost of an operator. Those are arbitrary values, change them for real cost for the targeted CPU/GPU */
-		if (op == "+") return 1;
-		if (op == "-") return 1;
-		if (op == "*") return 4;
-		if (op == "%") return 10;
+		if (op == "+") return operationCostADDITION;
+		if (op == "-") return operationCostSUBSTRACTION;
+		if (op == "*") return operationCostMULTIPLICATION;
+		if (op == "/") return operationCostDIVISION;
+		if (op == "%") return operationCostREMINDER;
 		throw new Exception("Unknown operator '" + op + "', can't evaluate its cost")
 	}
 	
@@ -162,39 +237,25 @@ class ComputeCostTransformation extends IrTransformationStep
 	private def int evaluateRep(Instruction it)
 	{
 		switch it {
-			IterableInstruction: evaluateRep(it as IterableInstruction)
-			If: evaluateRep(it as If)
-			While: evaluateRep(it as While)
+			/* Iterable instructions */
+			Loop: {
+				throw new Exception("Not implemented")
+			}
+			ReductionInstruction: {
+				throw new Exception("Not implemented")
+			}
+
+			/* Conditional, get the probability */
+			If: {
+				throw new Exception("Not implemented")
+			}
+
+			/* Loop, get the expected iterations => Poisson law with If? */
+			While: {
+				throw new Exception("Not implemented")
+			}
+
 			default: throw new Exception("Unknown Instruction type for " + it.toString + ", can't evaluate its repetition")
 		}
-	}
-	
-	private def int evaluateRep(IterableInstruction it)
-	{
-		switch it {
-			Loop: evaluateRep(it as Loop)
-			ReductionInstruction: evaluateRep(it as ReductionInstruction)
-			default: throw new Exception("Unknown IterableInstruction type for " + it.toString + ", can't evaluate its repetition")
-		}
-	}
-	
-	private def int evaluateRep(While it)
-	{
-		throw new Exception("Not implemented")
-	}
-	
-	private def int evaluateRep(If it)
-	{
-		throw new Exception("Not implemented")
-	}
-	
-	private def int evaluateRep(Loop it)
-	{
-		throw new Exception("Not implemented")
-	}
-
-	private def int evaluateRep(ReductionInstruction it)
-	{
-		throw new Exception("Not implemented")
 	}
 }
