@@ -53,8 +53,7 @@ import fr.cea.nabla.ir.ir.ConnectivityCall
 import fr.cea.nabla.ir.ir.Iterator
 
 /* Approximate the number of connectivities' element number on connectivity call.
- * One simple rule: all methods must return a positive integer or zero.
- */
+ * One simple rule: all methods must return a positive integer or zero. */
 @Data
 abstract class GeometryInformations
 {
@@ -65,6 +64,13 @@ abstract class GeometryInformations
 	protected def abstract int getOuterCellsIntersectionNumber();
 	protected def abstract int getOuterNodesIntersectionNumber();
 	protected def abstract int getOuterFacesIntersectionNumber();
+	
+	def abstract int getNodesOfCellsNumber();
+	def abstract int getNodesOfFacesNumber();
+	def abstract int getCellsOfNodesNumber();
+	def abstract int getCellsOfFacesNumber();
+	def abstract int getFacesOfNodesNumber();
+	def abstract int getFacesOfCellsNumber();
 	
 	def int getInnerCellsNumber() { cellsNumber - outerCellsNumber }
 	def int getOuterCellsNumber() { topCellsNumber + bottomCellsNumber + rightCellsNumber + leftCellsNumber - outerCellsIntersectionNumber }
@@ -80,8 +86,10 @@ abstract class GeometryInformations
 	def abstract int getLeftNodesNumber();
 	def abstract int getRightNodesNumber();
 
-	def int getInnerFacesNumber() { facesNumber - outerFacesNumber }
-	def int getOuterFacesNumber() { topFacesNumber + bottomFacesNumber + rightFacesNumber + leftFacesNumber - outerFacesIntersectionNumber }
+	def int getInnerFacesNumber()     { facesNumber - outerFacesNumber }
+	def int getOuterFacesNumber()     { topFacesNumber + bottomFacesNumber + rightFacesNumber + leftFacesNumber - outerFacesIntersectionNumber }
+	def int getInnerVerticalFaces()   { innerFacesNumber / 2 }
+	def int getInnerHorizontalFaces() { innerFacesNumber / 2 }
 	def abstract int getTopFacesNumber();
 	def abstract int getBottomFacesNumber();
 	def abstract int getLeftFacesNumber();
@@ -127,6 +135,12 @@ class Mesh2DGeometryInformations extends GeometryInformations
 	override getLeftFacesNumber()   { rightCellsNumber }
 	override getRightFacesNumber()  { leftFacesNumber  }
 	
+	override int getNodesOfCellsNumber() { 4 }
+	override int getNodesOfFacesNumber() { 2 }
+	override int getCellsOfNodesNumber() { 4 }
+	override int getCellsOfFacesNumber() { 2 }
+	override int getFacesOfNodesNumber() { 4 }
+	override int getFacesOfCellsNumber() { 4 }
 }
 
 @Data
@@ -137,11 +151,14 @@ class ComputeCostTransformation extends IrTransformationStep
 	static final double defaultUnlikelyProbability  = 1 - defaultLikelyProbability
 
 	/* Operation costs, see which values are correct */
-	static final int    operationCostADDITION       = 1
-	static final int    operationCostSUBSTRACTION   = operationCostADDITION
-	static final int    operationCostMULTIPLICATION = 3 * operationCostADDITION
-	static final int    operationCostDIVISION       = 3 * operationCostMULTIPLICATION
-	static final int    operationCostREMINDER       = operationCostDIVISION
+	static final int    operationCostADDITION       = 1	                               // +
+	static final int    operationCostSUBSTRACTION   = operationCostADDITION            // -
+	static final int    operationCostMULTIPLICATION = 3 * operationCostADDITION        // *
+	static final int    operationCostDIVISION       = 3 * operationCostMULTIPLICATION  // /
+	static final int    operationCostREMINDER       = operationCostDIVISION            // %
+	static final int    operationCostLOGIC          = 1                                // || &&
+	static final int    operationCostCOMPARISON     = 1                                // <= >= == < > !=
+	static final int    operationCostNOT            = 1                                // !
 	
 	/* A default cost, for external functions */
 	static final int    defaultUnknownCost          = 10
@@ -294,6 +311,9 @@ class ComputeCostTransformation extends IrTransformationStep
 		if (op == "*") return operationCostMULTIPLICATION;
 		if (op == "/") return operationCostDIVISION;
 		if (op == "%") return operationCostREMINDER;
+		if (op == "!") return operationCostNOT;
+		if (op == "&&" || op == "||") return operationCostLOGIC;
+		if (op == ">" || op == "<" || op == ">=" || op == "<= " || op == "!=" || op == "==") return operationCostCOMPARISON;
 		throw new Exception("Unknown operator '" + op + "', can't evaluate its cost")
 	}
 	
@@ -304,7 +324,40 @@ class ComputeCostTransformation extends IrTransformationStep
 		switch it {
 			/* Get the repetition of a connectivity */
 			ConnectivityCall: {
-				throw new Exception("Not implemented")
+				if      (connectivity.name == "bottomNodes") { return geometry.bottomNodesNumber }
+				else if (connectivity.name == "topNodes")    { return geometry.topNodesNumber    }
+				else if (connectivity.name == "rightNodes")  { return geometry.rightNodesNumber  }
+				else if (connectivity.name == "leftNodes")   { return geometry.leftNodesNumber   }
+				else if (connectivity.name == "innerNodes")  { return geometry.innerNodesNumber  }
+				else if (connectivity.name == "outerNodes")  { return geometry.outerNodesNumber  }
+
+				else if (connectivity.name == "bottomCells") { return geometry.bottomCellsNumber }
+				else if (connectivity.name == "topCells")    { return geometry.topCellsNumber    }
+				else if (connectivity.name == "rightCells")  { return geometry.rightCellsNumber  }
+				else if (connectivity.name == "leftCells")   { return geometry.leftCellsNumber   }
+				else if (connectivity.name == "innerCells")  { return geometry.innerCellsNumber  }
+				else if (connectivity.name == "outerCells")  { return geometry.outerCellsNumber  }
+				
+				else if (connectivity.name == "innerHorizontalFaces") { return geometry.innerHorizontalFaces }
+				else if (connectivity.name == "innerVerticalFaces")   { return geometry.innerVerticalFaces   }
+				else if (connectivity.name == "bottomFaces")          { return geometry.bottomFacesNumber }
+				else if (connectivity.name == "topFaces")             { return geometry.topFacesNumber    }
+				else if (connectivity.name == "rightFaces")           { return geometry.rightFacesNumber  }
+				else if (connectivity.name == "leftFaces")            { return geometry.leftFacesNumber   }
+				else if (connectivity.name == "innerFaces")           { return geometry.innerFacesNumber  }
+				else if (connectivity.name == "outerFaces")           { return geometry.outerFacesNumber  }
+
+				else if (connectivity.name == "faces") { return geometry.facesNumber }
+				else if (connectivity.name == "cells") { return geometry.cellsNumber }
+				else if (connectivity.name == "nodes") { return geometry.nodesNumber }
+				
+				else if (connectivity.name == "nodesOfCell") { return geometry.nodesOfCellsNumber }
+				else if (connectivity.name == "cellsOfNode") { return geometry.cellsOfNodesNumber }
+				
+				else {
+					/* Panic */
+					throw new Exception("Unimplemented repetition evaluation for call to connectivity of type " + connectivity.name)
+				}
 			}
 
 			default: throw new Exception("Unknown Container type for " + it.toString + ", can't evaluate its repetition")
