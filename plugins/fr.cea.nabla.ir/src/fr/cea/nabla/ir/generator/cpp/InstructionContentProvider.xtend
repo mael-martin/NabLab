@@ -348,17 +348,14 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 					#pragma omp taskgroup
 					{
 				«ELSEIF willLoopsCollide(lastLoopType, i as Loop)»
-					#pragma omp taskwait /* Wait for all loops to avoid collision */
-					}
+					} /* Wait for all loops to avoid collision */
 					#pragma omp taskgroup /* Launch new loops, override some of previous loops (collision) */
 					{
 				«ENDIF»
 				/* Register loop as previous loop («lastLoopType = i as Loop») */
 			«ELSEIF lastLoopType !== null && currentLevel == 1»
 				/* («lastLoopType = null») End of the loops, go back to sequential things \o/ */
-				#pragma omp taskwait
 				}
-				#pragma omp taskwait
 			«ENDIF»
 			«i.content»
 		«ENDFOR»
@@ -370,8 +367,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		«ENDIF»
 		««« Close the last loop if necessary
 		«IF lastLoopType !== null»
-		/* Close the last loop, the end of the super task will wait for the current taskgroup */
-		#pragma omp taskwait
+		/* Close the last loop */
 		}
 		«ENDIF»
 	'''
@@ -400,7 +396,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		«ENDIF»
 		«IF launch_super_task»	«ENDIF»«innerContentInternal»
 		«IF launch_super_task»
-		#pragma omp taskwait
 		} // END OF SUPER TASK
 		«ENDIF»
 		'''
