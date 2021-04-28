@@ -52,6 +52,15 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 	override getGenerationContents(IrRoot ir)
 	{
+		if (backend instanceof OpenMpTaskBackend) {
+			/* Set MAX_TASK_NUMBER = ncpu * max(concurrentJobs + 1) */
+			val max_concurrent_jobs = ir.eAllContents.filter(JobCaller).map[ jc |
+				val jobsByAt = jc.calls.groupBy[at]
+				jobsByAt.keySet.map[ at | jobsByAt.get(at).size ].max
+			].max
+			OMPTaskMaxNumber = OpenMpTaskMainContentProvider::num_threads * (max_concurrent_jobs + 1);
+		}
+
 		resetGlobalVariable
 		resetGlobalVariableProducedBySuperTask
 		resetAdditionalFirstPrivateVariables

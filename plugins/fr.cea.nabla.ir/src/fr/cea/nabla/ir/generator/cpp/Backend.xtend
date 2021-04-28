@@ -139,9 +139,8 @@ class OpenMpTaskBackend extends Backend
 {
 	new()
 	{
-		OpenMpTaskMainContentProvider::num_threads = 4;
-		OpenMpTaskMainContentProvider::max_active_levels = 1;
-		OMPTaskMaxNumber = OpenMpTaskMainContentProvider::num_threads * 4;
+		OpenMpTaskMainContentProvider::num_threads = 4; // FIXME: Must be set by the user
+		OpenMpTaskMainContentProvider::max_active_levels = 1; 
 		OMPTraces = false
 		name = 'OpenMPTask'
 		cmakeContentProvider = new OpenMpTaskCMakeContentProvider
