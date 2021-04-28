@@ -187,8 +187,8 @@ class ComputeCostTransformation extends IrTransformationStep
 	}
 
 	/* FIXME: Hack, force X and Y and Mesh2D geometry, get for glace2D, used json in tests */
-	int HACK_X = 200
-	int HACK_Y = 20
+	int HACK_X = 400
+	int HACK_Y = 40
 	
 	GeometryInformations geometry;
 

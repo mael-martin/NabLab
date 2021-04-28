@@ -139,7 +139,9 @@ class OpenMpTaskBackend extends Backend
 {
 	new()
 	{
-		OMPTaskMaxNumber = 10
+		OpenMpTaskMainContentProvider::num_threads = 4;
+		OpenMpTaskMainContentProvider::max_active_levels = 1;
+		OMPTaskMaxNumber = OpenMpTaskMainContentProvider::num_threads * 4;
 		OMPTraces = false
 		name = 'OpenMPTask'
 		cmakeContentProvider = new OpenMpTaskCMakeContentProvider
@@ -152,7 +154,7 @@ class OpenMpTaskBackend extends Backend
 		jsonContentProvider = new JsonContentProvider(expressionContentProvider)
 		jobCallerContentProvider = new OpenMpTaskJobCallerContentProvider
 		jobContentProvider = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
-		mainContentProvider = new MainContentProvider(jsonContentProvider)
+		mainContentProvider = new OpenMpTaskMainContentProvider(jsonContentProvider)
 		registerTypeContentProvider(typeContentProvider)
 	}
 }

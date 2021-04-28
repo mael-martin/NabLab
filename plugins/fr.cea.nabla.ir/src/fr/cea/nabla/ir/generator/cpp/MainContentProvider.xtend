@@ -105,6 +105,21 @@ class MainContentProvider
 }
 
 @Data
+class OpenMpTaskMainContentProvider extends MainContentProvider
+{
+	public static int num_threads       = 4;
+	public static int max_active_levels = 1;
+	
+	protected override getSimulationCall(IrModule it)
+	'''
+	setenv("OMP_PROC_BIND", "true", 1);
+	omp_set_max_active_levels(«max_active_levels»);
+	omp_set_num_threads(«num_threads»);
+	«name»->simulate();
+	'''
+}
+
+@Data
 class KokkosMainContentProvider extends MainContentProvider
 {
 	override getContentFor(IrModule it, String levelDBPath)
