@@ -596,10 +596,51 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		/* Ooops, or not implemented */
 		else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
 	}
+	private def boolean willSubConnectivityTypeCollide(String sub1, String sub2, boolean secondTime)
+	{
+		/* Outer will collide with some outer */
+		if (sub1 == "bottom" && (sub2 == "right"  || sub2 == "left"  || sub2 == "outer")) return true
+		if (sub1 == "right"  && (sub2 == "bottom" || sub2 == "top"   || sub2 == "outer")) return true
+		if (sub1 == "left"   && (sub2 == "bottom" || sub2 == "top"   || sub2 == "outer")) return true
+		if (sub1 == "top"    && (sub2 == "left"   || sub2 == "right" || sub2 == "outer")) return true
+		if (sub1 == "outer"  && (sub2 == "bottom" || sub2 == "right" || sub2 == "left" || sub2 == "top" || sub2 == "outer")) return true
+
+		/* Inner will collide with inner */
+		if (sub1 == "inner"  && (sub2 == "innerH" || sub2 == "innerV" || sub2 == "inner")) return true
+		if (sub1 == "innerH" && sub2 == "inner") return true
+		if (sub1 == "innerV" && sub2 == "inner") return true
+
+		/* Try the other way if needed */
+		return secondTime ? false : willSubConnectivityTypeCollide(sub2, sub1, true)
+	}
+	private def getSubConnectivityType(String itemname)
+	{
+		if      (itemname.contains("Bottom"))          { return "bottom" }
+		else if (itemname.contains("Top"))             { return "top"    }
+		else if (itemname.contains("Right"))           { return "right"  }
+		else if (itemname.contains("Left"))            { return "left"   }
+		else if (itemname.contains("InnerHorizontal")) { return "innerH" }
+		else if (itemname.contains("InnerVertival"))   { return "innerV" }
+		else if (itemname.contains("Inner"))           { return "inner"  }
+		else if (itemname.contains("Outer"))           { return "outer"  }
+	}
+	private def getSubConnectivityType(Loop it)
+	{
+		val String itemname = iterationBlock.indexName.toString
+		return getSubConnectivityType(itemname)
+	}
 	private def getConnectivityType(Loop it)
 	{
 		val String itemname = iterationBlock.indexName.toString
 		return getConnectivityType(itemname)
+	}
+	private def boolean willLoopsCollide(Loop l1, Loop l2)
+	{
+		if (l1.connectivityType != l2.connectivityType)
+			return false
+		val sl1 = l1.subConnectivityType
+		val sl2 = l2.subConnectivityType
+		return willSubConnectivityTypeCollide(sl1, sl2, false)
 	}
 
 	private def overrideIterationBlock(Loop it, CharSequence base, CharSequence limit)
