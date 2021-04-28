@@ -43,6 +43,7 @@ class IncludesContentProvider
 		systemIncludes += "limits"
 		systemIncludes += "utility"
 		systemIncludes += "cmath"
+		systemIncludes += "cstdlib"
 		if (hasLevelDB)
 		{
 			systemIncludes += "leveldb/db.h"

@@ -338,20 +338,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	private def getInnerContentInternal(InstructionBlock it)
 	{
 		var Loop lastLoopType = null
-		val super_task        = currentTASK
 	'''
 		«FOR i : instructions»
-			««« Super tasks, because we can't do parallel stuff, we make it up
-			«IF super_task !== null && super_task == 'supertask' && i instanceof Loop && (i as Loop).multithreadable && currentLevel == 1»
-				«IF lastLoopType === null»
-					/* Begin a group of tasks */
-				«ELSEIF willLoopsCollide(lastLoopType, i as Loop)»
-					#pragma omp taskwait /* Wait for all loops to avoid collision */
-				«ENDIF»
-				/* Register loop as previous loop («lastLoopType = i as Loop») */
-			«ELSEIF lastLoopType !== null && currentLevel == 1»
-				#pragma omp taskwait /* («lastLoopType = null») End of the loops, go back to sequential things \o/ */
-			«ENDIF»
 			«i.content»
 		«ENDFOR»
 		««« This bracket is opened in the getReductionContent function
@@ -520,7 +508,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		var ret = ''''''
 
 		if (getCurrentTASK() !== null) ret = '''
-			«launchSubTasks»
+			«sequentialLoopContent»
 			'''
 
 		else ret = '''
@@ -545,104 +533,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		shifts = computeShiftPair(shifts, value.shift);
 		dataShift.put(itemName, shifts);
 		dataConnectivity.put(itemName, value.iterator.container.connectivityCall.connectivity.name)
-	}
-
-	private def getConnectivityType(String itemname)
-	{
-		/* Check for node connectivities */
-		if      (itemname.contains("BottomNodes")) { return INDEX_TYPE::NODES }
-		else if (itemname.contains("TopNodes"))    { return INDEX_TYPE::NODES }
-		else if (itemname.contains("RightNodes"))  { return INDEX_TYPE::NODES }
-		else if (itemname.contains("LeftNodes"))   { return INDEX_TYPE::NODES }
-		else if (itemname.contains("InnerNodes"))  { return INDEX_TYPE::NODES }
-		else if (itemname.contains("OuterNodes"))  { return INDEX_TYPE::NODES }
-
-		/* Check for cell connectivities */
-		else if (itemname.contains("BottomCells")) { return INDEX_TYPE::CELLS }
-		else if (itemname.contains("TopCells"))    { return INDEX_TYPE::CELLS }
-		else if (itemname.contains("RightCells"))  { return INDEX_TYPE::CELLS }
-		else if (itemname.contains("LeftCells"))   { return INDEX_TYPE::CELLS }
-		else if (itemname.contains("InnerCells"))  { return INDEX_TYPE::CELLS }
-		else if (itemname.contains("OuterCells"))  { return INDEX_TYPE::CELLS }
-		
-		/* Check for face connectivities */
-		else if (itemname.contains("InnerHorizontalFaces")) { return INDEX_TYPE::FACES }
-		else if (itemname.contains("InnerVerticalFaces"))   { return INDEX_TYPE::FACES }
-		else if (itemname.contains("BottomFaces"))          { return INDEX_TYPE::FACES }
-		else if (itemname.contains("TopFaces"))             { return INDEX_TYPE::FACES }
-		else if (itemname.contains("RightFaces"))           { return INDEX_TYPE::FACES }
-		else if (itemname.contains("LeftFaces"))            { return INDEX_TYPE::FACES }
-		else if (itemname.contains("InnerFaces"))           { return INDEX_TYPE::FACES }
-		else if (itemname.contains("OuterFaces"))           { return INDEX_TYPE::FACES }
-
-		/* Base types */
-		else if (itemname.contains("Faces")) { return INDEX_TYPE::FACES }
-		else if (itemname.contains("Cells")) { return INDEX_TYPE::CELLS }
-		else if (itemname.contains("Nodes")) { return INDEX_TYPE::NODES }
-		
-		/* Happily ignored because don't exit from the partition -> no external contributions */
-		else if (itemname.contains("CommonFace")) {
-			println("Ignored " + itemname + " connectivity function in loop");
-			return null
-		}
-		
-		/* Ooops, or not implemented */
-		else { throw new Exception("Unknown iterator " + itemname + ", could not autofill dataShifts and dataConnectivity") }
-	}
-	private def boolean willSubConnectivityTypeCollide(String sub1, String sub2, boolean secondTime)
-	{
-		/* Outer will collide with some outer */
-		if (sub1 == "bottom" && (sub2 == "right"  || sub2 == "left"  || sub2 == "outer")) return true
-		if (sub1 == "right"  && (sub2 == "bottom" || sub2 == "top"   || sub2 == "outer")) return true
-		if (sub1 == "left"   && (sub2 == "bottom" || sub2 == "top"   || sub2 == "outer")) return true
-		if (sub1 == "top"    && (sub2 == "left"   || sub2 == "right" || sub2 == "outer")) return true
-		if (sub1 == "outer"  && (sub2 == "bottom" || sub2 == "right" || sub2 == "left" || sub2 == "top" || sub2 == "outer")) return true
-
-		/* Inner will collide with inner */
-		if (sub1 == "inner"  && (sub2 == "innerH" || sub2 == "innerV" || sub2 == "inner")) return true
-		if (sub1 == "innerH" && sub2 == "inner") return true
-		if (sub1 == "innerV" && sub2 == "inner") return true
-
-		/* Try the other way if needed */
-		return secondTime ? false : willSubConnectivityTypeCollide(sub2, sub1, true)
-	}
-	private def getSubConnectivityType(String itemname)
-	{
-		if      (itemname.contains("Bottom"))          { return "bottom" }
-		else if (itemname.contains("Top"))             { return "top"    }
-		else if (itemname.contains("Right"))           { return "right"  }
-		else if (itemname.contains("Left"))            { return "left"   }
-		else if (itemname.contains("InnerHorizontal")) { return "innerH" }
-		else if (itemname.contains("InnerVertival"))   { return "innerV" }
-		else if (itemname.contains("Inner"))           { return "inner"  }
-		else if (itemname.contains("Outer"))           { return "outer"  }
-	}
-	private def getSubConnectivityType(Loop it)
-	{
-		val String itemname = iterationBlock.indexName.toString
-		return getSubConnectivityType(itemname)
-	}
-	private def getConnectivityType(Loop it)
-	{
-		val String itemname = iterationBlock.indexName.toString
-		return getConnectivityType(itemname)
-	}
-	private def boolean willLoopsCollide(Loop l1, Loop l2)
-	{
-		if (l1.connectivityType != l2.connectivityType)
-			return false
-		val sl1 = l1.subConnectivityType
-		val sl2 = l2.subConnectivityType
-		return willSubConnectivityTypeCollide(sl1, sl2, false)
-	}
-	private def getAdditionalConnectivityForShared(Loop it)
-	{
-		val index_type = connectivityType
-		val sub_type   = subConnectivityType
-		return sub_type + (	index_type == INDEX_TYPE::NODES ? 'Nodes' :
-							index_type == INDEX_TYPE::CELLS ? 'Cells' :
-							index_type == INDEX_TYPE::FACES ? 'Faces' :
-							throw new Exception("Can't get a shared connectivity type with index type 'NULL'"));
 	}
 
 	private def overrideIterationBlock(Loop it, CharSequence base, CharSequence limit)
@@ -691,14 +581,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 						getDependencies(parentJob, 'out', outs, '''___omp_base''')»
 					// clang-format on
 				«ENDIF»
-			«ELSE»
-				/* Generate task inside a super task */
-				// clang-format off
-				#pragma omp task «
-					getFirstPrivateVars(parentJob)» «
-					getSharedVarsClause(parentJob, #[additionalConnectivityForShared])»«
-					parentJob.priority»
-				// clang-format on
 			«ENDIF»
 			«overrideIterationBlock(it, '''___omp_base''', '''___omp_limit''')»
 		}
@@ -713,18 +595,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		'''«getBaseIndex(nbElems, partitionId)»'''
 	private def getLimitIndex(IterationBlock it, CharSequence partitionId)
 		'''(«OMPTaskMaxNumber» - 1 != «partitionId») ? ((«nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1)) : («nbElems»)'''
-	
-	/* Slice a loop inside a super task, no need for dependencies here as they
-	 * are controlled by `taskgroup`, `task` and `taskwait`. */
-	private def launchSubTasks(Loop it)
-	{
-		if (currentTASK === null)
-			throw new Exception("Can only use the launchSubTasks for Loop inside a super task")
-	'''
-		for (size_t task = 0; task < «OMPTaskMaxNumber»; ++task)
-		«launchSingleTaskForPartition(it, '''task''', #[].toSet, #[].toSet)»
-	'''
-	}
 	
 	/* Slice a loop in multiple tasks with dependencies */
 	private def launchTasks(Loop it)
@@ -761,24 +631,5 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			«launchSingleTaskForPartition(it, '''task''', ins, outs)»
 		'''
 		return ret;
-	}
-
-	override getSetDefinitionContent(String setName, ConnectivityCall call)
-	'''
-		static const auto «setName»(mesh->«call.accessor»);
-	'''
-
-	override dispatch defineInterval(Iterator it, CharSequence innerContent)
-	{
-		if (container.connectivityCall.connectivity.indexEqualId)
-			innerContent
-		else
-		'''
-			{
-				«IF container instanceof ConnectivityCall»«getSetDefinitionContent(container.uniqueName, container as ConnectivityCall)»«ENDIF»
-				static const size_t «nbElems»(«container.uniqueName».size());
-				«innerContent»
-			}
-		'''
 	}
 }
