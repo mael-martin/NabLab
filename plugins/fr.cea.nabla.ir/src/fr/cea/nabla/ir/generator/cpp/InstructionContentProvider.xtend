@@ -336,17 +336,41 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	private def isInsideAJob(IrAnnotable it) { (null !== EcoreUtil2.getContainerOfType(it, Job)) && (EcoreUtil2.getContainerOfType(it, Function) === null); }
 	
 	private def getInnerContentInternal(InstructionBlock it)
+	{
+		var Loop lastLoopType = null
+		val super_task        = currentTASK
 	'''
 		«FOR i : instructions»
-		«i.content»
+			««« Super tasks, because we can't do parallel stuff, we make it up
+			«IF super_task !== null && super_task == 'supertask' && i instanceof Loop && (i as Loop).multithreadable && currentLevel == 1»
+				«IF lastLoopType === null»
+					/* Begin a group of tasks */
+					#pragma omp taskgroup
+					{
+				«ENDIF»
+				/* Register loop as previous loop («lastLoopType = i as Loop») */
+			«ELSEIF lastLoopType !== null && currentLevel == 1»
+				/* («lastLoopType = null») End of the loops, go back to sequential things \o/ */
+				#pragma omp taskwait
+				}
+				#pragma omp taskwait
+			«ENDIF»
+			«i.content»
 		«ENDFOR»
 		««« This bracket is opened in the getReductionContent function
 		«IF (instructions.size == 2) &&
 		    (instructions.toList.head instanceof ReductionInstruction) &&
 		    (instructions.toList.last instanceof Affectation)»
+		} /* Close the reduction */
+		«ENDIF»
+		««« Close the last loop if necessary
+		«IF lastLoopType !== null»
+		/* Close the last loop, the end of the super task will wait for the current taskgroup */
+		#pragma omp taskwait
 		}
 		«ENDIF»
 	'''
+	}
 	override dispatch getInnerContent(InstructionBlock it)
 	{
 		levelINC();
@@ -355,7 +379,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ins               = parentJob.minimalInVars
 		val outs              = parentJob.outVars
 		if (launch_super_task) {
-			beginTASK('''task''');
+			beginTASK('supertask');
 			instructions.forEach[removeAdditionalFirstPrivVariables]
 		}
 
@@ -366,10 +390,12 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			getDependenciesAll(parentJob, 'in',  ins)»«
 			getDependenciesAll(parentJob, 'out', outs)»
 		// clang-format on
+		#pragma omp taskgroup
 		{ // BEGIN OF SUPER TASK
 		«ENDIF»
 		«IF launch_super_task»	«ENDIF»«innerContentInternal»
 		«IF launch_super_task»
+		#pragma omp taskwait
 		} // END OF SUPER TASK
 		«ENDIF»
 		'''
@@ -458,10 +484,17 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		const Id ___omp_base  = «getBaseIndex(iterationBlock, partitionId)»;
 		const Id ___omp_limit = «getLimitIndex(iterationBlock, partitionId)»;
 		// clang-format off
-		#pragma omp task «getSharedVarsClause(parentJob, #['''«result.name»_tab'''].toList)»«parentJob.priority» firstprivate(___omp_base, ___omp_limit, i) «getDependencies(parentJob, 'in', ins, '''___omp_base''')» depend(out:	(«result.name»_tab[i]))
+		#pragma omp task «
+		getSharedVarsClause(parentJob, #['''«result.name»_tab'''].toList)»«
+		parentJob.priority» firstprivate(___omp_base, ___omp_limit, i) «
+		getDependencies(parentJob, 'in', ins, '''___omp_base''')» depend(out:	(«result.name»_tab[i]))
 		// clang-format on
 		«iterationBlock.defineInterval('''
-		«overrideIterationBlock(it, '''___omp_base''', '''___omp_limit''', '''«result.name»_tab[i] = «binaryFunction.codeName»(«result.name»_tab[i], «lambda.content»);''')»
+		«overrideIterationBlock(it,
+			'''___omp_base''',
+			'''___omp_limit''',
+			'''«result.name»_tab[i] = «binaryFunction.codeName»(«result.name»_tab[i], «lambda.content»);'''
+		)»
 		''')»
 	'''
 	}
@@ -494,7 +527,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		var ret = ''''''
 
 		if (getCurrentTASK() !== null) ret = '''
-			«sequentialLoopContent»
+			«launchSubTasks»
 			'''
 
 		else ret = '''
@@ -613,6 +646,11 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 						getDependencies(parentJob, 'out', outs, '''___omp_base''')»
 					// clang-format on
 				«ENDIF»
+			«ELSE»
+				/* Generate task inside a super task */
+				// clang-format off
+				#pragma omp task «getFirstPrivateVars(parentJob)» «getSharedVarsClause(parentJob)»«parentJob.priority»
+				// clang-format on
 			«ENDIF»
 			«overrideIterationBlock(it, '''___omp_base''', '''___omp_limit''')»
 		}
@@ -628,6 +666,19 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	private def getLimitIndex(IterationBlock it, CharSequence partitionId)
 		'''(«OMPTaskMaxNumber» - 1 != «partitionId») ? ((«nbElems» / «OMPTaskMaxNumber») * («partitionId» + 1)) : («nbElems»)'''
 	
+	/* Slice a loop inside a super task, no need for dependencies here as they
+	 * are controlled by `taskgroup`, `task` and `taskwait`. */
+	private def launchSubTasks(Loop it)
+	{
+		if (currentTASK === null)
+			throw new Exception("Can only use the launchSubTasks for Loop inside a super task")
+	'''
+		for (size_t task = 0; task < «OMPTaskMaxNumber»; ++task)
+		«launchSingleTaskForPartition(it, '''task''', #[].toSet, #[].toSet)»
+	'''
+	}
+	
+	/* Slice a loop in multiple tasks with dependencies */
 	private def launchTasks(Loop it)
 	{
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
