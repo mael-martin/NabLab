@@ -196,7 +196,7 @@ class ComputeCostTransformation extends IrTransformationStep
 
 	new()
 	{
-		super('Compute cost of jobs and functions')
+		super('ComputeCost')
 		functionCostMap.clear
 		jobCostMap.clear
 		
@@ -206,15 +206,16 @@ class ComputeCostTransformation extends IrTransformationStep
 
 	override transform(IrRoot ir) 
 	{
-		trace('    IR -> IR: ' + description)
+		trace('    IR -> IR: ' + description + ':ComputeFunctionCost')
 
 		val functions = ir.eAllContents.filter(Function)
 		functions.forEach[evaluateCost]
 
+		trace('    IR -> IR: ' + description + ':ComputeJobCost')
 		val jobs = ir.eAllContents.filter(Job)
 		jobs.forEach[evaluateCost]
 		
-		/* Reverse the jobCostMap */
+		trace('    IR -> IR: ' + description + ':CostReport')
 		val Map<Integer, Set<String>> reverseJobCostMap = new HashMap();
 		for (j : jobCostMap.keySet) {
 			val cost          = jobCostMap.get(j)
@@ -222,9 +223,6 @@ class ComputeCostTransformation extends IrTransformationStep
 			jobSetForCost.add(j)
 			reverseJobCostMap.put(cost, jobSetForCost)
 		}
-		
-		/* Report */
-		trace('    REPORT: Job Cost')
 		for (cost : reverseJobCostMap.keySet.sort)
 			trace('        - ' + reverseJobCostMap.get(cost).reduce[ p1, p2 | p1 + ', ' + p2 ] + ' => ' + cost)
 		

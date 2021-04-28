@@ -36,7 +36,7 @@ class JobMergeFromCost extends IrTransformationStep
 
 	override transform(IrRoot ir) 
 	{
-		trace('    IR -> IR: ' + description)
+		trace('    IR -> IR: ' + description + ':ComputeMinimalInVars')
 		MinimalInVariablesPerJobs.clear
 		AccumulatedInVariablesPerJobs.clear
 		ir.eAllContents.filter(JobCaller).forEach[computeMinimalInVariables]
