@@ -347,6 +347,11 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 					/* Begin a group of tasks */
 					#pragma omp taskgroup
 					{
+				«ELSEIF willLoopsCollide(lastLoopType, i as Loop)»
+					#pragma omp taskwait /* Wait for all loops to avoid collision */
+					}
+					#pragma omp taskgroup /* Launch new loops, override some of previous loops (collision) */
+					{
 				«ENDIF»
 				/* Register loop as previous loop («lastLoopType = i as Loop») */
 			«ELSEIF lastLoopType !== null && currentLevel == 1»
