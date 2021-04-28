@@ -10,7 +10,9 @@
 package fr.cea.nabla.ir.transformers
 
 import java.util.HashMap
+import java.util.HashSet
 import java.util.Map
+import java.util.Set
 
 import org.eclipse.xtend.lib.annotations.Data
 
@@ -211,7 +213,21 @@ class ComputeCostTransformation extends IrTransformationStep
 
 		val jobs = ir.eAllContents.filter(Job)
 		jobs.forEach[evaluateCost]
-
+		
+		/* Reverse the jobCostMap */
+		val Map<Integer, Set<String>> reverseJobCostMap = new HashMap();
+		for (j : jobCostMap.keySet) {
+			val cost          = jobCostMap.get(j)
+			val jobSetForCost = reverseJobCostMap.getOrDefault(cost, new HashSet())
+			jobSetForCost.add(j)
+			reverseJobCostMap.put(cost, jobSetForCost)
+		}
+		
+		/* Report */
+		trace('    REPORT: Job Cost')
+		for (cost : reverseJobCostMap.keySet.sort)
+			trace('        - ' + reverseJobCostMap.get(cost).reduce[ p1, p2 | p1 + ', ' + p2 ] + ' => ' + cost)
+		
 		return true
 	}
 	
@@ -225,14 +241,14 @@ class ComputeCostTransformation extends IrTransformationStep
 				var cost = functionCostMap.getOrDefault(name, 0)
 				if (cost == 0) {
 					cost = evaluateCost(body)
-					trace('        INTERN function ' + name + ', cost evaluated to: ' + cost)
+					// trace('        INTERN function ' + name + ', cost evaluated to: ' + cost)
 					functionCostMap.put(name, cost)
 				}
 				return cost
 			}
 
 			ExternFunction: {
-				trace("        EXTERN function " + name + ", set default cost default (" + defaultUnknownCost + ")")
+				// trace("        EXTERN function " + name + ", set default cost default (" + defaultUnknownCost + ")")
 				return defaultUnknownCost
 			}
 
@@ -251,17 +267,13 @@ class ComputeCostTransformation extends IrTransformationStep
 				var cost = jobCostMap.getOrDefault(name, 0)
 				if (cost == 0) {
 					cost = evaluateCost(instruction)
-					trace('        Job ' + name + ', cost evaluated to: ' + cost)
 					jobCostMap.put(name, cost)
 				}
 				return cost
 			}
 
 			/* Ignored jobs, won't be transformed in a particular way with the OpenMPTask backend */
-			TimeLoopJob: {
-				trace('        Job ' + name + ', skipped (TimeLoopJob)')
-				return 0
-			}
+			TimeLoopJob: return 0
 			
 			/* Panic */
 			default: throw new Exception("Unknown Job type for " + it.toString + ", can't evaluate its cost")
