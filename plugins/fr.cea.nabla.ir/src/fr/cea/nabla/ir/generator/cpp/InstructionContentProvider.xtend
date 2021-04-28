@@ -345,17 +345,12 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			«IF super_task !== null && super_task == 'supertask' && i instanceof Loop && (i as Loop).multithreadable && currentLevel == 1»
 				«IF lastLoopType === null»
 					/* Begin a group of tasks */
-					#pragma omp taskgroup
-					{
 				«ELSEIF willLoopsCollide(lastLoopType, i as Loop)»
-					} /* Wait for all loops to avoid collision */
-					#pragma omp taskgroup /* Launch new loops, override some of previous loops (collision) */
-					{
+					#pragma omp taskwait /* Wait for all loops to avoid collision */
 				«ENDIF»
 				/* Register loop as previous loop («lastLoopType = i as Loop») */
 			«ELSEIF lastLoopType !== null && currentLevel == 1»
-				/* («lastLoopType = null») End of the loops, go back to sequential things \o/ */
-				}
+				#pragma omp taskwait /* («lastLoopType = null») End of the loops, go back to sequential things \o/ */
 			«ENDIF»
 			«i.content»
 		«ENDFOR»
@@ -367,8 +362,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		«ENDIF»
 		««« Close the last loop if necessary
 		«IF lastLoopType !== null»
-		/* Close the last loop */
-		}
+		#pragma omp taskwait /* Close the last loop */
 		«ENDIF»
 	'''
 	}
@@ -391,7 +385,6 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			getDependenciesAll(parentJob, 'in',  ins)»«
 			getDependenciesAll(parentJob, 'out', outs)»
 		// clang-format on
-		#pragma omp taskgroup
 		{ // BEGIN OF SUPER TASK
 		«ENDIF»
 		«IF launch_super_task»	«ENDIF»«innerContentInternal»
@@ -642,6 +635,15 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val sl2 = l2.subConnectivityType
 		return willSubConnectivityTypeCollide(sl1, sl2, false)
 	}
+	private def getAdditionalConnectivityForShared(Loop it)
+	{
+		val index_type = connectivityType
+		val sub_type   = subConnectivityType
+		return sub_type + (	index_type == INDEX_TYPE::NODES ? 'Nodes' :
+							index_type == INDEX_TYPE::CELLS ? 'Cells' :
+							index_type == INDEX_TYPE::FACES ? 'Faces' :
+							throw new Exception("Can't get a shared connectivity type with index type 'NULL'"));
+	}
 
 	private def overrideIterationBlock(Loop it, CharSequence base, CharSequence limit)
 	'''
@@ -674,14 +676,16 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			«IF ! super_task»
 				«IF parentJob.usedIndexType.length > 1»
 					// clang-format off
-					#pragma omp task «getFirstPrivateVars(parentJob)» «
+					#pragma omp task «
+						getFirstPrivateVars(parentJob)» «
 						getSharedVarsClause(parentJob)»«parentJob.priority»«
 						getDependenciesAll(parentJob, 'in',  ins)»«
 						getDependencies(parentJob, 'out', outs, '''___omp_base''')»
 					// clang-format on
 				«ELSE»
 					// clang-format off
-					#pragma omp task «getFirstPrivateVars(parentJob)» «
+					#pragma omp task «
+						getFirstPrivateVars(parentJob)» «
 						getSharedVarsClause(parentJob)»«parentJob.priority»«
 						getDependencies(parentJob, 'in',  ins,  '''___omp_base''')»«
 						getDependencies(parentJob, 'out', outs, '''___omp_base''')»
@@ -690,7 +694,10 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			«ELSE»
 				/* Generate task inside a super task */
 				// clang-format off
-				#pragma omp task «getFirstPrivateVars(parentJob)» «getSharedVarsClause(parentJob)»«parentJob.priority»
+				#pragma omp task «
+					getFirstPrivateVars(parentJob)» «
+					getSharedVarsClause(parentJob, #[additionalConnectivityForShared])»«
+					parentJob.priority»
 				// clang-format on
 			«ENDIF»
 			«overrideIterationBlock(it, '''___omp_base''', '''___omp_limit''')»
@@ -754,5 +761,24 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			«launchSingleTaskForPartition(it, '''task''', ins, outs)»
 		'''
 		return ret;
+	}
+
+	override getSetDefinitionContent(String setName, ConnectivityCall call)
+	'''
+		static const auto «setName»(mesh->«call.accessor»);
+	'''
+
+	override dispatch defineInterval(Iterator it, CharSequence innerContent)
+	{
+		if (container.connectivityCall.connectivity.indexEqualId)
+			innerContent
+		else
+		'''
+			{
+				«IF container instanceof ConnectivityCall»«getSetDefinitionContent(container.uniqueName, container as ConnectivityCall)»«ENDIF»
+				static const size_t «nbElems»(«container.uniqueName».size());
+				«innerContent»
+			}
+		'''
 	}
 }
