@@ -13,7 +13,6 @@ import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
-import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 import fr.cea.nabla.ir.ir.JobCaller
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.ir.TimeLoopJob

@@ -26,7 +26,7 @@ import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.IrRootExtensions.*
 import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.Utils.*
-import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.getMinimalInVars
+import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.getMinimalInVars
 
 class Utils
 {
