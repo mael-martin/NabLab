@@ -11,14 +11,19 @@ package fr.cea.nabla.ir.transformers
 
 import fr.cea.nabla.ir.JobDependencies
 import fr.cea.nabla.ir.ir.Affectation
-import fr.cea.nabla.ir.ir.ArgOrVar
 import fr.cea.nabla.ir.ir.ArgOrVarRef
+import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
+import fr.cea.nabla.ir.ir.IrModule
 import fr.cea.nabla.ir.ir.IrPackage
 import fr.cea.nabla.ir.ir.IrRoot
+import fr.cea.nabla.ir.ir.IrType
 import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.JobCaller
+import fr.cea.nabla.ir.ir.LinearAlgebraType
+import fr.cea.nabla.ir.ir.Loop
+import fr.cea.nabla.ir.ir.ReductionInstruction
 import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.Variable
 import java.util.HashMap
@@ -27,12 +32,6 @@ import java.util.Set
 import org.eclipse.xtend.lib.annotations.Data
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
-import fr.cea.nabla.ir.ir.Loop
-import fr.cea.nabla.ir.ir.ReductionInstruction
-import fr.cea.nabla.ir.ir.IrModule
-import fr.cea.nabla.ir.ir.IrType
-import fr.cea.nabla.ir.ir.BaseType
-import fr.cea.nabla.ir.ir.LinearAlgebraType
 
 @Data
 class JobMergeFromCost extends IrTransformationStep
@@ -61,10 +60,9 @@ class JobMergeFromCost extends IrTransformationStep
 		num_tasks = num_threads * (max_concurrent_jobs + 1);
 
 		/* Global variable types */
-		trace('    IR -> IR: ' + description + ':RegisterGlobalVariableIndexTypes')
+		trace('    IR -> IR: ' + description + ':VariableReport')
 		GlobalVariableIndexTypes.clear
 		ir.modules.filter[ t | t !== null ].forEach[ registerGlobalVariable ]
-		trace('    IR -> IR: ' + description + ':VariableReport')
 		trace('        - Present index types are: ' + GlobalVariableIndexTypes.values.toSet.map[toString].reduce[ p1, p2 | p1 + ', ' + p2 ])
 		GlobalVariableIndexTypes.keySet.sort.forEach[ varname |
 			trace('        - ' + varname + '[' + GlobalVariableIndexTypes.get(varname) + ']')
@@ -81,9 +79,9 @@ class JobMergeFromCost extends IrTransformationStep
 			reverseJobSynchroCoeffs.put(cost, jobSetForCost)
 		}
 		for (cost : reverseJobSynchroCoeffs.keySet.sort) {
-			trace('        - ' + reverseJobSynchroCoeffs.get(cost).reduce[ String p1, String p2 |
+			trace('        - Synchro Coeff: ' + cost + ': ' + reverseJobSynchroCoeffs.get(cost).reduce[ String p1, String p2 |
 				p1 + ', ' + p2
-			] + ' => ' + cost)
+			])
 		}
 		
 		/* Return OK */
@@ -137,13 +135,10 @@ class JobMergeFromCost extends IrTransformationStep
 	 * the 'sequenciality' of a job                                           *
 	 **************************************************************************/
 
-	static private def isRangeVariable(Variable it)
+	static private def boolean isRangeVariable(Variable it)
 	{
-		if (isOption) return false
-		switch (it as ArgOrVar).type {
-			ConnectivityType: return true
-			default: return false
-		}
+		return (!isOption)
+		|| (GlobalVariableIndexTypes.getOrDefault(name, INDEX_TYPE::NULL) != INDEX_TYPE::NULL)
 	}
 	 
 	 static def getSynchroCoeff(Job it)
@@ -154,21 +149,17 @@ class JobMergeFromCost extends IrTransformationStep
 	 
 	 private def computeSynchroCoeff(Job it)
 	 {
-	 	if (it === null) return 0
-	 	
 	 	/* Job will need all the produced part of a range variable => massively synchronizing job */
-		val jobNeedMoreSynchro = [Job it |
+		val jobNeedMoreSynchro =
 			(( eAllContents.filter(Loop).filter[multithreadable].size
 			+  eAllContents.filter(ReductionInstruction).size ) > 3 // Magic! Need to be stored at Nabla2IR transformation time
 			|| eAllContents.filter(ReductionInstruction).size > 0)
-			? 1 : 0 ] // Return an Integer
 
 		/* Sum the synchronization weight for in/out */
 	 	val mapped = [ Set<Variable> list |
-	 		list.map[ rangeVariable ].map[ t |
-	 			t ? (num_tasks * jobNeedMoreSynchro.apply(it))
-	 			  : 1
-	 		].reduce[ p1, p2 | p1 + p2 ] ?: 0
+	 		list.map[ rangeVariable ].map[ isRange |
+	 			(isRange && jobNeedMoreSynchro) ? num_tasks : 1
+	 		].reduce[ p1, p2 | p1 + p2 ] ?: 1
 	 	];
 
 		/* Get all the variables and their weight as synchronization points */
