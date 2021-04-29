@@ -9,22 +9,26 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.transformers
 
+import fr.cea.nabla.ir.JobDependencies
+import fr.cea.nabla.ir.ir.Affectation
+import fr.cea.nabla.ir.ir.ArgOrVar
+import fr.cea.nabla.ir.ir.ArgOrVarRef
+import fr.cea.nabla.ir.ir.ConnectivityType
+import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
+import fr.cea.nabla.ir.ir.IrPackage
+import fr.cea.nabla.ir.ir.IrRoot
+import fr.cea.nabla.ir.ir.Job
+import fr.cea.nabla.ir.ir.JobCaller
+import fr.cea.nabla.ir.ir.TimeLoopJob
+import fr.cea.nabla.ir.ir.Variable
 import java.util.HashMap
 import java.util.HashSet
-
+import java.util.Set
 import org.eclipse.xtend.lib.annotations.Data
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
-import fr.cea.nabla.ir.JobDependencies
-import fr.cea.nabla.ir.ir.IrRoot
-import fr.cea.nabla.ir.ir.Variable
-import fr.cea.nabla.ir.ir.JobCaller
-import fr.cea.nabla.ir.ir.Job
-import fr.cea.nabla.ir.ir.TimeLoopJob
-import fr.cea.nabla.ir.ir.ArgOrVarRef
-import fr.cea.nabla.ir.ir.Affectation
-import fr.cea.nabla.ir.ir.IrPackage
-import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
+import fr.cea.nabla.ir.ir.Loop
+import fr.cea.nabla.ir.ir.ReductionInstruction
 
 @Data
 class JobMergeFromCost extends IrTransformationStep
@@ -34,33 +38,116 @@ class JobMergeFromCost extends IrTransformationStep
 		super('JobDataflowComputations')
 	}
 
+	private enum INDEX_TYPE { NODES, CELLS, FACES, NULL }
+
 	override transform(IrRoot ir) 
 	{
 		trace('    IR -> IR: ' + description + ':ComputeMinimalInVars')
 		MinimalInVariablesPerJobs.clear
 		AccumulatedInVariablesPerJobs.clear
 		ir.eAllContents.filter(JobCaller).forEach[computeMinimalInVariables]
+
+		/* Set MAX_TASK_NUMBER = ncpu * max(concurrentJobs + 1) */
+		val max_concurrent_jobs = ir.eAllContents.filter(JobCaller).map[ jc |
+			val jobsByAt = jc.calls.groupBy[at]
+			jobsByAt.keySet.map[ at | jobsByAt.get(at).size ].max
+		].max
+		num_tasks = num_threads * (max_concurrent_jobs + 1);
+		
+		trace('    IR -> IR: ' + description + ':SynchroCoeffsReport')
+		ir.eAllContents.filter(JobCaller).map[parallelJobs].toList.flatten.forEach[computeSynchroCoeff]
+		val HashMap<Integer, Set<String>> reverseJobSynchroCoeffs = new HashMap();
+		for (j : JobSynchroCoeffs.keySet) {
+			val cost          = JobSynchroCoeffs.get(j)
+			val jobSetForCost = reverseJobSynchroCoeffs.getOrDefault(cost, new HashSet())
+			jobSetForCost.add(j)
+			reverseJobSynchroCoeffs.put(cost, jobSetForCost)
+		}
+		for (cost : reverseJobSynchroCoeffs.keySet.sort) {
+			trace('        - ' + reverseJobSynchroCoeffs.get(cost).reduce[ String p1, String p2 |
+				p1 + ', ' + p2
+			] + ' => ' + cost)
+		}
 		return true
 	}
 	
 	static HashMap<String, HashSet<String>> AccumulatedInVariablesPerJobs = new HashMap();
 	static HashMap<String, HashSet<Variable>> MinimalInVariablesPerJobs   = new HashMap();
+	static HashMap<String, Integer> JobSynchroCoeffs                      = new HashMap();
+	
+	static public final int num_threads = 4; // FIXME: Must be set by the user
+	static int num_tasks;
+	static def int getNum_tasks() { return num_tasks; }
+	
+	/* helpers */
+	private static def getParallelJobs(JobCaller it)
+	{
+		if (it === null) return #[]
+		return calls.reject[ j | j instanceof TimeLoopJob || j instanceof ExecuteTimeLoopJob ].toList
+	}
+	
+	/* Synchronization coefficients => like a barrier, take also into account
+	 * the 'sequenciality' of a job */
 
-	static def getInVars(Job it) {
-		(it === null)
-		? #[].toSet
-		: eAllContents.filter(ArgOrVarRef).filter[x|x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left].map[target].filter(Variable).filter[global].toSet
+	static private def isRangeVariable(Variable it)
+	{
+		if (isOption) return false
+		switch (it as ArgOrVar).type {
+			ConnectivityType: return true
+			default: return false
+		}
+	}
+	 
+	 static def getSynchroCoeff(Job it)
+	 {
+	 	if (it === null) return 0
+	 	return JobSynchroCoeffs.getOrDefault(name, 0)
+	 }
+	 
+	 private def computeSynchroCoeff(Job it)
+	 {
+	 	if (it === null) return 0
+	 	
+	 	/* Job will need all the produced part of a range variable => massively synchronizing job */
+		val jobNeedMoreSynchro = [Job it |
+			(( eAllContents.filter(Loop).filter[multithreadable].size
+			+  eAllContents.filter(ReductionInstruction).size ) > 3 // Magic! Need to be stored at Nabla2IR transformation time
+			|| eAllContents.filter(ReductionInstruction).size > 0)
+			? 1 : 0 ] // Return an Integer
+
+		/* Sum the synchronization weight for in/out */
+	 	val mapped = [ Set<Variable> list |
+	 		list.map[ rangeVariable ].map[ t |
+	 			t ? (num_tasks * jobNeedMoreSynchro.apply(it))
+	 			  : 1
+	 		].reduce[ p1, p2 | p1 + p2 ] ?: 0
+	 	];
+
+		/* Get all the variables and their weight as synchronization points */
+	 	val synchroIN  = mapped.apply(minimalInVars)
+	 	val synchroOUT = mapped.apply(outVars)
+
+	 	JobSynchroCoeffs.put(name, synchroIN + synchroOUT)
+	 }
+	
+	/* In/Out/MinIn variables from Jobs */
+
+	static def Set<Variable> getInVars(Job it) {
+		return (it === null) ? #[].toSet
+		: eAllContents.filter(ArgOrVarRef).filter[ x |
+			x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left
+		].map[target].filter(Variable).filter[global].toSet
 	}
 
-	static def getOutVars(Job it) {
-		(it === null)
-		? #[].toSet
-		: eAllContents.filter(Affectation).map[left.target].filter(Variable).filter[global].toSet
+	static def Set<Variable> getOutVars(Job it) {
+		return (it === null) ? #[].toSet
+		: eAllContents.filter(Affectation).map[left.target]
+					  .filter(Variable)
+					  .filter[global].toSet
 	}
 
-	static def getMinimalInVars(Job it) {
-		if (it === null)
-			return new HashSet();
+	static def Set<Variable> getMinimalInVars(Job it) {
+		if (it === null) return new HashSet();
 		return MinimalInVariablesPerJobs.getOrDefault(name, new HashSet())
 	}
 
@@ -70,7 +157,7 @@ class JobMergeFromCost extends IrTransformationStep
 			return null;
 			
 		/* Only the things that will be // */
-		val jobs    = jc.calls.reject[ j | j instanceof TimeLoopJob || j instanceof ExecuteTimeLoopJob]
+		val jobs    = jc.parallelJobs
 		val jobdeps = new JobDependencies()
 
 		/* Init fulfilled variables for job is not needed, it will be

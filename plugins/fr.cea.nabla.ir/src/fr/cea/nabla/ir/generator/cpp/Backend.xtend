@@ -9,12 +9,13 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
-import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.OMPTaskMaxNumber
-import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.OMPTraces
-import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.registerTypeContentProvider
 import fr.cea.nabla.ir.transformers.IrTransformationStep
+import fr.cea.nabla.ir.transformers.JobMergeFromCost
 import fr.cea.nabla.ir.transformers.ReplaceReductions
 import org.eclipse.xtend.lib.annotations.Accessors
+
+import static fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+import static fr.cea.nabla.ir.generator.cpp.OpenMpTaskMainContentProvider.*
 
 abstract class Backend
 {
@@ -139,21 +140,22 @@ class OpenMpTaskBackend extends Backend
 {
 	new()
 	{
-		OpenMpTaskMainContentProvider::num_threads = 4; // FIXME: Must be set by the user
+		OpenMpTaskMainContentProvider::num_threads = JobMergeFromCost::num_threads; // FIXME: Must be set by the user
 		OpenMpTaskMainContentProvider::max_active_levels = 1; 
-		OMPTraces = false
-		name = 'OpenMPTask'
-		cmakeContentProvider = new OpenMpTaskCMakeContentProvider
-		typeContentProvider = new StlThreadTypeContentProvider
-		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
+		OMPTaskMaxNumber = JobMergeFromCost::num_tasks
+		OMPTraces        = false
+		name             = 'OpenMPTask'
+		cmakeContentProvider       = new OpenMpTaskCMakeContentProvider
+		typeContentProvider        = new StlThreadTypeContentProvider
+		expressionContentProvider  = new ExpressionContentProvider(typeContentProvider)
 		instructionContentProvider = new OpenMpTaskInstructionContentProvider(typeContentProvider, expressionContentProvider)
-		functionContentProvider = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
-		traceContentProvider = new TraceContentProvider
-		includesContentProvider = new OpenMpIncludesContentProvider
-		jsonContentProvider = new JsonContentProvider(expressionContentProvider)
-		jobCallerContentProvider = new OpenMpTaskJobCallerContentProvider
-		jobContentProvider = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
-		mainContentProvider = new OpenMpTaskMainContentProvider(jsonContentProvider)
+		functionContentProvider    = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
+		traceContentProvider       = new TraceContentProvider
+		includesContentProvider    = new OpenMpIncludesContentProvider
+		jsonContentProvider        = new JsonContentProvider(expressionContentProvider)
+		jobCallerContentProvider   = new OpenMpTaskJobCallerContentProvider
+		jobContentProvider         = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
+		mainContentProvider        = new OpenMpTaskMainContentProvider(jsonContentProvider)
 		registerTypeContentProvider(typeContentProvider)
 	}
 }

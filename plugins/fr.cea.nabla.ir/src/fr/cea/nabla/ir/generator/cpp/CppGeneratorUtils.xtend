@@ -56,18 +56,10 @@ class CppGeneratorUtils
 	/* FIXME: Those two need to be specified in the NGEN file */
 	static public int OMPTaskMaxNumber = 4
 	static public boolean OMPTraces = false
-	static def OMPTaskMaxNumberIterator() {
-		iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
-	}
+	static def OMPTaskMaxNumberIterator() { iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) }
 	
-	static def getAllOMPTasks() {
-		iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator)
-	}
-	static def getAllOMPTasksAsCharSequence()
-	'''{«
-	FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', '»«
-		i»«
-	ENDFOR»}'''
+	static def getAllOMPTasks() { iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) }
+	static def getAllOMPTasksAsCharSequence() '''{«FOR i : iteratorToIterable(IntStream.range(0, OMPTaskMaxNumber).iterator) SEPARATOR ', '»«i»«ENDFOR»}'''
 	
 	/* Global variable => index type */
 	static HashMap<String, INDEX_TYPE> GlobalVariableIndexTypes = new HashMap();
