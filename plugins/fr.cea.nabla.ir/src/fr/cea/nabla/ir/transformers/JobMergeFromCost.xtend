@@ -28,7 +28,6 @@ import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.Variable
 import java.util.HashMap
 import java.util.HashSet
-import java.util.Map
 import java.util.Set
 import org.eclipse.xtend.lib.annotations.Data
 
@@ -49,8 +48,10 @@ class JobMergeFromCost extends IrTransformationStep
 	private enum IMPL_TYPE  { BASE, ARRAY, CONNECTIVITY, LINEARALGEBRA, NULL } // Implementation type
 	
 	/* Coefficients for the granularity and the synchronization of a job => priority */
-	static final int priority_coefficient_task_granularity     = 10
-	static final int priority_coefficient_task_synchronization = 30
+	static final double priority_coefficient_task_granularity     = 0.3    // Granularity is not really important here, and it is already the greatest number
+	static final double priority_coefficient_task_synchronization = 5000   // We mostly care about the synchronicity of the task
+	static final double priority_coefficient_task_at              = 100000 // The @ influence the scheduling
+	static final double priority_synchronization_out_over_in      = 1      // Prefer out variables over in variables as they will unlock more jobs
 
 	override transform(IrRoot ir) 
 	{
@@ -82,6 +83,7 @@ class JobMergeFromCost extends IrTransformationStep
 			computeSynchroCoeff
 			computeTaskPriorities(max_at)
 		]
+		rescalePrioritiesFromMin
 		
 		reportHashMap('SynchroCoeffs', reverseHashMap(JobSynchroCoeffs), 'Synchro Coeff:', ':')
 		reportHashMap('Priority',      reverseHashMap(JobPriorities),    'Priority',       ':')
@@ -162,14 +164,14 @@ class JobMergeFromCost extends IrTransformationStep
 	 	val mapped = [ Set<Variable> list |
 	 		list.map[ rangeVariable ].map[ isRange |
 	 			(isRange && jobNeedMoreSynchro) ? num_tasks : 1
-	 		].reduce[ p1, p2 | p1 + p2 ] ?: 1
+	 		].reduce[ p1, p2 | p1 + p2 ] ?: 0
 	 	];
 
 		/* Get all the variables and their weight as synchronization points */
 	 	val synchroIN  = mapped.apply(minimalInVars)
-	 	val synchroOUT = mapped.apply(outVars)
+	 	val synchroOUT = mapped.apply(outVars) * priority_synchronization_out_over_in
 
-	 	JobSynchroCoeffs.put(name, synchroIN + synchroOUT)
+	 	JobSynchroCoeffs.put(name, (synchroIN + synchroOUT).intValue)
 	 }
 	
 	/************************************
@@ -287,9 +289,16 @@ class JobMergeFromCost extends IrTransformationStep
 	 {
 	 	val synchro     = priority_coefficient_task_synchronization * JobSynchroCoeffs.getOrDefault(name, 1);
 	 	val granularity = priority_coefficient_task_granularity * jobCost;
-	 	val at_coeff    = max_at - at.intValue + 1;
-	 	val priority    = at_coeff * (synchro + granularity);
-	 	JobPriorities.put(name, priority)
+	 	val at_coeff    = priority_coefficient_task_at * (max_at - at.intValue + 1);
+	 	val priority    = at_coeff + synchro + granularity;
+	 	JobPriorities.put(name, priority.intValue)
+	 }
+	 
+	 static private def void rescalePrioritiesFromMin()
+	 {
+	 	val min_priority = JobPriorities.values.min
+	 	val key_set      = JobPriorities.keySet
+	 	for (k : key_set) JobPriorities.put(k, JobPriorities.get(k) / min_priority)
 	 }
 	 
 	 static def int getPriority(Job it)
