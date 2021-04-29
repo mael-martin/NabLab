@@ -14,6 +14,7 @@ import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
+import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 
 import org.eclipse.xtext.EcoreUtil2
 import org.eclipse.xtend.lib.annotations.Data

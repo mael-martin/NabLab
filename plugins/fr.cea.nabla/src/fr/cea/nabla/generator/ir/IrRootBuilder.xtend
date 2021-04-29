@@ -21,6 +21,7 @@ import fr.cea.nabla.ir.transformers.ReplaceAffectations
 import fr.cea.nabla.ir.transformers.ReplaceReductions
 import fr.cea.nabla.ir.transformers.ReplaceUtf8Chars
 import fr.cea.nabla.ir.transformers.ComputeCostTransformation
+import fr.cea.nabla.ir.transformers.JobMergeFromCost
 import fr.cea.nabla.nablagen.NablagenApplication
 import fr.cea.nabla.nablagen.TargetType
 import org.eclipse.emf.ecore.EObject
@@ -88,7 +89,8 @@ class IrRootBuilder
 			new ReplaceReductions(replaceAllReductions),
 			new ReplaceAffectations,
 			new FillJobHLTs,
-			new ComputeCostTransformation])
+			new ComputeCostTransformation,
+			new JobMergeFromCost])
 		commonTransformation.transformIr(ir, [msg | dispatcher.post(MessageType::Exec, msg)])
 		val endTime = System.currentTimeMillis
 		dispatcher.post(MessageType.Exec, "NabLab to IR model transformation ended in " + (endTime-startTime)/1000.0 + "s")
