@@ -217,7 +217,7 @@ class ComputeCostTransformation extends IrTransformationStep
 		val jobs = ir.eAllContents.filter(Job)
 		jobs.forEach[evaluateCost]
 
-		reportHashMap('Cost', reverseHashMap(jobCostMap), 'Cost', ' => ')
+		reportHashMap('Cost', reverseHashMap(jobCostMap), 'Cost', ': ')
 		return true
 	}
 	
