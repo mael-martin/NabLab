@@ -48,9 +48,9 @@ class JobMergeFromCost extends IrTransformationStep
 	private enum IMPL_TYPE  { BASE, ARRAY, CONNECTIVITY, LINEARALGEBRA, NULL } // Implementation type
 	
 	/* Coefficients for the granularity and the synchronization of a job => priority */
-	static final double priority_coefficient_task_granularity     = 0.01   // Granularity is not really important here, and it is already the greatest number
-	static final double priority_coefficient_task_synchronization = 10     // We mostly care about the synchronicity of the task
-	static final double priority_coefficient_task_at              = 1.5    // The @ influence the scheduling
+	static final double priority_coefficient_task_granularity     = 0.0    // Granularity is not really important here, and it is already the greatest number
+	static final double priority_coefficient_task_synchronization = 0.0    // We mostly care about the synchronicity of the task
+	static final double priority_coefficient_task_at              = 4.0    // The @ influence the scheduling
 
 	static final double priority_synchronization_out_over_in      = 0.4    // Prefer in variables instead of outs: get ride of barriers quickly
 	static final double priority_synchronization_reused_outs      = 10     // If a variable is re-used multiple times, increase its value
@@ -87,7 +87,6 @@ class JobMergeFromCost extends IrTransformationStep
 			computeTaskPriorities(max_at)
 			reusedOutVarsByJob.put(name, outReusedVarsNumber)
 		]
-		// rescalePrioritiesFromMin
 		
 		reportHashMap('SynchroCoeffs', reverseHashMap(JobSynchroCoeffs),   'Synchro Coeff:',   ': ')
 		reportHashMap('Priority',      reverseHashMap(JobPriorities),      'Priority',         ': ')
@@ -176,8 +175,7 @@ class JobMergeFromCost extends IrTransformationStep
 	 	val synchroOUT    = mapped.apply(outVars) * priority_synchronization_out_over_in
 	 	val synchroREUSED = outReusedVarsNumber * priority_synchronization_reused_outs
 
-	 	JobSynchroCoeffs.put(name, ((synchroIN + synchroOUT) * 0 // Ignore for now
-	 							   + synchroREUSED).intValue)
+	 	JobSynchroCoeffs.put(name, ((synchroIN + synchroOUT) + synchroREUSED).intValue)
 	 }
 	
 	/************************************
@@ -313,20 +311,13 @@ class JobMergeFromCost extends IrTransformationStep
 	 	 * - the granularity: do jobs with more work before others
 	 	 */
 
-	 	val synchro     = 0 * (priority_coefficient_task_synchronization * JobSynchroCoeffs.getOrDefault(name, 1));
-	 	val granularity = 0 * (priority_coefficient_task_granularity * jobCost /* Ignored */);
+	 	val synchro     = (priority_coefficient_task_synchronization * JobSynchroCoeffs.getOrDefault(name, 1));
+	 	val granularity = (priority_coefficient_task_granularity * jobCost);
 	 	val at_coeff    = priority_coefficient_task_at * (max_at - at.intValue + 1);
 	 	val priority    = at_coeff * (1 + synchro + granularity);
 	 	JobPriorities.put(name, priority.intValue)
 	 }
-	 
-	 static private def void rescalePrioritiesFromMin()
-	 {
-	 	val min_priority = JobPriorities.values.min
-	 	val key_set      = JobPriorities.keySet
-	 	for (k : key_set) JobPriorities.put(k, JobPriorities.get(k) / min_priority)
-	 }
-	 
+
 	 static def int getPriority(Job it)
 	 {
 	 	if (it === null) throw new Exception("Asking a priority for a 'null' job")
