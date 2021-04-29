@@ -29,6 +29,10 @@ import org.eclipse.xtend.lib.annotations.Data
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import fr.cea.nabla.ir.ir.Loop
 import fr.cea.nabla.ir.ir.ReductionInstruction
+import fr.cea.nabla.ir.ir.IrModule
+import fr.cea.nabla.ir.ir.IrType
+import fr.cea.nabla.ir.ir.BaseType
+import fr.cea.nabla.ir.ir.LinearAlgebraType
 
 @Data
 class JobMergeFromCost extends IrTransformationStep
@@ -38,10 +42,12 @@ class JobMergeFromCost extends IrTransformationStep
 		super('JobDataflowComputations')
 	}
 
-	private enum INDEX_TYPE { NODES, CELLS, FACES, NULL }
+	private enum INDEX_TYPE { NODES, CELLS, FACES, NULL } // Nabla first dimension index type
+	private enum IMPL_TYPE  { BASE, ARRAY, CONNECTIVITY, LINEARALGEBRA, NULL } // Implementation type
 
 	override transform(IrRoot ir) 
 	{
+		/* Minimal IN variables */
 		trace('    IR -> IR: ' + description + ':ComputeMinimalInVars')
 		MinimalInVariablesPerJobs.clear
 		AccumulatedInVariablesPerJobs.clear
@@ -53,7 +59,18 @@ class JobMergeFromCost extends IrTransformationStep
 			jobsByAt.keySet.map[ at | jobsByAt.get(at).size ].max
 		].max
 		num_tasks = num_threads * (max_concurrent_jobs + 1);
-		
+
+		/* Global variable types */
+		trace('    IR -> IR: ' + description + ':RegisterGlobalVariableIndexTypes')
+		GlobalVariableIndexTypes.clear
+		ir.modules.filter[ t | t !== null ].forEach[ registerGlobalVariable ]
+		trace('    IR -> IR: ' + description + ':VariableReport')
+		trace('        - Present index types are: ' + GlobalVariableIndexTypes.values.toSet.map[toString].reduce[ p1, p2 | p1 + ', ' + p2 ])
+		GlobalVariableIndexTypes.keySet.sort.forEach[ varname |
+			trace('        - ' + varname + '[' + GlobalVariableIndexTypes.get(varname) + ']')
+		]
+
+		/* Synchronization coefficient */
 		trace('    IR -> IR: ' + description + ':SynchroCoeffsReport')
 		ir.eAllContents.filter(JobCaller).map[parallelJobs].toList.flatten.forEach[computeSynchroCoeff]
 		val HashMap<Integer, Set<String>> reverseJobSynchroCoeffs = new HashMap();
@@ -68,26 +85,57 @@ class JobMergeFromCost extends IrTransformationStep
 				p1 + ', ' + p2
 			] + ' => ' + cost)
 		}
+		
+		/* Return OK */
 		return true
 	}
 	
 	static HashMap<String, HashSet<String>> AccumulatedInVariablesPerJobs = new HashMap();
 	static HashMap<String, HashSet<Variable>> MinimalInVariablesPerJobs   = new HashMap();
 	static HashMap<String, Integer> JobSynchroCoeffs                      = new HashMap();
+	static HashMap<String, INDEX_TYPE> GlobalVariableIndexTypes           = new HashMap();
 	
 	static public final int num_threads = 4; // FIXME: Must be set by the user
 	static int num_tasks;
 	static def int getNum_tasks() { return num_tasks; }
 	
-	/* helpers */
+	/***********
+	 * helpers *
+	 ***********/
+
+	static private def getTypeCanBePartitionized(IrType it)
+	{
+		switch it {
+			case null:                   false
+			BaseType case sizes.empty:   false
+			BaseType | ConnectivityType: true
+			LinearAlgebraType:           false
+			default: throw new RuntimeException("Unexpected type: " + class.name)
+		}
+	}
+
+	static private def getImplTypeEnum(IrType it)
+	{
+		switch it {
+			case null:                 IMPL_TYPE::NULL
+			BaseType case sizes.empty: IMPL_TYPE::BASE
+			BaseType:                  IMPL_TYPE::ARRAY
+			ConnectivityType:          IMPL_TYPE::CONNECTIVITY
+			LinearAlgebraType:         IMPL_TYPE::LINEARALGEBRA
+			default:                   IMPL_TYPE::NULL
+		}
+	}
+
 	private static def getParallelJobs(JobCaller it)
 	{
 		if (it === null) return #[]
 		return calls.reject[ j | j instanceof TimeLoopJob || j instanceof ExecuteTimeLoopJob ].toList
 	}
 	
-	/* Synchronization coefficients => like a barrier, take also into account
-	 * the 'sequenciality' of a job */
+	/**************************************************************************
+	 * Synchronization coefficients => like a barrier, take also into account *
+	 * the 'sequenciality' of a job                                           *
+	 **************************************************************************/
 
 	static private def isRangeVariable(Variable it)
 	{
@@ -130,28 +178,34 @@ class JobMergeFromCost extends IrTransformationStep
 	 	JobSynchroCoeffs.put(name, synchroIN + synchroOUT)
 	 }
 	
-	/* In/Out/MinIn variables from Jobs */
+	/************************************
+	 * In/Out/MinIn variables from Jobs *
+	 ************************************/
 
-	static def Set<Variable> getInVars(Job it) {
+	static def Set<Variable> getInVars(Job it)
+	{
 		return (it === null) ? #[].toSet
 		: eAllContents.filter(ArgOrVarRef).filter[ x |
 			x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left
 		].map[target].filter(Variable).filter[global].toSet
 	}
 
-	static def Set<Variable> getOutVars(Job it) {
+	static def Set<Variable> getOutVars(Job it)
+	{
 		return (it === null) ? #[].toSet
 		: eAllContents.filter(Affectation).map[left.target]
 					  .filter(Variable)
 					  .filter[global].toSet
 	}
 
-	static def Set<Variable> getMinimalInVars(Job it) {
+	static def Set<Variable> getMinimalInVars(Job it)
+	{
 		if (it === null) return new HashSet();
 		return MinimalInVariablesPerJobs.getOrDefault(name, new HashSet())
 	}
 
-	def computeMinimalInVariables(JobCaller jc) {
+	def computeMinimalInVariables(JobCaller jc)
+	{
 		/* Null check safety */
 		if (jc === null)
 			return null;
@@ -205,6 +259,28 @@ class JobMergeFromCost extends IrTransformationStep
 				val minimalINS        = new HashSet();
 				minimalINS.addAll(INS.reject[v | v.isConst || v.isConstExpr || accumulatedInFrom.contains(v.name)])
 				MinimalInVariablesPerJobs.put(to.name, minimalINS)
+			}
+		}
+	}
+
+	/*********************************
+	 * Global variable => index type *
+	 *********************************/
+
+	static private def void registerGlobalVariable(IrModule it)
+	{
+		for (v : variables.filter[!option].filter[ t |
+			t.type.typeCanBePartitionized &&
+			t.type.implTypeEnum == IMPL_TYPE::CONNECTIVITY
+		]) {
+			val varName = v.name
+			val type    = (v.type as ConnectivityType).connectivities.head.name
+			switch type {
+				case "nodes": GlobalVariableIndexTypes.put(varName, INDEX_TYPE::NODES)
+				case "cells": GlobalVariableIndexTypes.put(varName, INDEX_TYPE::CELLS)
+				case "faces": GlobalVariableIndexTypes.put(varName, INDEX_TYPE::FACES)
+				case null: { }
+				default: { }
 			}
 		}
 	}
