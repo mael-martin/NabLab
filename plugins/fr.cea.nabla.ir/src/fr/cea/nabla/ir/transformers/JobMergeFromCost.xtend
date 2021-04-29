@@ -28,8 +28,11 @@ import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.Variable
 import java.util.HashMap
 import java.util.HashSet
+import java.util.Map
 import java.util.Set
 import org.eclipse.xtend.lib.annotations.Data
+
+import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 
@@ -71,13 +74,7 @@ class JobMergeFromCost extends IrTransformationStep
 		/* Synchronization coefficient */
 		trace('    IR -> IR: ' + description + ':SynchroCoeffsReport')
 		ir.eAllContents.filter(JobCaller).map[parallelJobs].toList.flatten.forEach[computeSynchroCoeff]
-		val HashMap<Integer, Set<String>> reverseJobSynchroCoeffs = new HashMap();
-		for (j : JobSynchroCoeffs.keySet) {
-			val cost          = JobSynchroCoeffs.get(j)
-			val jobSetForCost = reverseJobSynchroCoeffs.getOrDefault(cost, new HashSet())
-			jobSetForCost.add(j)
-			reverseJobSynchroCoeffs.put(cost, jobSetForCost)
-		}
+		val Map<Integer, Set<String>> reverseJobSynchroCoeffs = reverseHashMap(JobSynchroCoeffs)
 		for (cost : reverseJobSynchroCoeffs.keySet.sort) {
 			trace('        - Synchro Coeff: ' + cost + ': ' + reverseJobSynchroCoeffs.get(cost).reduce[ String p1, String p2 |
 				p1 + ', ' + p2

@@ -11,7 +11,11 @@ package fr.cea.nabla.ir.transformers
 
 import fr.cea.nabla.ir.ir.Instruction
 import fr.cea.nabla.ir.ir.IrFactory
+import java.util.HashMap
+import java.util.HashSet
 import java.util.List
+import java.util.Map
+import java.util.Set
 import org.eclipse.emf.ecore.util.FeatureMapUtil
 
 class IrTransformationUtils
@@ -74,5 +78,17 @@ class IrTransformationUtils
 				container.eSet(feature, replacementBlock)
 			}
 		}
+	}
+	
+	static def <KEY, VAL> Map<VAL, Set<KEY>> reverseHashMap(Map<KEY, VAL> hashmap)
+	{
+		val Map<VAL, Set<KEY>> reversemap = new HashMap();
+		hashmap.keySet.forEach[ k | 
+			val value = hashmap.get(k)
+			val keys  = reversemap.getOrDefault(value, new HashSet())
+			keys.add(k)
+			reversemap.put(value, keys)
+		]
+		return reversemap
 	}
 }

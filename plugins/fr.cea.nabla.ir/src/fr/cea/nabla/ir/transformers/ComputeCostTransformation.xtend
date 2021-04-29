@@ -9,51 +9,50 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.transformers
 
-import java.util.HashMap
-import java.util.HashSet
-import java.util.Map
-import java.util.Set
-
-import org.eclipse.xtend.lib.annotations.Data
-
-import fr.cea.nabla.ir.ir.IrRoot
-import fr.cea.nabla.ir.ir.Instruction
 import fr.cea.nabla.ir.ir.Affectation
 import fr.cea.nabla.ir.ir.ArgOrVarRef
-import fr.cea.nabla.ir.ir.Expression
-import fr.cea.nabla.ir.ir.Job
-import fr.cea.nabla.ir.ir.ReductionInstruction
-import fr.cea.nabla.ir.ir.Function
-import fr.cea.nabla.ir.ir.InternFunction
-import fr.cea.nabla.ir.ir.ExternFunction
-import fr.cea.nabla.ir.ir.Loop
-import fr.cea.nabla.ir.ir.While
-import fr.cea.nabla.ir.ir.If
-import fr.cea.nabla.ir.ir.BinaryExpression
-import fr.cea.nabla.ir.ir.UnaryExpression
-import fr.cea.nabla.ir.ir.ContractedIf
-import fr.cea.nabla.ir.ir.Parenthesis
-import fr.cea.nabla.ir.ir.Cardinality
-import fr.cea.nabla.ir.ir.Container
-import fr.cea.nabla.ir.ir.IntConstant
-import fr.cea.nabla.ir.ir.RealConstant
-import fr.cea.nabla.ir.ir.BoolConstant
-import fr.cea.nabla.ir.ir.MinConstant
-import fr.cea.nabla.ir.ir.MaxConstant
-import fr.cea.nabla.ir.ir.FunctionCall
 import fr.cea.nabla.ir.ir.BaseTypeConstant
-import fr.cea.nabla.ir.ir.VectorConstant
-import fr.cea.nabla.ir.ir.InstructionBlock
-import fr.cea.nabla.ir.ir.Exit
-import fr.cea.nabla.ir.ir.VariableDeclaration
-import fr.cea.nabla.ir.ir.ItemIndexDefinition
-import fr.cea.nabla.ir.ir.ItemIdDefinition
-import fr.cea.nabla.ir.ir.SetDefinition
-import fr.cea.nabla.ir.ir.InstructionJob
-import fr.cea.nabla.ir.ir.TimeLoopJob
+import fr.cea.nabla.ir.ir.BinaryExpression
+import fr.cea.nabla.ir.ir.BoolConstant
+import fr.cea.nabla.ir.ir.Cardinality
 import fr.cea.nabla.ir.ir.ConnectivityCall
+import fr.cea.nabla.ir.ir.Container
+import fr.cea.nabla.ir.ir.ContractedIf
+import fr.cea.nabla.ir.ir.Exit
+import fr.cea.nabla.ir.ir.Expression
+import fr.cea.nabla.ir.ir.ExternFunction
+import fr.cea.nabla.ir.ir.Function
+import fr.cea.nabla.ir.ir.FunctionCall
+import fr.cea.nabla.ir.ir.If
+import fr.cea.nabla.ir.ir.Instruction
+import fr.cea.nabla.ir.ir.InstructionBlock
+import fr.cea.nabla.ir.ir.InstructionJob
+import fr.cea.nabla.ir.ir.IntConstant
+import fr.cea.nabla.ir.ir.InternFunction
+import fr.cea.nabla.ir.ir.IrRoot
+import fr.cea.nabla.ir.ir.ItemIdDefinition
+import fr.cea.nabla.ir.ir.ItemIndexDefinition
 import fr.cea.nabla.ir.ir.Iterator
+import fr.cea.nabla.ir.ir.Job
+import fr.cea.nabla.ir.ir.Loop
+import fr.cea.nabla.ir.ir.MaxConstant
+import fr.cea.nabla.ir.ir.MinConstant
+import fr.cea.nabla.ir.ir.Parenthesis
+import fr.cea.nabla.ir.ir.RealConstant
+import fr.cea.nabla.ir.ir.ReductionInstruction
 import fr.cea.nabla.ir.ir.Return
+import fr.cea.nabla.ir.ir.SetDefinition
+import fr.cea.nabla.ir.ir.TimeLoopJob
+import fr.cea.nabla.ir.ir.UnaryExpression
+import fr.cea.nabla.ir.ir.VariableDeclaration
+import fr.cea.nabla.ir.ir.VectorConstant
+import fr.cea.nabla.ir.ir.While
+import java.util.HashMap
+import java.util.Map
+import java.util.Set
+import org.eclipse.xtend.lib.annotations.Data
+
+import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
 
 /* Approximate the number of connectivities' element number on connectivity call.
  * One simple rule: all methods must return a positive integer or zero. */
@@ -216,13 +215,7 @@ class ComputeCostTransformation extends IrTransformationStep
 		jobs.forEach[evaluateCost]
 		
 		trace('    IR -> IR: ' + description + ':CostReport')
-		val Map<Integer, Set<String>> reverseJobCostMap = new HashMap();
-		for (j : jobCostMap.keySet) {
-			val cost          = jobCostMap.get(j)
-			val jobSetForCost = reverseJobCostMap.getOrDefault(cost, new HashSet())
-			jobSetForCost.add(j)
-			reverseJobCostMap.put(cost, jobSetForCost)
-		}
+		val Map<Integer, Set<String>> reverseJobCostMap = reverseHashMap(jobCostMap)
 		for (cost : reverseJobCostMap.keySet.sort)
 			trace('        - ' + reverseJobCostMap.get(cost).reduce[ p1, p2 | p1 + ', ' + p2 ] + ' => ' + cost)
 		
