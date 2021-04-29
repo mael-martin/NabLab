@@ -48,10 +48,10 @@ class JobMergeFromCost extends IrTransformationStep
 	private enum IMPL_TYPE  { BASE, ARRAY, CONNECTIVITY, LINEARALGEBRA, NULL } // Implementation type
 	
 	/* Coefficients for the granularity and the synchronization of a job => priority */
-	static final double priority_coefficient_task_granularity     = 0.3    // Granularity is not really important here, and it is already the greatest number
-	static final double priority_coefficient_task_synchronization = 5000   // We mostly care about the synchronicity of the task
-	static final double priority_coefficient_task_at              = 100000 // The @ influence the scheduling
-	static final double priority_synchronization_out_over_in      = 1      // Prefer out variables over in variables as they will unlock more jobs
+	static final double priority_coefficient_task_granularity     = 0.01   // Granularity is not really important here, and it is already the greatest number
+	static final double priority_coefficient_task_synchronization = 10     // We mostly care about the synchronicity of the task
+	static final double priority_coefficient_task_at              = 1.5    // The @ influence the scheduling
+	static final double priority_synchronization_out_over_in      = 0.4    // Prefer out variables over in variables as they will unlock more jobs
 
 	override transform(IrRoot ir) 
 	{
@@ -83,7 +83,7 @@ class JobMergeFromCost extends IrTransformationStep
 			computeSynchroCoeff
 			computeTaskPriorities(max_at)
 		]
-		rescalePrioritiesFromMin
+		// rescalePrioritiesFromMin
 		
 		reportHashMap('SynchroCoeffs', reverseHashMap(JobSynchroCoeffs), 'Synchro Coeff:', ':')
 		reportHashMap('Priority',      reverseHashMap(JobPriorities),    'Priority',       ':')
@@ -193,6 +193,13 @@ class JobMergeFromCost extends IrTransformationStep
 					  .filter(Variable)
 					  .filter[global].toSet
 	}
+	
+	static def int getOutReusedVarsNumber(Job it)
+	{
+		caller.parallelJobs.reject[ j | j.name == name ]		// Get other jobs in the same time loop
+		      .map[ inVars.filter[ v | outVars.contains(v) ] ]	// Get the in that are produced by the current job
+		      .flatten.size  									// Flatten and get the size
+	}
 
 	static def Set<Variable> getMinimalInVars(Job it)
 	{
@@ -287,10 +294,21 @@ class JobMergeFromCost extends IrTransformationStep
 	 
 	 static private def void computeTaskPriorities(Job it, int max_at)
 	 {
+	 	/* ORDER_IN_DAG: Class of quality
+	 	 * Other terms (what in formula): modulate inside the current class of quality
+	 	 * 
+	 	 * FORMULA:
+	 	 * 		PRIORITY = ORDER_IN_DAG * (1 + SUM{what}(COEFF(what) * VALUE(what)))
+	 	 * 
+	 	 * For now, take into account:
+	 	 * - the synchronicity: the 'out' over 'in', the greater, the more
+	 	 *   'few variables unlock a lots of variables'.
+	 	 */
+
 	 	val synchro     = priority_coefficient_task_synchronization * JobSynchroCoeffs.getOrDefault(name, 1);
-	 	val granularity = priority_coefficient_task_granularity * jobCost;
+	 	val granularity = 0; // priority_coefficient_task_granularity * jobCost;
 	 	val at_coeff    = priority_coefficient_task_at * (max_at - at.intValue + 1);
-	 	val priority    = at_coeff + synchro + granularity;
+	 	val priority    = at_coeff * (1 + synchro + granularity);
 	 	JobPriorities.put(name, priority.intValue)
 	 }
 	 

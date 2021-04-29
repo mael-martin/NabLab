@@ -188,10 +188,12 @@ class ComputeCostTransformation extends IrTransformationStep
 	}
 
 	/* FIXME: Hack, force X and Y and Mesh2D geometry, get for glace2D, used json in tests */
-	int HACK_X = 400
-	int HACK_Y = 40
+	int HACK_X = 600
+	int HACK_Y = 60
 	
 	GeometryInformations geometry;
+	static int geometry_domain_size; // Basically `X * Y`, but with extra steps
+	static def int getGeometry_domain_size() { geometry_domain_size }
 
 	new()
 	{
@@ -201,6 +203,7 @@ class ComputeCostTransformation extends IrTransformationStep
 		
 		/* Default for the moment */
 		geometry = new Mesh2DGeometryInformations(HACK_X, HACK_Y)
+		geometry_domain_size = geometry.cellsNumber
 	}
 
 	override transform(IrRoot ir) 
