@@ -213,12 +213,8 @@ class ComputeCostTransformation extends IrTransformationStep
 		trace('    IR -> IR: ' + description + ':ComputeJobCost')
 		val jobs = ir.eAllContents.filter(Job)
 		jobs.forEach[evaluateCost]
-		
-		trace('    IR -> IR: ' + description + ':CostReport')
-		val Map<Integer, Set<String>> reverseJobCostMap = reverseHashMap(jobCostMap)
-		for (cost : reverseJobCostMap.keySet.sort)
-			trace('        - ' + reverseJobCostMap.get(cost).reduce[ p1, p2 | p1 + ', ' + p2 ] + ' => ' + cost)
-		
+
+		reportHashMap('Cost', reverseHashMap(jobCostMap), 'Cost', ' => ')
 		return true
 	}
 	

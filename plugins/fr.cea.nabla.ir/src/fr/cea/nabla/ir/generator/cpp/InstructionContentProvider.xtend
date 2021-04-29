@@ -370,7 +370,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		val ret = '''
 		«IF launch_super_task»
 		// clang-format off
-		#pragma omp task«parentJob.priority»«getSharedVarsClause(parentJob)»«
+		#pragma omp task priority(«parentJob.priority»)«getSharedVarsClause(parentJob)»«
 			getDependenciesAll(parentJob, 'in',  ins)»«
 			getDependenciesAll(parentJob, 'out', outs)»
 		// clang-format on
@@ -407,7 +407,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				 * TODO: Group all affectations in one job */
 				«IF ! super_task»
 				// clang-format off
-				#pragma omp task «getSharedVarsClause(parentJob)»«parentJob.priority»«
+				#pragma omp task «getSharedVarsClause(parentJob)» priority(«parentJob.priority»)«
 				                 getDependenciesAll(parentJob, 'in',  ins)»«
 				                 getDependenciesAll(parentJob, 'out', outs)»
 				// clang-format on
@@ -467,8 +467,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		const Id ___omp_limit = «getLimitIndex(iterationBlock, partitionId)»;
 		// clang-format off
 		#pragma omp task «
-		getSharedVarsClause(parentJob, #['''«result.name»_tab'''].toList)»«
-		parentJob.priority» firstprivate(___omp_base, ___omp_limit, i) «
+		getSharedVarsClause(parentJob, #['''«result.name»_tab'''].toList)» priority(«
+		parentJob.priority») firstprivate(___omp_base, ___omp_limit, i) «
 		getDependencies(parentJob, 'in', ins, '''___omp_base''')» depend(out:	(«result.name»_tab[i]))
 		// clang-format on
 		«iterationBlock.defineInterval('''
@@ -569,7 +569,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 					// clang-format off
 					#pragma omp task «
 						getFirstPrivateVars(parentJob)» «
-						getSharedVarsClause(parentJob)»«parentJob.priority»«
+						getSharedVarsClause(parentJob)» priority(«parentJob.priority»)«
 						getDependenciesAll(parentJob, 'in',  ins)»«
 						getDependencies(parentJob, 'out', outs, '''___omp_base''')»
 					// clang-format on
@@ -577,7 +577,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 					// clang-format off
 					#pragma omp task «
 						getFirstPrivateVars(parentJob)» «
-						getSharedVarsClause(parentJob)»«parentJob.priority»«
+						getSharedVarsClause(parentJob)» priority(«parentJob.priority»)«
 						getDependencies(parentJob, 'in',  ins,  '''___omp_base''')»«
 						getDependencies(parentJob, 'out', outs, '''___omp_base''')»
 					// clang-format on

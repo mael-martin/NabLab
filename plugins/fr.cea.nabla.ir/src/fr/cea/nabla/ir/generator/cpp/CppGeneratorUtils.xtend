@@ -192,16 +192,6 @@ class CppGeneratorUtils
 		}
 	}
 	
-	/* Construct OpenMP clauses */
-	static def getPriority(Job it)
-	{
-		if (it !== null)
-		{
-			val max_at = caller.calls.map[at].max
-			''' priority(«(max_at - at + 1.0).intValue»)'''
-		} else ''''''
-	}
-	
 	static def getUsedIndexType(Job it) {
 		val variables = inVars
 		variables.addAll(outVars)

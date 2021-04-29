@@ -35,6 +35,7 @@ import org.eclipse.xtend.lib.annotations.Data
 import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
+import static extension fr.cea.nabla.ir.transformers.ComputeCostTransformation.*
 
 @Data
 class JobMergeFromCost extends IrTransformationStep
@@ -46,6 +47,10 @@ class JobMergeFromCost extends IrTransformationStep
 
 	private enum INDEX_TYPE { NODES, CELLS, FACES, NULL } // Nabla first dimension index type
 	private enum IMPL_TYPE  { BASE, ARRAY, CONNECTIVITY, LINEARALGEBRA, NULL } // Implementation type
+	
+	/* Coefficients for the granularity and the synchronization of a job => priority */
+	static final int priority_coefficient_task_granularity     = 10
+	static final int priority_coefficient_task_synchronization = 30
 
 	override transform(IrRoot ir) 
 	{
@@ -71,16 +76,16 @@ class JobMergeFromCost extends IrTransformationStep
 			trace('        - ' + varname + '[' + GlobalVariableIndexTypes.get(varname) + ']')
 		]
 
-		/* Synchronization coefficient */
-		trace('    IR -> IR: ' + description + ':SynchroCoeffsReport')
-		ir.eAllContents.filter(JobCaller).map[parallelJobs].toList.flatten.forEach[computeSynchroCoeff]
-		val Map<Integer, Set<String>> reverseJobSynchroCoeffs = reverseHashMap(JobSynchroCoeffs)
-		for (cost : reverseJobSynchroCoeffs.keySet.sort) {
-			trace('        - Synchro Coeff: ' + cost + ': ' + reverseJobSynchroCoeffs.get(cost).reduce[ String p1, String p2 |
-				p1 + ', ' + p2
-			])
-		}
+		/* Synchronization coefficient and priorities */
+		val int max_at = ir.eAllContents.filter(Job).map[at].max.intValue
+		ir.eAllContents.filter(JobCaller).map[parallelJobs].toList.flatten.forEach[
+			computeSynchroCoeff
+			computeTaskPriorities(max_at)
+		]
 		
+		reportHashMap('SynchroCoeffs', reverseHashMap(JobSynchroCoeffs), 'Synchro Coeff:', ':')
+		reportHashMap('Priority',      reverseHashMap(JobPriorities),    'Priority',       ':')
+
 		/* Return OK */
 		return true
 	}
@@ -89,6 +94,7 @@ class JobMergeFromCost extends IrTransformationStep
 	static HashMap<String, HashSet<Variable>> MinimalInVariablesPerJobs   = new HashMap();
 	static HashMap<String, Integer> JobSynchroCoeffs                      = new HashMap();
 	static HashMap<String, INDEX_TYPE> GlobalVariableIndexTypes           = new HashMap();
+	static HashMap<String, Integer> JobPriorities                         = new HashMap();
 	
 	static public final int num_threads = 4; // FIXME: Must be set by the user
 	static int num_tasks;
@@ -272,4 +278,23 @@ class JobMergeFromCost extends IrTransformationStep
 			}
 		}
 	}
+	
+	/**********************
+	 * Get a Job priority *
+	 **********************/
+	 
+	 static private def void computeTaskPriorities(Job it, int max_at)
+	 {
+	 	val synchro     = priority_coefficient_task_synchronization * JobSynchroCoeffs.getOrDefault(name, 1);
+	 	val granularity = priority_coefficient_task_granularity * jobCost;
+	 	val at_coeff    = max_at - at.intValue + 1;
+	 	val priority    = at_coeff * (synchro + granularity);
+	 	JobPriorities.put(name, priority)
+	 }
+	 
+	 static def int getPriority(Job it)
+	 {
+	 	if (it === null) throw new Exception("Asking a priority for a 'null' job")
+	 	return JobPriorities.getOrDefault(name, 1)
+	 }
 }
