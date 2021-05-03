@@ -48,9 +48,9 @@ class JobMergeFromCost extends IrTransformationStep
 	private enum IMPL_TYPE  { BASE, ARRAY, CONNECTIVITY, LINEARALGEBRA, NULL } // Implementation type
 	
 	/* Coefficients for the granularity and the synchronization of a job => priority */
-	static final double priority_coefficient_task_granularity     = 0.0    // Granularity is not really important here, and it is already the greatest number
-	static final double priority_coefficient_task_synchronization = 0.0    // We mostly care about the synchronicity of the task
-	static final double priority_coefficient_task_at              = 4.0    // The @ influence the scheduling
+	static final double priority_coefficient_task_granularity     = 10.0   // Granularity is not really important here, and it is already the greatest number
+	static final double priority_coefficient_task_synchronization = 30.0   // We mostly care about the synchronicity of the task
+	static final double priority_coefficient_task_at              = 40.0   // The @ influence the scheduling
 
 	override transform(IrRoot ir) 
 	{
@@ -74,9 +74,9 @@ class JobMergeFromCost extends IrTransformationStep
 		reportHashMap('VariableIndex', reverseHashMap(GlobalVariableIndexTypes), 'Indexes:', ': ')
 
 		/* Synchronization coefficient and priorities */
-		val int max_at = ir.eAllContents.filter(Job).map[at].max.intValue
+		val int max_at = ir.eAllContents.filter(Job).map[ at ].max.intValue
 		val HashMap<String, Integer> reusedOutVarsByJob = new HashMap();
-		ir.eAllContents.filter(JobCaller).map[parallelJobs].toList.flatten.forEach[ it |
+		ir.eAllContents.filter(JobCaller).map[ parallelJobs ].toList.flatten.forEach[ it |
 			computeSynchroCoeff
 			computeTaskPriorities(max_at)
 			reusedOutVarsByJob.put(name, outReusedVarsNumber)
@@ -293,18 +293,21 @@ class JobMergeFromCost extends IrTransformationStep
 	 	 * Other terms (what in formula): modulate inside the current class of quality
 	 	 * 
 	 	 * FORMULA:
-	 	 * 		PRIORITY = ORDER_IN_DAG * (1 + SUM{what}(COEFF(what) * VALUE(what)))
+	 	 * 		PRIORITY = SUM{what}(COEFF(what) * VALUE(what))
 	 	 * 
 	 	 * Take into account:
+	 	 * - the level in the DAG
 	 	 * - the synchronicity: the 'out' over 'in', the greater, the more
 	 	 *   'few variables unlock a lots of variables'.
 	 	 * - the granularity: do jobs with more work before others
 	 	 */
+	 	 
+	    val max_syncro = caller.parallelJobs.map[ JobSynchroCoeffs.getOrDefault(name, 0) ].reduce[ p1, p2 | p1 + p2 ]
 
-	 	val synchro     = (priority_coefficient_task_synchronization * JobSynchroCoeffs.getOrDefault(name, 1));
-	 	val granularity = (priority_coefficient_task_granularity * jobCost);
-	 	val at_coeff    = priority_coefficient_task_at * (max_at - at.intValue + 1);
-	 	val priority    = at_coeff * (1 + synchro + granularity);
+	 	val synchro     = (priority_coefficient_task_synchronization * (JobSynchroCoeffs.getOrDefault(name, 0) / max_syncro));
+	 	val granularity = (priority_coefficient_task_granularity * jobContribution);
+	 	val at_coeff    = priority_coefficient_task_at * ((max_at - at + 1) / max_at);
+	 	val priority    = at_coeff + synchro + granularity;
 	 	JobPriorities.put(name, priority.intValue)
 	 }
 
