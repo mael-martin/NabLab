@@ -19,6 +19,10 @@ abstract class OpenMPTaskProvider
 {
 	/* Internal helper */
 	protected def abstract CharSequence getSimpleTaskDirective(Set<String> fp, Set<String> shared)
+	protected def CharSequence getSimpleTaskEnd()
+	'''
+		// clang-format on
+	'''
 	
 	/* Simple task without dependencies */
 	def abstract CharSequence generateTask(Job parentJob, Set<String> fp, Set<String> shared, CharSequence inner)
@@ -57,14 +61,15 @@ class OpenMPTaskClangProvider extends OpenMPTaskProvider
 {
 	override CharSequence getSimpleTaskDirective(Set<String> fp, Set<String> shared)
 	'''
+		// clang-format off
 		#pragma omp task default(none)«
-		FOR v : fp     BEFORE '\nfirstprivate(' SEPARATOR ', ' AFTER ')'»«v»«ENDFOR»«
-		FOR v : shared BEFORE '\nshared('       SEPARATOR ', ' AFTER ')'»«v»«ENDFOR»
-	'''
+		FOR v : fp     BEFORE ' firstprivate(' SEPARATOR ', ' AFTER ')'»«v»«ENDFOR»«
+		FOR v : shared BEFORE ' shared('       SEPARATOR ', ' AFTER ')'»«v»«ENDFOR»'''
 
 	override generateTask(Job parentJob, Set<String> fp, Set<String> shared, CharSequence inner)
 	'''
 		«getSimpleTaskDirective(fp, shared)»
+		«simpleTaskEnd»
 		{
 			«inner»
 		}
@@ -82,6 +87,7 @@ class OpenMPTaskClangProvider extends OpenMPTaskProvider
 		«getSimpleTaskDirective(fp, shared)»«
 		IF IN  !== null && IN.size  > 0»«IF IN_ALL »«getDependenciesAll(parentJob, 'in' , IN )»«ELSE»«getDependencies(parentJob, 'in',  IN,  IN_FROM)»«ENDIF»«ENDIF»«
 		IF OUT !== null && OUT.size > 0»«IF OUT_ALL»«getDependenciesAll(parentJob, 'out', OUT)»«ELSE»«getDependencies(parentJob, 'out', OUT, OUT_TO )»«ENDIF»«ENDIF»
+		«simpleTaskEnd»
 		{
 			«inner»
 		}
@@ -101,8 +107,9 @@ class OpenMPTaskClangProvider extends OpenMPTaskProvider
 		CharSequence inner
 	) '''
 		«getSimpleTaskDirective(fp, shared)»«
-		IF IN  !== null && IN.size  > 0»«FOR v : IN  BEFORE '\ndepend(in: '  SEPARATOR ', ' AFTER ')'»(«v»)«ENDFOR»«ENDIF»«
-		IF OUT !== null && OUT.size > 0»«FOR v : OUT BEFORE '\ndepend(out: ' SEPARATOR ', ' AFTER ')'»(«v»)«ENDFOR»«ENDIF»
+		IF IN  !== null && IN.size  > 0»«FOR v : IN  BEFORE ' \\\ndepend(in: '  SEPARATOR ', ' AFTER ')'»(«v»)«ENDFOR»«ENDIF»«
+		IF OUT !== null && OUT.size > 0»«FOR v : OUT BEFORE ' \\\ndepend(out: ' SEPARATOR ', ' AFTER ')'»(«v»)«ENDFOR»«ENDIF»
+		«simpleTaskEnd»
 		{
 			«inner»
 		}

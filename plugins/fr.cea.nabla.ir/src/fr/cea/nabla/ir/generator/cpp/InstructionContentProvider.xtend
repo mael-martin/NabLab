@@ -9,41 +9,39 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
+import fr.cea.nabla.ir.ir.Affectation
+import fr.cea.nabla.ir.ir.ConnectivityCall
+import fr.cea.nabla.ir.ir.Exit
+import fr.cea.nabla.ir.ir.Function
+import fr.cea.nabla.ir.ir.If
+import fr.cea.nabla.ir.ir.Instruction
+import fr.cea.nabla.ir.ir.InstructionBlock
+import fr.cea.nabla.ir.ir.Interval
+import fr.cea.nabla.ir.ir.IrAnnotable
+import fr.cea.nabla.ir.ir.ItemIdDefinition
+import fr.cea.nabla.ir.ir.ItemIdValueIterator
+import fr.cea.nabla.ir.ir.ItemIndexDefinition
+import fr.cea.nabla.ir.ir.IterationBlock
+import fr.cea.nabla.ir.ir.Iterator
+import fr.cea.nabla.ir.ir.Job
+import fr.cea.nabla.ir.ir.Loop
+import fr.cea.nabla.ir.ir.ReductionInstruction
+import fr.cea.nabla.ir.ir.Return
+import fr.cea.nabla.ir.ir.SetDefinition
+import fr.cea.nabla.ir.ir.Variable
+import fr.cea.nabla.ir.ir.VariableDeclaration
+import fr.cea.nabla.ir.ir.While
+import java.util.HashMap
+import java.util.Set
+import org.eclipse.xtend.lib.annotations.Data
+import org.eclipse.xtext.EcoreUtil2
+
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
-
-import org.eclipse.xtext.EcoreUtil2
-import org.eclipse.xtend.lib.annotations.Data
-
-import java.util.Set
-import java.util.HashMap
-
-import fr.cea.nabla.ir.ir.Affectation
-import fr.cea.nabla.ir.ir.ConnectivityCall
-import fr.cea.nabla.ir.ir.Exit
-import fr.cea.nabla.ir.ir.If
-import fr.cea.nabla.ir.ir.Instruction
-import fr.cea.nabla.ir.ir.InstructionBlock
-import fr.cea.nabla.ir.ir.Interval
-import fr.cea.nabla.ir.ir.ItemIdDefinition
-import fr.cea.nabla.ir.ir.ItemIndexDefinition
-import fr.cea.nabla.ir.ir.IterationBlock
-import fr.cea.nabla.ir.ir.Iterator
-import fr.cea.nabla.ir.ir.Loop
-import fr.cea.nabla.ir.ir.ReductionInstruction
-import fr.cea.nabla.ir.ir.Return
-import fr.cea.nabla.ir.ir.SetDefinition
-import fr.cea.nabla.ir.ir.VariableDeclaration
-import fr.cea.nabla.ir.ir.While
-import fr.cea.nabla.ir.ir.Variable
-import fr.cea.nabla.ir.ir.ItemIdValueIterator
-import fr.cea.nabla.ir.ir.Job
-import fr.cea.nabla.ir.ir.IrAnnotable
-import fr.cea.nabla.ir.ir.Function
 
 @Data
 abstract class InstructionContentProvider
@@ -326,6 +324,8 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	HashMap<String, Integer> counters                 = new HashMap();
 	HashMap<String, CharSequence> auxString           = new HashMap();
 	
+	OpenMPTaskProvider taskProvider
+	
 	private def void levelINC() { counters.put("Level", counters.getOrDefault('Level', 0) + 1) }
 	private def void levelDEC() { counters.put("Level", Math::max(counters.get('Level') - 1, 0)) }
 	private def void endTASK()  { counters.put("Task", 0) }
@@ -369,16 +369,18 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		val ret = '''
 		«IF launch_super_task»
-		// clang-format off
-		#pragma omp task priority(«parentJob.priority»)«getSharedVarsClause(parentJob)»«
-			getDependenciesAll(parentJob, 'in',  ins)»«
-			getDependenciesAll(parentJob, 'out', outs)»
-		// clang-format on
-		{ // BEGIN OF SUPER TASK
-		«ENDIF»
-		«IF launch_super_task»	«ENDIF»«innerContentInternal»
-		«IF launch_super_task»
-		} // END OF SUPER TASK
+		«taskProvider.generateTask(parentJob,
+			#[].toSet, parentJob.taskShared,
+			ins,  true, null,
+			outs, true, null,
+			'''
+			// BEGIN OF SUPER TASK
+			«innerContentInternal»
+			// END OF SUPER TASK
+			'''
+		)»
+		«ELSE»
+		«innerContentInternal»
 		«ENDIF»
 		'''
 
@@ -566,24 +568,21 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 			const Id ___omp_limit = «getLimitIndex(iterationBlock, partitionId)»;
 			«IF ! super_task»
 				«IF parentJob.usedIndexType.length > 1»
-					// clang-format off
-					#pragma omp task «
-						getFirstPrivateVars(parentJob)» «
-						getSharedVarsClause(parentJob)» priority(«parentJob.priority»)«
-						getDependenciesAll(parentJob, 'in',  ins)»«
-						getDependencies(parentJob, 'out', outs, '''___omp_base''')»
-					// clang-format on
+					«taskProvider.generateTask(parentJob,
+						parentJob.taskFirstPrivate, parentJob.taskShared,
+						ins,  true,  null,
+						outs, false, '''___omp_base''',
+						'''«overrideIterationBlock(it, '''___omp_base''', '''___omp_limit''')»'''
+					)»
 				«ELSE»
-					// clang-format off
-					#pragma omp task «
-						getFirstPrivateVars(parentJob)» «
-						getSharedVarsClause(parentJob)» priority(«parentJob.priority»)«
-						getDependencies(parentJob, 'in',  ins,  '''___omp_base''')»«
-						getDependencies(parentJob, 'out', outs, '''___omp_base''')»
-					// clang-format on
+					«taskProvider.generateTask(parentJob,
+						parentJob.taskFirstPrivate, parentJob.taskShared,
+						ins,  false, '''___omp_base''',
+						outs, false, '''___omp_base''',
+						'''«overrideIterationBlock(it, '''___omp_base''', '''___omp_limit''')»'''
+					)»
 				«ENDIF»
 			«ENDIF»
-			«overrideIterationBlock(it, '''___omp_base''', '''___omp_limit''')»
 		}
 		'''
 

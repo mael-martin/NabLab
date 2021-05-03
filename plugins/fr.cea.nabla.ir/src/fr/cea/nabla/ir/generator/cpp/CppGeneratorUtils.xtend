@@ -407,6 +407,16 @@ firstprivate(task, ___omp_base, ___omp_limit«
 	ENDIF»)'''
 	}
 	
+	static def getTaskFirstPrivate(Job it)
+	{
+		val base = #['___omp_base', '___omp_limit']
+		if (additionalFPriv !== null && additionalFPriv.getOrDefault(name, new HashSet()).length > 0) {
+			additionalFPriv.get(name).forEach[ e | base.add(e) ]
+		}
+		return base.toSet
+	}
+	static def getTaskShared(Job it) { sharedVarsNames }
+	
 	/* Get duplicated out variables in job caller */
 	static private def int getJobIndexInList(Job it, Job[] list) {
 		val int index = list.indexed.map[ pair |
