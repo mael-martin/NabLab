@@ -42,6 +42,21 @@ abstract class OpenMPTaskProvider
 		int priority,
 		CharSequence inner
 	)
+
+	/* Dependencies that are variables, the 'out' is manual */
+	def abstract CharSequence generateTask(
+		Job parentJob, Set<String> fp, Set<String> shared,
+		Set<Variable> IN,  boolean IN_ALL,  CharSequence IN_FROM,
+		Set<String> OUT,
+		CharSequence inner
+	)
+	def abstract CharSequence generateTask(
+		Job parentJob, Set<String> fp, Set<String> shared,
+		Set<Variable> IN,  boolean IN_ALL,  CharSequence IN_FROM,
+		Set<String> OUT,
+		int priority,
+		CharSequence inner
+	)
 	
 	/* The user must specify the name of all variables and craft their name/index */
 	def abstract CharSequence generateTask(
@@ -55,10 +70,27 @@ abstract class OpenMPTaskProvider
 		int priority,
 		CharSequence inner
 	)
+
+	/* The user must specify the name of all variables and craft their name/index AND close the task with a '}' */
+	def abstract CharSequence generateUnclosedTask(
+		Job parentJob, Set<String> fp, Set<String> shared,
+		Set<String> IN, Set<String> OUT,
+		CharSequence inner
+	)
+	def abstract CharSequence generateUnclosedTask(
+		Job parentJob, Set<String> fp, Set<String> shared,
+		Set<String> IN, Set<String> OUT,
+		int priority,
+		CharSequence inner
+	)
+	
+	/* Close an unclosed task */
+	def abstract CharSequence closeUnclosedTask()
 }
 
 class OpenMPTaskClangProvider extends OpenMPTaskProvider
 {
+	/* Internal helper */
 	override CharSequence getSimpleTaskDirective(Set<String> fp, Set<String> shared)
 	'''
 		// clang-format off
@@ -66,6 +98,7 @@ class OpenMPTaskClangProvider extends OpenMPTaskProvider
 		FOR v : fp     BEFORE ' firstprivate(' SEPARATOR ', ' AFTER ')'»«v»«ENDFOR»«
 		FOR v : shared BEFORE ' shared('       SEPARATOR ', ' AFTER ')'»«v»«ENDFOR»'''
 
+	/* Simple task without dependencies */
 	override generateTask(Job parentJob, Set<String> fp, Set<String> shared, CharSequence inner)
 	'''
 		«getSimpleTaskDirective(fp, shared)»
@@ -77,7 +110,32 @@ class OpenMPTaskClangProvider extends OpenMPTaskProvider
 
 	override CharSequence generateTask(Job parentJob, Set<String> fp, Set<String> shared, int priority, CharSequence inner)
 	{ generateTask(parentJob, fp, shared, inner) }
+
+	/* Dependencies that are variables, the 'out' is manual */
+	override CharSequence generateTask(
+		Job parentJob, Set<String> fp, Set<String> shared,
+		Set<Variable> IN,  boolean IN_ALL,  CharSequence IN_FROM,
+		Set<String> OUT,
+		CharSequence inner
+	) '''
+		«getSimpleTaskDirective(fp, shared)»«
+		IF IN  !== null && IN.size  > 0»«IF IN_ALL»«getDependenciesAll(parentJob, 'in', IN)»«ELSE»«getDependencies(parentJob, 'in', IN, IN_FROM)»«ENDIF»«ENDIF»«
+		IF OUT !== null && OUT.size > 0»«FOR v : OUT BEFORE ' \\\ndepend(out: ' SEPARATOR ', ' AFTER ')'»(«v»)«ENDFOR»«ENDIF»
+		«simpleTaskEnd»
+		{
+			«inner»
+		}
+	'''
+
+	override CharSequence generateTask(
+		Job parentJob, Set<String> fp, Set<String> shared,
+		Set<Variable> IN,  boolean IN_ALL,  CharSequence IN_FROM,
+		Set<String> OUT,
+		int priority,
+		CharSequence inner
+	) { generateTask(parentJob, fp, shared, IN, IN_ALL, IN_FROM, OUT, inner) }
 	
+	/* Dependencies that are variables */
 	override CharSequence generateTask(
 		Job parentJob, Set<String> fp, Set<String> shared,
 		Set<Variable> IN,  boolean IN_ALL,  CharSequence IN_FROM,
@@ -101,6 +159,7 @@ class OpenMPTaskClangProvider extends OpenMPTaskProvider
 		CharSequence inner
 	) { generateTask(parentJob, fp, shared, IN, IN_ALL, IN_FROM, OUT, OUT_ALL, OUT_TO, inner) }
 
+	/* The user must specify the name of all variables and craft their name/index */
 	override CharSequence generateTask(
 		Job parentJob, Set<String> fp, Set<String> shared,
 		Set<String> IN, Set<String> OUT,
@@ -121,10 +180,38 @@ class OpenMPTaskClangProvider extends OpenMPTaskProvider
 		int priority,
 		CharSequence inner
 	) { generateTask(parentJob, fp, shared, IN, OUT, inner) }
+
+	/* The user must specify the name of all variables and craft their name/index AND close the task with a '}' */
+	override CharSequence generateUnclosedTask(
+		Job parentJob, Set<String> fp, Set<String> shared,
+		Set<String> IN, Set<String> OUT,
+		CharSequence inner
+	) '''
+		«getSimpleTaskDirective(fp, shared)»«
+		IF IN  !== null && IN.size  > 0»«FOR v : IN  BEFORE ' \\\ndepend(in: '  SEPARATOR ', ' AFTER ')'»(«v»)«ENDFOR»«ENDIF»«
+		IF OUT !== null && OUT.size > 0»«FOR v : OUT BEFORE ' \\\ndepend(out: ' SEPARATOR ', ' AFTER ')'»(«v»)«ENDFOR»«ENDIF»
+		«simpleTaskEnd»
+		{
+			«inner»
+	'''
+
+	override CharSequence generateUnclosedTask(
+		Job parentJob, Set<String> fp, Set<String> shared,
+		Set<String> IN, Set<String> OUT,
+		int priority,
+		CharSequence inner
+	) { generateTask(parentJob, fp, shared, IN, OUT, inner) }
+
+	/* Close an unclosed task */
+	override CharSequence closeUnclosedTask()
+	'''
+	}
+	'''
 }
 
 class OpenMPTaskMPCProvider extends OpenMPTaskClangProvider
 {
+	/* Simple task without dependencies */
 	override CharSequence generateTask(Job parentJob, Set<String> fp, Set<String> shared, int priority, CharSequence inner)
 	'''
 	{
@@ -132,7 +219,22 @@ class OpenMPTaskMPCProvider extends OpenMPTaskClangProvider
 		«generateTask(parentJob, fp, shared, inner)»
 	}
 	'''
+
+	/* Dependencies that are variables, the 'out' is manual */
+	override CharSequence generateTask(
+		Job parentJob, Set<String> fp, Set<String> shared,
+		Set<Variable> IN,  boolean IN_ALL,  CharSequence IN_FROM,
+		Set<String> OUT,
+		int priority,
+		CharSequence inner
+	) '''
+	{
+		mpc_omp_task("Task for «parentJob.name»@«parentJob.at»", «priority») 
+		«generateTask(parentJob, fp, shared, IN, IN_ALL, IN_FROM, OUT, inner)»
+	}
+	'''
 	
+	/* Dependencies that are variables */
 	override CharSequence generateTask(
 		Job parentJob, Set<String> fp, Set<String> shared,
 		Set<Variable> IN,  boolean IN_ALL,  CharSequence IN_FROM,
@@ -146,6 +248,7 @@ class OpenMPTaskMPCProvider extends OpenMPTaskClangProvider
 	}
 	'''
 
+	/* The user must specify the name of all variables and craft their name/index */
 	override CharSequence generateTask(
 		Job parentJob, Set<String> fp, Set<String> shared,
 		Set<String> IN, Set<String> OUT,
@@ -155,6 +258,26 @@ class OpenMPTaskMPCProvider extends OpenMPTaskClangProvider
 	{
 		mpc_omp_task("Task for «parentJob.name»@«parentJob.at»", «priority») 
 		«generateTask(parentJob, fp, shared, IN, OUT, inner)»
+	}
+	'''
+
+	/* The user must specify the name of all variables and craft their name/index AND close the task with a '}' */
+	override CharSequence generateUnclosedTask(
+		Job parentJob, Set<String> fp, Set<String> shared,
+		Set<String> IN, Set<String> OUT,
+		int priority,
+		CharSequence inner
+	) '''
+	{
+		mpc_omp_task("Task for «parentJob.name»@«parentJob.at»", «priority») 
+		«generateUnclosedTask(parentJob, fp, shared, IN, OUT, inner)»
+	}
+	'''
+
+	/* Close an unclosed task */
+	override CharSequence closeUnclosedTask()
+	'''
+		}
 	}
 	'''
 }
