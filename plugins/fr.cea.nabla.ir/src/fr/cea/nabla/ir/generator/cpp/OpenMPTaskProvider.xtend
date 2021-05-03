@@ -79,8 +79,7 @@ class OpenMPTaskClangProvider extends OpenMPTaskProvider
 		Set<Variable> OUT, boolean OUT_ALL, CharSequence OUT_TO,
 		CharSequence inner
 	) '''
-		«getSimpleTaskDirective(fp, shared)»
-		#pragma omp task default(none)«
+		«getSimpleTaskDirective(fp, shared)»«
 		IF IN  !== null && IN.size  > 0»«IF IN_ALL »«getDependenciesAll(parentJob, 'in' , IN )»«ELSE»«getDependencies(parentJob, 'in',  IN,  IN_FROM)»«ENDIF»«ENDIF»«
 		IF OUT !== null && OUT.size > 0»«IF OUT_ALL»«getDependenciesAll(parentJob, 'out', OUT)»«ELSE»«getDependencies(parentJob, 'out', OUT, OUT_TO )»«ENDIF»«ENDIF»
 		{
@@ -101,8 +100,7 @@ class OpenMPTaskClangProvider extends OpenMPTaskProvider
 		Set<String> IN, Set<String> OUT,
 		CharSequence inner
 	) '''
-		«getSimpleTaskDirective(fp, shared)»
-		#pragma omp task default(none)«
+		«getSimpleTaskDirective(fp, shared)»«
 		IF IN  !== null && IN.size  > 0»«FOR v : IN  BEFORE '\ndepend(in: '  SEPARATOR ', ' AFTER ')'»(«v»)«ENDFOR»«ENDIF»«
 		IF OUT !== null && OUT.size > 0»«FOR v : OUT BEFORE '\ndepend(out: ' SEPARATOR ', ' AFTER ')'»(«v»)«ENDFOR»«ENDIF»
 		{
