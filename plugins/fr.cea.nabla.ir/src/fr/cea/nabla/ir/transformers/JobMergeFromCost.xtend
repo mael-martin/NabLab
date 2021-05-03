@@ -52,9 +52,6 @@ class JobMergeFromCost extends IrTransformationStep
 	static final double priority_coefficient_task_synchronization = 0.0    // We mostly care about the synchronicity of the task
 	static final double priority_coefficient_task_at              = 4.0    // The @ influence the scheduling
 
-	static final double priority_synchronization_out_over_in      = 0.4    // Prefer in variables instead of outs: get ride of barriers quickly
-	static final double priority_synchronization_reused_outs      = 10     // If a variable is re-used multiple times, increase its value
-
 	override transform(IrRoot ir) 
 	{
 		/* Minimal IN variables */
@@ -170,12 +167,8 @@ class JobMergeFromCost extends IrTransformationStep
 	 		].reduce[ p1, p2 | p1 + p2 ] ?: 0
 	 	];
 
-		/* Get all the variables and their weight as synchronization points */
-	 	val synchroIN     = mapped.apply(minimalInVars) * (1 - priority_synchronization_out_over_in)
-	 	val synchroOUT    = mapped.apply(outVars) * priority_synchronization_out_over_in
-	 	val synchroREUSED = outReusedVarsNumber * priority_synchronization_reused_outs
-
-	 	JobSynchroCoeffs.put(name, ((synchroIN + synchroOUT) + synchroREUSED).intValue)
+		/* The number of produced variables, each one of these variable will contribute to another task */
+	 	JobSynchroCoeffs.put(name, mapped.apply(outVars))
 	 }
 	
 	/************************************
