@@ -117,3 +117,39 @@ class OpenMPTaskClangProvider extends OpenMPTaskProvider
 		CharSequence inner
 	) { generateTask(parentJob, fp, shared, IN, OUT, inner) }
 }
+
+class OpenMPTaskMPCProvider extends OpenMPTaskClangProvider
+{
+	override CharSequence generateTask(Job parentJob, Set<String> fp, Set<String> shared, int priority, CharSequence inner)
+	'''
+	{
+		mpc_omp_task("Task for «parentJob.name»@«parentJob.at»", «priority») 
+		«generateTask(parentJob, fp, shared, inner)»
+	}
+	'''
+	
+	override CharSequence generateTask(
+		Job parentJob, Set<String> fp, Set<String> shared,
+		Set<Variable> IN,  boolean IN_ALL,  CharSequence IN_FROM,
+		Set<Variable> OUT, boolean OUT_ALL, CharSequence OUT_TO,
+		int priority,
+		CharSequence inner
+	) '''
+	{
+		mpc_omp_task("Task for «parentJob.name»@«parentJob.at»", «priority») 
+		«generateTask(parentJob, fp, shared, IN, IN_ALL, IN_FROM, OUT, OUT_ALL, OUT_TO, inner)»
+	}
+	'''
+
+	override CharSequence generateTask(
+		Job parentJob, Set<String> fp, Set<String> shared,
+		Set<String> IN, Set<String> OUT,
+		int priority,
+		CharSequence inner
+	) '''
+	{
+		mpc_omp_task("Task for «parentJob.name»@«parentJob.at»", «priority») 
+		«generateTask(parentJob, fp, shared, IN, OUT, inner)»
+	}
+	'''
+}
