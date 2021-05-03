@@ -42,6 +42,7 @@ import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
+import java.util.HashSet
 
 @Data
 abstract class InstructionContentProvider
@@ -347,7 +348,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		«IF (instructions.size == 2) &&
 		    (instructions.toList.head instanceof ReductionInstruction) &&
 		    (instructions.toList.last instanceof Affectation)»
-		} /* Close the reduction */
+		«taskProvider.closeUnclosedTask» /* Close the reduction */
 		«ENDIF»
 		««« Close the last loop if necessary
 		«IF lastLoopType !== null»
@@ -395,6 +396,7 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 
 		if (left.target.linearAlgebra && !(left.iterators.empty && left.indices.empty))
 			'''«left.codeName».setValue(«formatIteratorsAndIndices(left.target.type, left.iterators, left.indices)», «right.content»);'''
+
 		else if (parentJob !== null && parentJob.eAllContents.filter(Instruction).size == 1)
 		{
 			val ins = parentJob.minimalInVars
@@ -408,21 +410,21 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				/* ONLY_AFFECTATION, still need to launch a task for that
 				 * TODO: Group all affectations in one job */
 				«IF ! super_task»
-				// clang-format off
-				#pragma omp task «getSharedVarsClause(parentJob)» priority(«parentJob.priority»)«
-				                 getDependenciesAll(parentJob, 'in',  ins)»«
-				                 getDependenciesAll(parentJob, 'out', outs)»
-				// clang-format on
-				{
-				«ENDIF»
+					«taskProvider.generateTask(parentJob,
+						#[].toSet, parentJob.taskShared,
+						ins,  true, null,
+						outs, true, null,
+						'''«left.content» = «right.content»;'''
+					)»
+				«ELSE»
 					«left.content» = «right.content»;
-				«IF ! super_task»
-				}
 				«ENDIF»
 			'''
 			if (!super_task) endTASK()
 			return ret
 		}
+		
+		/* TODO: Handle the case where the job is only about doing assignations, and there are at least 2 of them... */
 		else
 			'''«left.content» = «right.content»;'''
 	}
@@ -432,9 +434,11 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 		// Ignore super task here
 		beginTASK(getAllOMPTasksAsCharSequence)
 		removeAdditionalFirstPrivVariables(iterationBlock)
-		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
-		val outs      = parentJob.outVars
-		val out       = outs.head
+		val parentJob 		= EcoreUtil2.getContainerOfType(it, Job)
+		val outs      		= parentJob.outVars
+		val out       		= outs.head
+		val Set<String> ins = new HashSet();
+		OMPTaskMaxNumberIterator.forEach[ i | ins.add('(' + result.name + '_tab[' + i + '])') ]
 
 		val ret = '''
 			static «result.type.cppType» «result.name»_tab[«OMPTaskMaxNumber»];
@@ -445,15 +449,15 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 				«getPartialReduction(it, '''i''')»
 			}
 
-			// clang-format off
-			#pragma omp task shared(this->«out.name», «result.name»_tab) \
-			depend(in:  «FOR i : OMPTaskMaxNumberIterator SEPARATOR ', '»(«result.name»_tab[«i»])«ENDFOR») \
-			depend(out: (this->«out.name»))
-			// clang-format on
-			{
-			«result.type.cppType» «result.name» = «result.defaultValue.content»;
-			for (size_t i = 0; i < «OMPTaskMaxNumber»; ++i)
-				«result.name» = «binaryFunction.codeName»(«result.name»_tab[i], «result.name»);
+			«taskProvider.generateUnclosedTask(parentJob,
+				#[].toSet, #['this->' + out.name, result.name + '_tab'].toSet,
+				ins, #[ 'this->' + out.name ].toSet,
+				'''
+					«result.type.cppType» «result.name» = «result.defaultValue.content»;
+					for (size_t i = 0; i < «OMPTaskMaxNumber»; ++i)
+						«result.name» = «binaryFunction.codeName»(«result.name»_tab[i], «result.name»);
+				'''
+			)»
 		'''
 
 		endTASK()
@@ -462,24 +466,27 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	
 	private def getPartialReduction(ReductionInstruction it, CharSequence partitionId)
 	{
-		val parentJob  = EcoreUtil2.getContainerOfType(it, Job)
-		val ins        = parentJob.minimalInVars /* Need to be computed before, consumed */
+		val parentJob  		   = EcoreUtil2.getContainerOfType(it, Job)
+		val ins        		   = parentJob.minimalInVars /* Need to be computed before, consumed */
+		val Set<String> shared = parentJob.taskShared
+		shared.addAll(#[result.name + '_tab'])
 	'''
 		const Id ___omp_base  = «getBaseIndex(iterationBlock, partitionId)»;
 		const Id ___omp_limit = «getLimitIndex(iterationBlock, partitionId)»;
-		// clang-format off
-		#pragma omp task «
-		getSharedVarsClause(parentJob, #['''«result.name»_tab'''].toList)» priority(«
-		parentJob.priority») firstprivate(___omp_base, ___omp_limit, i) «
-		getDependencies(parentJob, 'in', ins, '''___omp_base''')» depend(out:	(«result.name»_tab[i]))
-		// clang-format on
-		«iterationBlock.defineInterval('''
-		«overrideIterationBlock(it,
-			'''___omp_base''',
-			'''___omp_limit''',
-			'''«result.name»_tab[i] = «binaryFunction.codeName»(«result.name»_tab[i], «lambda.content»);'''
+		«taskProvider.generateTask(parentJob,
+			#['___omp_base', '___omp_limit', 'i'].toSet, shared,
+			ins,  true, null,
+			#[result.name + '_tab[i]'].toSet,
+			'''
+				«iterationBlock.defineInterval('''
+				«overrideIterationBlock(it,
+					'''___omp_base''',
+					'''___omp_limit''',
+					'''«result.name»_tab[i] = «binaryFunction.codeName»(«result.name»_tab[i], «lambda.content»);'''
+				)»
+				''')»
+			'''
 		)»
-		''')»
 	'''
 	}
 
