@@ -18,6 +18,7 @@ import fr.cea.nabla.ir.ir.Cardinality
 import fr.cea.nabla.ir.ir.ConnectivityCall
 import fr.cea.nabla.ir.ir.Container
 import fr.cea.nabla.ir.ir.ContractedIf
+import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.ir.Exit
 import fr.cea.nabla.ir.ir.Expression
 import fr.cea.nabla.ir.ir.ExternFunction
@@ -34,6 +35,7 @@ import fr.cea.nabla.ir.ir.ItemIdDefinition
 import fr.cea.nabla.ir.ir.ItemIndexDefinition
 import fr.cea.nabla.ir.ir.Iterator
 import fr.cea.nabla.ir.ir.Job
+import fr.cea.nabla.ir.ir.JobCaller
 import fr.cea.nabla.ir.ir.Loop
 import fr.cea.nabla.ir.ir.MaxConstant
 import fr.cea.nabla.ir.ir.MinConstant
@@ -49,7 +51,6 @@ import fr.cea.nabla.ir.ir.VectorConstant
 import fr.cea.nabla.ir.ir.While
 import java.util.HashMap
 import java.util.Map
-import java.util.Set
 import org.eclipse.xtend.lib.annotations.Data
 
 import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
@@ -166,10 +167,12 @@ class ComputeCostTransformation extends IrTransformationStep
 	static final int    defaultUnknownCost          = 10
 	
 	/* HashMaps to store cost of functions, jobs, etc */
-	static Map<String, Integer> functionCostMap = new HashMap();
-	static Map<String, Integer> jobCostMap      = new HashMap();
+	static Map<String, Integer> functionCostMap    = new HashMap();
+	static Map<String, Integer> jobCostMap         = new HashMap();
+	static Map<String, Double> jobContributionMap  = new HashMap();
 	
-	static def int getJobCost(Job it) {
+	static def int getJobCost(Job it)
+	{
 		if (it === null)
 			throw new Exception("Invalid parameter, passing 'null' as a Job")
 
@@ -178,6 +181,25 @@ class ComputeCostTransformation extends IrTransformationStep
 				val int ret = jobCostMap.getOrDefault(name, 0)
 				if (ret == 0)
 					throw new Exception("Cost of job '" + name + "' was not computed during transformation steps")
+				return ret
+				}
+
+			/* Things not handled */
+			TimeLoopJob: return 0
+			default: throw new Exception("Unknown Job type for " + it.toString)
+		}
+	}
+	
+	static def double getJobContribution(Job it)
+	{
+		if (it === null)
+			throw new Exception("Invalid parameter, passing 'null' as a Job")
+
+		switch it {
+			InstructionJob: {
+				val double ret = jobContributionMap.getOrDefault(name, 0.0)
+				if (ret == 0)
+					throw new Exception("Contribution of job '" + name + "' was not computed during transformation steps")
 				return ret
 				}
 
@@ -209,16 +231,33 @@ class ComputeCostTransformation extends IrTransformationStep
 	override transform(IrRoot ir) 
 	{
 		trace('    IR -> IR: ' + description + ':ComputeFunctionCost')
-
-		val functions = ir.eAllContents.filter(Function)
-		functions.forEach[evaluateCost]
+		ir.eAllContents.filter(Function).forEach[evaluateCost]
 
 		trace('    IR -> IR: ' + description + ':ComputeJobCost')
-		val jobs = ir.eAllContents.filter(Job)
-		jobs.forEach[evaluateCost]
+		ir.eAllContents.filter(Job).forEach[evaluateCost]
+		
+		trace('    IR -> IR: ' + description + ':ComputeContributions')
+		ir.eAllContents.filter(JobCaller).forEach[evaluateContribution]
 
 		reportHashMap('Cost', reverseHashMap(jobCostMap), 'Cost', ': ')
+		reportHashMap('Cost', reverseHashMap(jobContributionMap), 'Contribution', ': ')
 		return true
+	}
+	
+	/* Get the contribution from the cost */
+	
+	private def void evaluateContribution(JobCaller it)
+	{
+		if (it === null) { throw new Exception("Passing a NULL JobCaller") }
+
+		val double totalCost = calls.map[jobCost].reduce[ p1, p2 | p1 + p2 ] + 0.0
+
+		if (totalCost <= 0.0001) { throw new Exception("Null total cost found for JobCaller") }
+
+		calls.reject[ j | j instanceof TimeLoopJob || j instanceof ExecuteTimeLoopJob ].forEach[
+			val contrib = jobCost / totalCost // FIXME: Is there a moment where the totalCost can be 0 ?
+			jobContributionMap.put(name, contrib)
+		]
 	}
 	
 	/* Cost evaluation methods */
