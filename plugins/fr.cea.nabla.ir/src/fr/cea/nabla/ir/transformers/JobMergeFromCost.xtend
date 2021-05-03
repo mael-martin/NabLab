@@ -71,10 +71,7 @@ class JobMergeFromCost extends IrTransformationStep
 		trace('    IR -> IR: ' + description + ':VariableReport')
 		GlobalVariableIndexTypes.clear
 		ir.modules.filter[ t | t !== null ].forEach[ registerGlobalVariable ]
-		trace('        - Present index types are: ' + GlobalVariableIndexTypes.values.toSet.map[toString].reduce[ p1, p2 | p1 + ', ' + p2 ])
-		GlobalVariableIndexTypes.keySet.sort.forEach[ varname |
-			trace('        - ' + varname + '[' + GlobalVariableIndexTypes.get(varname) + ']')
-		]
+		reportHashMap('VariableIndex', reverseHashMap(GlobalVariableIndexTypes), 'Indexes:', ': ')
 
 		/* Synchronization coefficient and priorities */
 		val int max_at = ir.eAllContents.filter(Job).map[at].max.intValue
