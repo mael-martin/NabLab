@@ -86,6 +86,7 @@ abstract class OpenMPTaskProvider
 	
 	/* Close an unclosed task */
 	def abstract CharSequence closeUnclosedTask()
+	def abstract CharSequence closeUnclosedTaskWithPriority()
 }
 
 class OpenMPTaskClangProvider extends OpenMPTaskProvider
@@ -203,14 +204,20 @@ class OpenMPTaskClangProvider extends OpenMPTaskProvider
 	) { generateTask(parentJob, fp, shared, IN, OUT, inner) }
 
 	/* Close an unclosed task */
-	override CharSequence closeUnclosedTask()
-	'''
-	}
-	'''
+	override CharSequence closeUnclosedTask() '''}'''
+	override CharSequence closeUnclosedTaskWithPriority() { closeUnclosedTask }
 }
 
 class OpenMPTaskMPCProvider extends OpenMPTaskClangProvider
 {
+	/* Internal helper */
+	override CharSequence getSimpleTaskDirective(Set<String> fp, Set<String> shared)
+	'''
+		// clang-format off
+		#pragma omp task default(none)«
+		FOR v : fp.reject[ v | v.contains('::') ]    BEFORE ' firstprivate(' SEPARATOR ', ' AFTER ')'»«v.replaceAll('this->','')»«ENDFOR»«
+		FOR v : shared.reject[ v | v.contains('::')] BEFORE ' shared('       SEPARATOR ', ' AFTER ')'»«v.replaceAll('this->','')»«ENDFOR»'''
+
 	/* Simple task without dependencies */
 	override CharSequence generateTask(Job parentJob, Set<String> fp, Set<String> shared, int priority, CharSequence inner)
 	'''
@@ -275,9 +282,5 @@ class OpenMPTaskMPCProvider extends OpenMPTaskClangProvider
 	'''
 
 	/* Close an unclosed task */
-	override CharSequence closeUnclosedTask()
-	'''
-		}
-	}
-	'''
+	override CharSequence closeUnclosedTaskWithPriority() '''}}'''
 }
