@@ -211,6 +211,10 @@ class JobMergeFromCost extends IrTransformationStep
 	 		g.setEdgeWeight(source, old_source, 0)
 	 	}
 	 	
+	 	val testTask = IrFactory::eINSTANCE.createTaskInstruction => [
+	 		inVars += IrFactory::eINSTANCE.createTaskDependencyVariable => [ name = 'toto' indexType = 'NULL' index = '' ]
+	 	]
+	 	
 	 	return g
 	 }
 	
