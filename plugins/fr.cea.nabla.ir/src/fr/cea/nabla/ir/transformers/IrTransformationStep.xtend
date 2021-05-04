@@ -26,6 +26,11 @@ abstract class IrTransformationStep
 	{
 		traceListeners.forEach[apply(msg)]
 	}
+	
+	protected def void msg(String msg)
+	{
+		trace('        - ' + msg)
+	}
 
 	protected def <KEY extends Comparable<KEY>>
 	reportHashMap(String name, Map<KEY, Set<String>> hashmap, String first, String sep)

@@ -47,7 +47,7 @@ class JobMergeFromCost extends IrTransformationStep
 		super('JobDataflowComputations')
 	}
 
-	private enum INDEX_TYPE { NODES, CELLS, FACES, NULL } // Nabla first dimension index type
+	enum INDEX_TYPE { NODES, CELLS, FACES, NULL } // Nabla first dimension index type
 	private enum IMPL_TYPE  { BASE, ARRAY, CONNECTIVITY, LINEARALGEBRA, NULL } // Implementation type
 	
 	/* Coefficients for the granularity and the synchronization of a job => priority */
@@ -210,10 +210,6 @@ class JobMergeFromCost extends IrTransformationStep
 	 		g.addEdge(source, old_source)
 	 		g.setEdgeWeight(source, old_source, 0)
 	 	}
-	 	
-	 	val testTask = IrFactory::eINSTANCE.createTaskInstruction => [
-	 		inVars += IrFactory::eINSTANCE.createTaskDependencyVariable => [ name = 'toto' indexType = 'NULL' index = '' ]
-	 	]
 
 	 	return g
 	 }
@@ -331,6 +327,16 @@ class JobMergeFromCost extends IrTransformationStep
 				default: { }
 			}
 		}
+	}
+	
+	static def getVariableIndexType(String name)
+	{
+		return GlobalVariableIndexTypes.getOrDefault(name, INDEX_TYPE::NULL)
+	}
+
+	static def String getVariableIndexTypeAsString(String name)
+	{
+		return GlobalVariableIndexTypes.getOrDefault(name, INDEX_TYPE::NULL) + ""
 	}
 	
 	/**********************
