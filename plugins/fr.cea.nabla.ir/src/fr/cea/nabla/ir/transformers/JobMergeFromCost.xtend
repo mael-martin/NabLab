@@ -15,6 +15,7 @@ import fr.cea.nabla.ir.ir.ArgOrVarRef
 import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
+import fr.cea.nabla.ir.ir.IrFactory
 import fr.cea.nabla.ir.ir.IrModule
 import fr.cea.nabla.ir.ir.IrPackage
 import fr.cea.nabla.ir.ir.IrRoot
@@ -30,6 +31,8 @@ import java.util.HashMap
 import java.util.HashSet
 import java.util.Set
 import org.eclipse.xtend.lib.annotations.Data
+import org.jgrapht.graph.DefaultWeightedEdge
+import org.jgrapht.graph.DirectedWeightedPseudograph
 
 import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
 
@@ -51,6 +54,8 @@ class JobMergeFromCost extends IrTransformationStep
 	static final double priority_coefficient_task_granularity     = 10.0   // Granularity is not really important here, and it is already the greatest number
 	static final double priority_coefficient_task_synchronization = 30.0   // We mostly care about the synchronicity of the task
 	static final double priority_coefficient_task_at              = 40.0   // The @ influence the scheduling
+	
+	static val SourceNodeLabel = 'SourceJob'
 
 	override transform(IrRoot ir) 
 	{
@@ -62,7 +67,7 @@ class JobMergeFromCost extends IrTransformationStep
 
 		/* Set MAX_TASK_NUMBER = ncpu * max(concurrentJobs + 1) */
 		val max_concurrent_jobs = ir.eAllContents.filter(JobCaller).map[ jc |
-			val jobsByAt = jc.calls.groupBy[at]
+			val jobsByAt = jc.calls.groupBy[ at ]
 			jobsByAt.keySet.map[ at | jobsByAt.get(at).size ].max
 		].max
 		num_tasks = num_threads * (max_concurrent_jobs + 1);
@@ -84,6 +89,11 @@ class JobMergeFromCost extends IrTransformationStep
 		
 		reportHashMap('SynchroCoeffs', reverseHashMap(JobSynchroCoeffs),   'Synchro Coeff:',   ': ')
 		reportHashMap('Priority',      reverseHashMap(JobPriorities),      'Priority',         ': ')
+		
+		/* Get the DAG */
+		ir.eAllContents.filter(JobCaller).forEach[
+			val g = computeDAG
+		]
 
 		/* Return OK */
 		return true
@@ -166,6 +176,42 @@ class JobMergeFromCost extends IrTransformationStep
 
 		/* The number of produced variables, each one of these variable will contribute to another task */
 	 	JobSynchroCoeffs.put(name, mapped.apply(outVars))
+	 }
+	
+	/***********************************************************************
+	 * Compute the DAG with the minimal IN and to cost to pass by a vertex *
+	 * is its cost                                                         *
+	 ***********************************************************************/
+	 
+	 static private def computeDAG(JobCaller it)
+	 {
+	 	/* Create nodes */
+	 	val jobs = parallelJobs
+	 	val g    = new DirectedWeightedPseudograph<Job, DefaultWeightedEdge>(DefaultWeightedEdge)
+	 	jobs.forEach[ x | g.addVertex(x) ]
+	 	
+	 	/* FROM -> TO */
+	 	for (from : jobs) {
+	 		for (to : jobs.reject[ j | j.name == from.name ]) {
+	 			val FROM_OUTS = from.outVars
+	 			val TO_MIN_IN = to.minimalInVars
+	 			FROM_OUTS.retainAll(TO_MIN_IN)
+	 			if (FROM_OUTS.size > 0) {
+	 				g.addEdge(from, to)
+	 				g.setEdgeWeight(from, to, from.jobCost)
+	 			}
+	 		}
+	 	}
+	 	
+	 	/* Add source */
+	 	val source = IrFactory::eINSTANCE.createInstructionJob => [ name = SourceNodeLabel ]
+	 	g.addVertex(source)
+	 	for (old_source : g.vertexSet.filter[ v | v !== source && g.incomingEdgesOf(v).empty]) {
+	 		g.addEdge(source, old_source)
+	 		g.setEdgeWeight(source, old_source, 0)
+	 	}
+	 	
+	 	return g
 	 }
 	
 	/************************************
@@ -286,7 +332,7 @@ class JobMergeFromCost extends IrTransformationStep
 	/**********************
 	 * Get a Job priority *
 	 **********************/
-	 
+
 	 static private def void computeTaskPriorities(Job it, int max_at)
 	 {
 	 	/* ORDER_IN_DAG: Class of quality
@@ -304,8 +350,8 @@ class JobMergeFromCost extends IrTransformationStep
 	 	 
 	    val max_syncro = caller.parallelJobs.map[ JobSynchroCoeffs.getOrDefault(name, 0) ].reduce[ p1, p2 | p1 + p2 ]
 
-	 	val synchro     = (priority_coefficient_task_synchronization * (JobSynchroCoeffs.getOrDefault(name, 0) / max_syncro));
-	 	val granularity = (priority_coefficient_task_granularity * jobContribution);
+	 	val synchro     = priority_coefficient_task_synchronization * (JobSynchroCoeffs.getOrDefault(name, 0) / max_syncro);
+	 	val granularity = priority_coefficient_task_granularity * jobContribution;
 	 	val at_coeff    = priority_coefficient_task_at * ((max_at - at + 1) / max_at);
 	 	val priority    = at_coeff + synchro + granularity;
 	 	JobPriorities.put(name, priority.intValue)
