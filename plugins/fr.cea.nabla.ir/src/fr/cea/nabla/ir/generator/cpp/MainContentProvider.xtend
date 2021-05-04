@@ -17,6 +17,7 @@ import static extension fr.cea.nabla.ir.IrModuleExtensions.*
 import static extension fr.cea.nabla.ir.IrRootExtensions.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import fr.cea.nabla.ir.ir.ItemIdValueIterator
+import fr.cea.nabla.ir.transformers.JobMergeFromCost
 
 @Data
 class MainContentProvider
@@ -107,7 +108,7 @@ class MainContentProvider
 @Data
 class OpenMpTaskMainContentProvider extends MainContentProvider
 {
-	public static int num_threads       = 4;
+	public static int num_threads       = JobMergeFromCost.num_threads;
 	public static int max_active_levels = 1;
 	
 	protected override getSimulationCall(IrModule it)

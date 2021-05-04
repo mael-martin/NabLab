@@ -33,6 +33,7 @@ import static extension fr.cea.nabla.ir.IrRootExtensions.*
 import static extension fr.cea.nabla.ir.IrTypeExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+import fr.cea.nabla.ir.transformers.JobMergeFromCost
 
 class CppApplicationGenerator extends CppGenerator implements ApplicationGenerator
 {
@@ -329,24 +330,26 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				
 				/* Init */
 				size_t current_task = 0;
-				for (size_t i = 0; i < «OMPTaskMaxNumber»; ++i)
-				#pragma omp task firstprivate(i) shared(current_task)
+				omp_set_num_threads(«JobMergeFromCost.num_threads»);
+				#pragma omp parallel
 				{
-					«FOR idxtype : presentGlobalVariableTypes»
-					«val idxlimit = idxtype.variableIndexTypeLimit»
-					size_t limit_«idxtype» = (i != «OMPTaskMaxNumber - 1») ? ((«idxlimit» / «OMPTaskMaxNumber») * (i + 1)) : «idxlimit»;
-					«ENDFOR»
-					
-					while (i != current_task) {
-						#pragma omp taskyield
+					#pragma omp single nowait
+					{
+						for (size_t i = 0; i < «OMPTaskMaxNumber»; ++i)
+						#pragma omp task firstprivate(i) shared(current_task) depend(out: current_task) // In order
+						{
+							«FOR idxtype : presentGlobalVariableTypes»
+								«val idxlimit = idxtype.variableIndexTypeLimit»
+								size_t limit_«idxtype» = (i != «OMPTaskMaxNumber - 1») ? ((«idxlimit» / «OMPTaskMaxNumber») * (i + 1)) : «idxlimit»;
+							«ENDFOR»
+							«FOR v : variables.filter[needStaticAllocation]»
+								«val conn_type = v.type as ConnectivityType»
+								 «v.name».resize(«typeContentProvider.getCstrResize(v.name, conn_type.base, '''limit_«v.name.globalVariableType»''', conn_type.connectivities)»);
+							«ENDFOR»
+							
+							++current_task;
+						}
 					}
-
-					«FOR v : variables.filter[needStaticAllocation]»
-					«val conn_type = v.type as ConnectivityType»
-					 «v.name».resize(«typeContentProvider.getCstrResize(v.name, conn_type.base, '''limit_«v.name.globalVariableType»''', conn_type.connectivities)»);
-					«ENDFOR»
-					
-					++current_task;
 				}
 			}
 			/* END: First touch for data vectors */
