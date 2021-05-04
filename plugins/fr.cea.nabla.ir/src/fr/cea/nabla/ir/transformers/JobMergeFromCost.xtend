@@ -214,7 +214,7 @@ class JobMergeFromCost extends IrTransformationStep
 	 	val testTask = IrFactory::eINSTANCE.createTaskInstruction => [
 	 		inVars += IrFactory::eINSTANCE.createTaskDependencyVariable => [ name = 'toto' indexType = 'NULL' index = '' ]
 	 	]
-	 	
+
 	 	return g
 	 }
 	

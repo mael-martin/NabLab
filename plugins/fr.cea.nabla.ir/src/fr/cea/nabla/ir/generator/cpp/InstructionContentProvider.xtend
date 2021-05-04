@@ -28,10 +28,12 @@ import fr.cea.nabla.ir.ir.Loop
 import fr.cea.nabla.ir.ir.ReductionInstruction
 import fr.cea.nabla.ir.ir.Return
 import fr.cea.nabla.ir.ir.SetDefinition
+import fr.cea.nabla.ir.ir.TaskInstruction
 import fr.cea.nabla.ir.ir.Variable
 import fr.cea.nabla.ir.ir.VariableDeclaration
 import fr.cea.nabla.ir.ir.While
 import java.util.HashMap
+import java.util.HashSet
 import java.util.Set
 import org.eclipse.xtend.lib.annotations.Data
 import org.eclipse.xtext.EcoreUtil2
@@ -42,7 +44,6 @@ import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
-import java.util.HashSet
 
 @Data
 abstract class InstructionContentProvider
@@ -61,6 +62,8 @@ abstract class InstructionContentProvider
 			«initCppTypeContent(variable.name, variable.type)»
 		«ENDIF»
 	'''
+	
+	def dispatch CharSequence getContent(TaskInstruction it) { throw new Exception("Unsuported operation") }
 
 	def dispatch CharSequence getContent(InstructionBlock it)
 	'''
@@ -336,6 +339,11 @@ class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 	private def CharSequence getCurrentTASK() { return (counters.getOrDefault('Task', 0) == 1) ? auxString.get('TaskId') : null }
 	private def getChildTasks(InstructionBlock it) { return eAllContents.filter(Loop).filter[multithreadable].size + eAllContents.filter(ReductionInstruction).size }
 	private def isInsideAJob(IrAnnotable it) { (null !== EcoreUtil2.getContainerOfType(it, Job)) && (EcoreUtil2.getContainerOfType(it, Function) === null); }
+
+	override dispatch CharSequence getContent(TaskInstruction it)
+	{
+		throw new Exception("Unimplemented")
+	}
 	
 	private def getInnerContentInternal(InstructionBlock it)
 	{
