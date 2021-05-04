@@ -119,6 +119,13 @@ public class IrSwitch<T> extends Switch<T> {
 				if (result == null) result = defaultCase(theEObject);
 				return result;
 			}
+			case IrPackage.TASK_DEPENDENCY_VARIABLE: {
+				TaskDependencyVariable taskDependencyVariable = (TaskDependencyVariable)theEObject;
+				T result = caseTaskDependencyVariable(taskDependencyVariable);
+				if (result == null) result = caseIrAnnotable(taskDependencyVariable);
+				if (result == null) result = defaultCase(theEObject);
+				return result;
+			}
 			case IrPackage.ARG: {
 				Arg arg = (Arg)theEObject;
 				T result = caseArg(arg);
@@ -266,6 +273,14 @@ public class IrSwitch<T> extends Switch<T> {
 				T result = caseIterableInstruction(iterableInstruction);
 				if (result == null) result = caseInstruction(iterableInstruction);
 				if (result == null) result = caseIrAnnotable(iterableInstruction);
+				if (result == null) result = defaultCase(theEObject);
+				return result;
+			}
+			case IrPackage.TASK_INSTRUCTION: {
+				TaskInstruction taskInstruction = (TaskInstruction)theEObject;
+				T result = caseTaskInstruction(taskInstruction);
+				if (result == null) result = caseInstruction(taskInstruction);
+				if (result == null) result = caseIrAnnotable(taskInstruction);
 				if (result == null) result = defaultCase(theEObject);
 				return result;
 			}
@@ -700,6 +715,21 @@ public class IrSwitch<T> extends Switch<T> {
 	}
 
 	/**
+	 * Returns the result of interpreting the object as an instance of '<em>Task Dependency Variable</em>'.
+	 * <!-- begin-user-doc -->
+	 * This implementation returns null;
+	 * returning a non-null result will terminate the switch.
+	 * <!-- end-user-doc -->
+	 * @param object the target of the switch.
+	 * @return the result of interpreting the object as an instance of '<em>Task Dependency Variable</em>'.
+	 * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+	 * @generated
+	 */
+	public T caseTaskDependencyVariable(TaskDependencyVariable object) {
+		return null;
+	}
+
+	/**
 	 * Returns the result of interpreting the object as an instance of '<em>Arg</em>'.
 	 * <!-- begin-user-doc -->
 	 * This implementation returns null;
@@ -996,6 +1026,21 @@ public class IrSwitch<T> extends Switch<T> {
 	 * @generated
 	 */
 	public T caseIterableInstruction(IterableInstruction object) {
+		return null;
+	}
+
+	/**
+	 * Returns the result of interpreting the object as an instance of '<em>Task Instruction</em>'.
+	 * <!-- begin-user-doc -->
+	 * This implementation returns null;
+	 * returning a non-null result will terminate the switch.
+	 * <!-- end-user-doc -->
+	 * @param object the target of the switch.
+	 * @return the result of interpreting the object as an instance of '<em>Task Instruction</em>'.
+	 * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+	 * @generated
+	 */
+	public T caseTaskInstruction(TaskInstruction object) {
 		return null;
 	}
 

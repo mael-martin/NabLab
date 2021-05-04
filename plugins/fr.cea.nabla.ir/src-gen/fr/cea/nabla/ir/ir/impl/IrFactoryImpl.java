@@ -63,6 +63,7 @@ public class IrFactoryImpl extends EFactoryImpl implements IrFactory {
 			case IrPackage.POST_PROCESSING: return createPostProcessing();
 			case IrPackage.POST_PROCESSED_VARIABLE: return createPostProcessedVariable();
 			case IrPackage.EXTENSION_PROVIDER: return createExtensionProvider();
+			case IrPackage.TASK_DEPENDENCY_VARIABLE: return createTaskDependencyVariable();
 			case IrPackage.ARG: return createArg();
 			case IrPackage.VARIABLE: return createVariable();
 			case IrPackage.INTERN_FUNCTION: return createInternFunction();
@@ -77,6 +78,7 @@ public class IrFactoryImpl extends EFactoryImpl implements IrFactory {
 			case IrPackage.INSTRUCTION_BLOCK: return createInstructionBlock();
 			case IrPackage.VARIABLE_DECLARATION: return createVariableDeclaration();
 			case IrPackage.AFFECTATION: return createAffectation();
+			case IrPackage.TASK_INSTRUCTION: return createTaskInstruction();
 			case IrPackage.REDUCTION_INSTRUCTION: return createReductionInstruction();
 			case IrPackage.LOOP: return createLoop();
 			case IrPackage.ITEM_INDEX_DEFINITION: return createItemIndexDefinition();
@@ -202,6 +204,17 @@ public class IrFactoryImpl extends EFactoryImpl implements IrFactory {
 	public ExtensionProvider createExtensionProvider() {
 		ExtensionProviderImpl extensionProvider = new ExtensionProviderImpl();
 		return extensionProvider;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public TaskDependencyVariable createTaskDependencyVariable() {
+		TaskDependencyVariableImpl taskDependencyVariable = new TaskDependencyVariableImpl();
+		return taskDependencyVariable;
 	}
 
 	/**
@@ -367,6 +380,17 @@ public class IrFactoryImpl extends EFactoryImpl implements IrFactory {
 	public Affectation createAffectation() {
 		AffectationImpl affectation = new AffectationImpl();
 		return affectation;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public TaskInstruction createTaskInstruction() {
+		TaskInstructionImpl taskInstruction = new TaskInstructionImpl();
+		return taskInstruction;
 	}
 
 	/**

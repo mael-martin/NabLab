@@ -82,6 +82,11 @@
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//ArgOrVar/name"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//ArgOrVar/type"/>
     </genClasses>
+    <genClasses ecoreClass="Ir.ecore#//TaskDependencyVariable">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//TaskDependencyVariable/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//TaskDependencyVariable/indexType"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//TaskDependencyVariable/index"/>
+    </genClasses>
     <genClasses ecoreClass="Ir.ecore#//Arg"/>
     <genClasses image="false" ecoreClass="Ir.ecore#//Variable">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//Variable/defaultValue"/>
@@ -149,6 +154,12 @@
     </genClasses>
     <genClasses image="false" ecoreClass="Ir.ecore#//IterableInstruction">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//IterableInstruction/iterationBlock"/>
+    </genClasses>
+    <genClasses image="false" ecoreClass="Ir.ecore#//TaskInstruction">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//TaskInstruction/content"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//TaskInstruction/inVars"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//TaskInstruction/outVars"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//TaskInstruction/minimalInVars"/>
     </genClasses>
     <genClasses ecoreClass="Ir.ecore#//ReductionInstruction">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//ReductionInstruction/innerInstructions"/>

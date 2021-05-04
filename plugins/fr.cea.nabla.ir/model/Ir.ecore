@@ -95,6 +95,17 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="type" lowerBound="1" eType="#//IrType"
         containment="true"/>
   </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="TaskDependencyVariable" abstract="false" eSuperTypes="#//IrAnnotable">
+        <!-- The connectivity name: innerCells, etc -->
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+
+        <!-- The type of the first dimension index: NULL, CELLS, NODES, FACES -->
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="indexType" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+
+        <!-- The index in the variables: 10, '3', '' (for NULL), i.e. which part of the loop: will be transformed into: '10 * (nbCells/nbTasks)', '3 * (nbCells/nbTasks)', nothing -->
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="index" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+
+  </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Arg" eSuperTypes="#//ArgOrVar"/>
   <eClassifiers xsi:type="ecore:EClass" name="Variable" eSuperTypes="#//ArgOrVar">
     <eStructuralFeatures xsi:type="ecore:EReference" name="defaultValue" eType="#//Expression"
@@ -196,6 +207,16 @@
       eSuperTypes="#//Instruction">
     <eStructuralFeatures xsi:type="ecore:EReference" name="iterationBlock" lowerBound="1"
         eType="#//IterationBlock" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="TaskInstruction" abstract="false" eSuperTypes="#//Instruction">
+        <!-- The content of this task -->
+        <eStructuralFeatures xsi:type="ecore:EReference" name="content" lowerBound="1" eType="#//Instruction" containment="true" resolveProxies="false"/>
+
+        <!-- The DF: IN/OUT and the minimal needed IN variables. Use the 'TaskDependencyVariable' because each dependency can be indexed by a connectivity and the current task can only manipulate a part of the variable -->
+        <eStructuralFeatures xsi:type="ecore:EReference" name="inVars"        upperBound="-1" eType="ecore:EDataType #//TaskDependencyVariable" containment="true" resolveProxies="false"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="outVars"       upperBound="-1" eType="ecore:EDataType #//TaskDependencyVariable" containment="true" resolveProxies="false"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="minimalInVars" upperBound="-1" eType="ecore:EDataType #//TaskDependencyVariable" containment="true" resolveProxies="false"/>
+
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="ReductionInstruction" eSuperTypes="#//IterableInstruction">
     <eStructuralFeatures xsi:type="ecore:EReference" name="innerInstructions" upperBound="-1"

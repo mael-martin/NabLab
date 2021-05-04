@@ -76,6 +76,15 @@ public interface IrFactory extends EFactory {
 	ExtensionProvider createExtensionProvider();
 
 	/**
+	 * Returns a new object of class '<em>Task Dependency Variable</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Task Dependency Variable</em>'.
+	 * @generated
+	 */
+	TaskDependencyVariable createTaskDependencyVariable();
+
+	/**
 	 * Returns a new object of class '<em>Arg</em>'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -200,6 +209,15 @@ public interface IrFactory extends EFactory {
 	 * @generated
 	 */
 	Affectation createAffectation();
+
+	/**
+	 * Returns a new object of class '<em>Task Instruction</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Task Instruction</em>'.
+	 * @generated
+	 */
+	TaskInstruction createTaskInstruction();
 
 	/**
 	 * Returns a new object of class '<em>Reduction Instruction</em>'.

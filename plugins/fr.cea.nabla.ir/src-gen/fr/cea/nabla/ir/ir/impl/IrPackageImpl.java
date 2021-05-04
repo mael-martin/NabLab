@@ -64,6 +64,8 @@ import fr.cea.nabla.ir.ir.Return;
 import fr.cea.nabla.ir.ir.SetDefinition;
 import fr.cea.nabla.ir.ir.SetRef;
 import fr.cea.nabla.ir.ir.SetUpTimeLoopJob;
+import fr.cea.nabla.ir.ir.TaskDependencyVariable;
+import fr.cea.nabla.ir.ir.TaskInstruction;
 import fr.cea.nabla.ir.ir.TearDownTimeLoopJob;
 import fr.cea.nabla.ir.ir.TimeLoopCopy;
 import fr.cea.nabla.ir.ir.TimeLoopJob;
@@ -136,6 +138,13 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 	 * @generated
 	 */
 	private EClass argOrVarEClass = null;
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	private EClass taskDependencyVariableEClass = null;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -276,6 +285,13 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 	 * @generated
 	 */
 	private EClass iterableInstructionEClass = null;
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	private EClass taskInstructionEClass = null;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -1048,6 +1064,46 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 	 * @generated
 	 */
 	@Override
+	public EClass getTaskDependencyVariable() {
+		return taskDependencyVariableEClass;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EAttribute getTaskDependencyVariable_Name() {
+		return (EAttribute)taskDependencyVariableEClass.getEStructuralFeatures().get(0);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EAttribute getTaskDependencyVariable_IndexType() {
+		return (EAttribute)taskDependencyVariableEClass.getEStructuralFeatures().get(1);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EAttribute getTaskDependencyVariable_Index() {
+		return (EAttribute)taskDependencyVariableEClass.getEStructuralFeatures().get(2);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public EClass getArg() {
 		return argEClass;
 	}
@@ -1610,6 +1666,56 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 	@Override
 	public EReference getIterableInstruction_IterationBlock() {
 		return (EReference)iterableInstructionEClass.getEStructuralFeatures().get(0);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EClass getTaskInstruction() {
+		return taskInstructionEClass;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EReference getTaskInstruction_Content() {
+		return (EReference)taskInstructionEClass.getEStructuralFeatures().get(0);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EReference getTaskInstruction_InVars() {
+		return (EReference)taskInstructionEClass.getEStructuralFeatures().get(1);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EReference getTaskInstruction_OutVars() {
+		return (EReference)taskInstructionEClass.getEStructuralFeatures().get(2);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EReference getTaskInstruction_MinimalInVars() {
+		return (EReference)taskInstructionEClass.getEStructuralFeatures().get(3);
 	}
 
 	/**
@@ -2764,6 +2870,11 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 		createEAttribute(argOrVarEClass, ARG_OR_VAR__NAME);
 		createEReference(argOrVarEClass, ARG_OR_VAR__TYPE);
 
+		taskDependencyVariableEClass = createEClass(TASK_DEPENDENCY_VARIABLE);
+		createEAttribute(taskDependencyVariableEClass, TASK_DEPENDENCY_VARIABLE__NAME);
+		createEAttribute(taskDependencyVariableEClass, TASK_DEPENDENCY_VARIABLE__INDEX_TYPE);
+		createEAttribute(taskDependencyVariableEClass, TASK_DEPENDENCY_VARIABLE__INDEX);
+
 		argEClass = createEClass(ARG);
 
 		variableEClass = createEClass(VARIABLE);
@@ -2835,6 +2946,12 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 
 		iterableInstructionEClass = createEClass(ITERABLE_INSTRUCTION);
 		createEReference(iterableInstructionEClass, ITERABLE_INSTRUCTION__ITERATION_BLOCK);
+
+		taskInstructionEClass = createEClass(TASK_INSTRUCTION);
+		createEReference(taskInstructionEClass, TASK_INSTRUCTION__CONTENT);
+		createEReference(taskInstructionEClass, TASK_INSTRUCTION__IN_VARS);
+		createEReference(taskInstructionEClass, TASK_INSTRUCTION__OUT_VARS);
+		createEReference(taskInstructionEClass, TASK_INSTRUCTION__MINIMAL_IN_VARS);
 
 		reductionInstructionEClass = createEClass(REDUCTION_INSTRUCTION);
 		createEReference(reductionInstructionEClass, REDUCTION_INSTRUCTION__INNER_INSTRUCTIONS);
@@ -3020,6 +3137,7 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 		postProcessingEClass.getESuperTypes().add(this.getIrAnnotable());
 		extensionProviderEClass.getESuperTypes().add(this.getIrAnnotable());
 		argOrVarEClass.getESuperTypes().add(this.getIrAnnotable());
+		taskDependencyVariableEClass.getESuperTypes().add(this.getIrAnnotable());
 		argEClass.getESuperTypes().add(this.getArgOrVar());
 		variableEClass.getESuperTypes().add(this.getArgOrVar());
 		functionEClass.getESuperTypes().add(this.getIrAnnotable());
@@ -3040,6 +3158,7 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 		variableDeclarationEClass.getESuperTypes().add(this.getInstruction());
 		affectationEClass.getESuperTypes().add(this.getInstruction());
 		iterableInstructionEClass.getESuperTypes().add(this.getInstruction());
+		taskInstructionEClass.getESuperTypes().add(this.getInstruction());
 		reductionInstructionEClass.getESuperTypes().add(this.getIterableInstruction());
 		loopEClass.getESuperTypes().add(this.getIterableInstruction());
 		itemIndexDefinitionEClass.getESuperTypes().add(this.getInstruction());
@@ -3136,6 +3255,11 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 		initEAttribute(getArgOrVar_Name(), ecorePackage.getEString(), "name", null, 1, 1, ArgOrVar.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEReference(getArgOrVar_Type(), this.getIrType(), null, "type", null, 1, 1, ArgOrVar.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
+		initEClass(taskDependencyVariableEClass, TaskDependencyVariable.class, "TaskDependencyVariable", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+		initEAttribute(getTaskDependencyVariable_Name(), ecorePackage.getEString(), "name", null, 1, 1, TaskDependencyVariable.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getTaskDependencyVariable_IndexType(), ecorePackage.getEString(), "indexType", null, 1, 1, TaskDependencyVariable.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getTaskDependencyVariable_Index(), ecorePackage.getEString(), "index", null, 1, 1, TaskDependencyVariable.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
 		initEClass(argEClass, Arg.class, "Arg", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
 		initEClass(variableEClass, Variable.class, "Variable", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
@@ -3207,6 +3331,12 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 
 		initEClass(iterableInstructionEClass, IterableInstruction.class, "IterableInstruction", IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 		initEReference(getIterableInstruction_IterationBlock(), this.getIterationBlock(), null, "iterationBlock", null, 1, 1, IterableInstruction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+		initEClass(taskInstructionEClass, TaskInstruction.class, "TaskInstruction", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+		initEReference(getTaskInstruction_Content(), this.getInstruction(), null, "content", null, 1, 1, TaskInstruction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEReference(getTaskInstruction_InVars(), this.getTaskDependencyVariable(), null, "inVars", null, 0, -1, TaskInstruction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEReference(getTaskInstruction_OutVars(), this.getTaskDependencyVariable(), null, "outVars", null, 0, -1, TaskInstruction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEReference(getTaskInstruction_MinimalInVars(), this.getTaskDependencyVariable(), null, "minimalInVars", null, 0, -1, TaskInstruction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(reductionInstructionEClass, ReductionInstruction.class, "ReductionInstruction", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 		initEReference(getReductionInstruction_InnerInstructions(), this.getInstruction(), null, "innerInstructions", null, 0, -1, ReductionInstruction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);

@@ -100,6 +100,10 @@ public class IrAdapterFactory extends AdapterFactoryImpl {
 				return createArgOrVarAdapter();
 			}
 			@Override
+			public Adapter caseTaskDependencyVariable(TaskDependencyVariable object) {
+				return createTaskDependencyVariableAdapter();
+			}
+			@Override
 			public Adapter caseArg(Arg object) {
 				return createArgAdapter();
 			}
@@ -174,6 +178,10 @@ public class IrAdapterFactory extends AdapterFactoryImpl {
 			@Override
 			public Adapter caseIterableInstruction(IterableInstruction object) {
 				return createIterableInstructionAdapter();
+			}
+			@Override
+			public Adapter caseTaskInstruction(TaskInstruction object) {
+				return createTaskInstructionAdapter();
 			}
 			@Override
 			public Adapter caseReductionInstruction(ReductionInstruction object) {
@@ -458,6 +466,20 @@ public class IrAdapterFactory extends AdapterFactoryImpl {
 	}
 
 	/**
+	 * Creates a new adapter for an object of class '{@link fr.cea.nabla.ir.ir.TaskDependencyVariable <em>Task Dependency Variable</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see fr.cea.nabla.ir.ir.TaskDependencyVariable
+	 * @generated
+	 */
+	public Adapter createTaskDependencyVariableAdapter() {
+		return null;
+	}
+
+	/**
 	 * Creates a new adapter for an object of class '{@link fr.cea.nabla.ir.ir.Arg <em>Arg</em>}'.
 	 * <!-- begin-user-doc -->
 	 * This default implementation returns null so that we can easily ignore cases;
@@ -734,6 +756,20 @@ public class IrAdapterFactory extends AdapterFactoryImpl {
 	 * @generated
 	 */
 	public Adapter createIterableInstructionAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link fr.cea.nabla.ir.ir.TaskInstruction <em>Task Instruction</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see fr.cea.nabla.ir.ir.TaskInstruction
+	 * @generated
+	 */
+	public Adapter createTaskInstructionAdapter() {
 		return null;
 	}
 
