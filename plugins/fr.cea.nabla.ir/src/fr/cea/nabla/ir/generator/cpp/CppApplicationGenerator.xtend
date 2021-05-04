@@ -19,10 +19,12 @@ import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.InternFunction
 import fr.cea.nabla.ir.ir.IrModule
 import fr.cea.nabla.ir.ir.IrRoot
+import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.Variable
-import fr.cea.nabla.ir.ir.Job
-import fr.cea.nabla.ir.ir.JobCaller
+import fr.cea.nabla.ir.transformers.IrTransformationStep
+import fr.cea.nabla.ir.transformers.IrTransformationTasks
+import fr.cea.nabla.ir.transformers.JobMergeFromCost
 import java.util.ArrayList
 import java.util.LinkedHashSet
 
@@ -33,7 +35,6 @@ import static extension fr.cea.nabla.ir.IrRootExtensions.*
 import static extension fr.cea.nabla.ir.IrTypeExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
-import fr.cea.nabla.ir.transformers.JobMergeFromCost
 
 class CppApplicationGenerator extends CppGenerator implements ApplicationGenerator
 {
@@ -49,6 +50,14 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		// Set WS_PATH variables in CMake and unzip NRepository if necessary
 		this.cMakeVars += new Pair(CMakeContentProvider.WS_PATH, wsPath)
 		UnzipHelper::unzipNRepository(wsPath)
+	}
+
+	override IrTransformationStep getIrTransformationStep()
+	{
+		if (backend instanceof OpenMpTaskBackend) {
+			return new IrTransformationTasks()
+		}
+		return null
 	}
 
 	override getGenerationContents(IrRoot ir)

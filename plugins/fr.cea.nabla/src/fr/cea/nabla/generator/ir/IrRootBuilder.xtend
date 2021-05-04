@@ -15,13 +15,13 @@ import fr.cea.nabla.generator.NablaGeneratorMessageDispatcher.MessageType
 import fr.cea.nabla.generator.NablagenExtensionHelper
 import fr.cea.nabla.ir.ir.IrRoot
 import fr.cea.nabla.ir.transformers.CompositeTransformationStep
+import fr.cea.nabla.ir.transformers.ComputeCostTransformation
 import fr.cea.nabla.ir.transformers.FillJobHLTs
+import fr.cea.nabla.ir.transformers.JobMergeFromCost
 import fr.cea.nabla.ir.transformers.OptimizeConnectivities
 import fr.cea.nabla.ir.transformers.ReplaceAffectations
 import fr.cea.nabla.ir.transformers.ReplaceReductions
 import fr.cea.nabla.ir.transformers.ReplaceUtf8Chars
-import fr.cea.nabla.ir.transformers.ComputeCostTransformation
-import fr.cea.nabla.ir.transformers.JobMergeFromCost
 import fr.cea.nabla.nablagen.NablagenApplication
 import fr.cea.nabla.nablagen.TargetType
 import org.eclipse.emf.ecore.EObject
