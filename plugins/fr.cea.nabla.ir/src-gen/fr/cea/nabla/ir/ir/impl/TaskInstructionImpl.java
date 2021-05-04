@@ -146,7 +146,7 @@ public class TaskInstructionImpl extends InstructionImpl implements TaskInstruct
 	@Override
 	public EList<TaskDependencyVariable> getInVars() {
 		if (inVars == null) {
-			inVars = new EObjectContainmentEList<TaskDependencyVariable>(TaskDependencyVariable.class, this, IrPackage.TASK_INSTRUCTION__IN_VARS);
+			inVars = new EObjectContainmentEList.Resolving<TaskDependencyVariable>(TaskDependencyVariable.class, this, IrPackage.TASK_INSTRUCTION__IN_VARS);
 		}
 		return inVars;
 	}
@@ -159,7 +159,7 @@ public class TaskInstructionImpl extends InstructionImpl implements TaskInstruct
 	@Override
 	public EList<TaskDependencyVariable> getOutVars() {
 		if (outVars == null) {
-			outVars = new EObjectContainmentEList<TaskDependencyVariable>(TaskDependencyVariable.class, this, IrPackage.TASK_INSTRUCTION__OUT_VARS);
+			outVars = new EObjectContainmentEList.Resolving<TaskDependencyVariable>(TaskDependencyVariable.class, this, IrPackage.TASK_INSTRUCTION__OUT_VARS);
 		}
 		return outVars;
 	}
@@ -172,7 +172,7 @@ public class TaskInstructionImpl extends InstructionImpl implements TaskInstruct
 	@Override
 	public EList<TaskDependencyVariable> getMinimalInVars() {
 		if (minimalInVars == null) {
-			minimalInVars = new EObjectContainmentEList<TaskDependencyVariable>(TaskDependencyVariable.class, this, IrPackage.TASK_INSTRUCTION__MINIMAL_IN_VARS);
+			minimalInVars = new EObjectContainmentEList.Resolving<TaskDependencyVariable>(TaskDependencyVariable.class, this, IrPackage.TASK_INSTRUCTION__MINIMAL_IN_VARS);
 		}
 		return minimalInVars;
 	}

@@ -143,9 +143,9 @@
         <eStructuralFeatures xsi:type="ecore:EReference" name="content" lowerBound="1" eType="#//Instruction" containment="true" resolveProxies="false"/>
 
         <!-- The DF: IN/OUT and the minimal needed IN variables. Use the 'TaskDependencyVariable' because each dependency can be indexed by a connectivity and the current task can only manipulate a part of the variable -->
-        <eStructuralFeatures xsi:type="ecore:EReference" name="inVars"        upperBound="-1" eType="ecore:EDataType #//TaskDependencyVariable"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="outVars"       upperBound="-1" eType="ecore:EDataType #//TaskDependencyVariable"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="minimalInVars" upperBound="-1" eType="ecore:EDataType #//TaskDependencyVariable"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="inVars"        upperBound="-1" eType="ecore:EDataType #//TaskDependencyVariable" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="outVars"       upperBound="-1" eType="ecore:EDataType #//TaskDependencyVariable" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="minimalInVars" upperBound="-1" eType="ecore:EDataType #//TaskDependencyVariable" containment="true"/>
 
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="ReductionInstruction" eSuperTypes="#//IterableInstruction">

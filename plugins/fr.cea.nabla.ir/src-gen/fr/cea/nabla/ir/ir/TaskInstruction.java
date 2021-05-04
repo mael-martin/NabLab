@@ -54,7 +54,7 @@ public interface TaskInstruction extends Instruction {
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>In Vars</em>' containment reference list.
 	 * @see fr.cea.nabla.ir.ir.IrPackage#getTaskInstruction_InVars()
-	 * @model containment="true"
+	 * @model containment="true" resolveProxies="true"
 	 * @generated
 	 */
 	EList<TaskDependencyVariable> getInVars();
@@ -66,7 +66,7 @@ public interface TaskInstruction extends Instruction {
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Out Vars</em>' containment reference list.
 	 * @see fr.cea.nabla.ir.ir.IrPackage#getTaskInstruction_OutVars()
-	 * @model containment="true"
+	 * @model containment="true" resolveProxies="true"
 	 * @generated
 	 */
 	EList<TaskDependencyVariable> getOutVars();
@@ -78,7 +78,7 @@ public interface TaskInstruction extends Instruction {
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Minimal In Vars</em>' containment reference list.
 	 * @see fr.cea.nabla.ir.ir.IrPackage#getTaskInstruction_MinimalInVars()
-	 * @model containment="true"
+	 * @model containment="true" resolveProxies="true"
 	 * @generated
 	 */
 	EList<TaskDependencyVariable> getMinimalInVars();
