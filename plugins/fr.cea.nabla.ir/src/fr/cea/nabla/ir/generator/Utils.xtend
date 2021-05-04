@@ -93,7 +93,7 @@ class Utils
 		 * Job «getCodeName» called @«at» in «caller.codeName» method.
 		 * In [«FOR v : minimalInVars BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
 		 * Out [«FOR v : outVars.sortBy[name] BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
-		 * Cost: «val jc = jobCost»«IF jc != 0»«jc»«ELSE»N/A«ENDIF»
+		 * Cost: «val jc = jobContribution»«IF jc != 0»«jc»«ELSE»N/A«ENDIF»
 		 */
 	'''
 
