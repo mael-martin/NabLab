@@ -9,6 +9,7 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.transformers
 
+import fr.cea.nabla.ir.LoopLevelGetter
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.ir.InstructionJob
 import fr.cea.nabla.ir.ir.IrModule
@@ -21,6 +22,7 @@ import java.util.HashMap
 import org.eclipse.xtext.EcoreUtil2
 
 import static fr.cea.nabla.ir.TaskExtensions.*
+import static fr.cea.nabla.ir.LoopLevelGetter.*
 
 class IrTransformationTasks extends IrTransformationStep
 {
@@ -38,7 +40,8 @@ class IrTransformationTasks extends IrTransformationStep
 		trace('    IR -> IR: ' + description)
 		trace('    IR -> IR: ' + description + ':Sub:CreateSimpleTasks')
 		replaceNonLoopJobs(ir)
-		trace('    IR -> IR: ' + description + ':Sub:CreateSuperTasks -> Unimplemented')
+		trace('    IR -> IR: ' + description + ':Sub:CreateSuperTasks')
+		replaceSuperTasks(ir)
 		trace('    IR -> IR: ' + description + ':Sub:CreateIterableInstructionTasks')
 		replaceIterableInstructionJobs(ir)
 		trace('    IR -> IR: ' + description + ':Verification')
@@ -51,11 +54,16 @@ class IrTransformationTasks extends IrTransformationStep
 	assertAllJobsTouched(IrRoot ir)
 	{
 		ir.eAllContents.filter(Job)
-			.reject[ j | ! (j instanceof ExecuteTimeLoopJob) ] 		// Don't need them
-			.map[ j | TouchedJobs.getOrDefault(j.name, 0) == 1 ]	// Is the job touched?
-			.reduce[ t1, t2 | t1 && t2 ]							// All jobs are to be touched
+			.filter[ j | ! (j instanceof ExecuteTimeLoopJob) ] // Don't need them
+			.map[ j |
+				val visited = TouchedJobs.getOrDefault(j.name, 0) == 1
+				if (!visited)
+					msg('Job ' + j.name + '@' + j.at + ' is not marked as touched')
+				return visited
+			]
+			.reduce[ t1, t2 | t1 && t2 ] // All jobs are to be touched
 	}
-	
+
 	private def void
 	replaceTimeLoopJob(TimeLoopJob to_replace, Job replacement)
 	{
@@ -73,9 +81,32 @@ class IrTransformationTasks extends IrTransformationStep
 		mod.jobs.add(replacement)
 	}
 	
+	private def boolean
+	jobMustBeSuperTask(InstructionJob j)
+	{
+		val lget  = new LoopLevelGetter(j.instruction)
+		val loops = lget.firstLevelLoop.toSet
+		return ! isSameConnectivity(loops)
+	}
+	
+	private def void
+	replaceSuperTasks(IrRoot ir)
+	{
+		for (j : ir.eAllContents.filter(Job)
+								.filter[ k | k instanceof InstructionJob ]
+								.filter[ k |
+									jobMustBeSuperTask(k as InstructionJob) && TouchedJobs.getOrDefault(k.name, 0) == 0
+								].toList) {
+			msg('Job ' + j.name + '@' + j.at + ' must be a SuperTask')
+			TouchedJobs.put(j.name, 1)
+		}
+	}
+	
 	private def void
 	___replaceIterableInstructionJobs(InstructionJob j)
 	{
+		msg('Job ' + j.name + '@' + j.at + ' is a slice-able job')
+		TouchedJobs.put(j.name, 1)
 	}
 	
 	private def void
@@ -85,7 +116,8 @@ class IrTransformationTasks extends IrTransformationStep
 			j instanceof ExecuteTimeLoopJob 				/* Won't be inside the // region */
 		].filter[ j |
 			(TouchedJobs.getOrDefault(j.name, 0) == 0) && 	/* Not already touched jobs (Super Tasks already done) */
-			(j instanceof InstructionJob) 					/* Get only instruction jobs here, because II are inside them */
+			(j instanceof InstructionJob) &&				/* Get only instruction jobs here, because II are inside them */
+			!(jobMustBeSuperTask(j as InstructionJob))		/* No super task here */
 		].toList) {
 			___replaceIterableInstructionJobs(j as InstructionJob)
 		}

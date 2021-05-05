@@ -9,20 +9,123 @@
  *******************************************************************************/
 package fr.cea.nabla.ir
 
+import fr.cea.nabla.ir.ir.Affectation
+import fr.cea.nabla.ir.ir.ConnectivityCall
 import fr.cea.nabla.ir.ir.ConnectivityType
+import fr.cea.nabla.ir.ir.Exit
+import fr.cea.nabla.ir.ir.If
+import fr.cea.nabla.ir.ir.Instruction
+import fr.cea.nabla.ir.ir.InstructionBlock
 import fr.cea.nabla.ir.ir.InstructionJob
+import fr.cea.nabla.ir.ir.Interval
 import fr.cea.nabla.ir.ir.IrFactory
+import fr.cea.nabla.ir.ir.ItemIdDefinition
+import fr.cea.nabla.ir.ir.ItemIndexDefinition
+import fr.cea.nabla.ir.ir.IterableInstruction
+import fr.cea.nabla.ir.ir.Iterator
+import fr.cea.nabla.ir.ir.Loop
+import fr.cea.nabla.ir.ir.ReductionInstruction
+import fr.cea.nabla.ir.ir.Return
+import fr.cea.nabla.ir.ir.SetDefinition
 import fr.cea.nabla.ir.ir.TaskDependencyVariable
 import fr.cea.nabla.ir.ir.TaskInstruction
 import fr.cea.nabla.ir.ir.TimeLoopCopy
 import fr.cea.nabla.ir.ir.TimeLoopCopyInstruction
 import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.Variable
+import fr.cea.nabla.ir.ir.VariableDeclaration
+import fr.cea.nabla.ir.ir.While
+import java.util.HashMap
+import java.util.HashSet
 import java.util.List
+import java.util.Map
+import java.util.Set
 import java.util.stream.IntStream
 import org.eclipse.emf.common.util.EList
 
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
+
+class LoopLevelGetter
+{
+	static def boolean
+	isSameConnectivity(Set<IterableInstruction> insts)
+	{
+		val itbs      = insts.map[ iterationBlock ]
+		val iterators = itbs.filter(Iterator)
+		val interval  = itbs.filter(Interval)
+		
+		/* Don't speak the same language => not the same thing we iterate over */
+		if (iterators.size != 0 && interval.size != 0)
+			return false
+
+		if (iterators.size != 0) {
+			/* Connectivities! */
+			return iterators
+				.map[ it | (container as ConnectivityCall).connectivity.name ] 	/* Grep the name of all the connectivities */
+				.toSet															/* In a set, get ride of duplicates */
+				.size == 1														/* If all the connectivities where equal, the size is 1 */
+		}
+
+		if (interval.size != 0) {
+			/* 0 -> N
+			 * false because we want to put them all into a SuperTask, that thing is not slice-able */
+			return false
+		}
+		
+		/* #interval == 0 && #iterators == 0, this is not slice-able */
+		return false
+	}
+	
+	new(Instruction i)
+	{
+		loops		 = new HashMap<Integer, Set<IterableInstruction>>();
+		currentLevel = 0
+		parseLoops(i)
+	}
+	
+	var Map<Integer, Set<IterableInstruction>> loops /* First level loops */
+	int currentLevel								 /* Current level of the parsed instruction */
+	
+	/* Get the First Level Loops */
+	def Set<IterableInstruction>
+	getFirstLevelLoop()
+	{
+		if (loops.size == 0)
+			return #[].toSet
+
+		val level = loops.keySet.min
+		return loops.getOrDefault(level, new HashSet());
+	}
+	
+	/* Parse and copy the first level loops */
+	private def void
+	parseLoops(Instruction it)
+	{
+		switch it {
+			VariableDeclaration | Affectation | TaskInstruction | ItemIndexDefinition | ItemIdDefinition | SetDefinition | If | While | Return | Exit: {
+				/* Pass it */
+			}
+
+			Loop | ReductionInstruction: {
+				/* Register the loop */
+				val set = loops.getOrDefault(currentLevel, new HashSet())
+				set.add(it)
+				loops.put(currentLevel, set)
+			}
+
+			IterableInstruction: {
+				throw new Exception("Unsupported II, use only loops and reduction")
+			}
+
+			InstructionBlock: {
+				/* Before the first loop levels, go find the loops */
+				currentLevel += 1
+				instructions.forEach[ parseLoops ]
+				currentLevel -= 1
+			}
+		}
+	}
+}
 
 class TaskExtensions
 {
