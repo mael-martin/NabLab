@@ -29,11 +29,13 @@ class IrTransformationTasks extends IrTransformationStep
 	new()
 	{
 		super('IrTransformationTasks')
+		TouchedJobs = new HashMap();
 	}
 	
-	var HashMap<String, Integer> TouchedJobs = new HashMap();
+	var HashMap<String, Integer> TouchedJobs;	/* Keep track of visited jobs */
 
-	override transform(IrRoot ir)
+	override boolean
+	transform(IrRoot ir)
 	{
 		trace('    IR -> IR: ' + description)
 		trace('    IR -> IR: ' + description + ':Sub:CreateSimpleTasks')
@@ -41,10 +43,23 @@ class IrTransformationTasks extends IrTransformationStep
 		trace('    IR -> IR: ' + description + ':Sub:CreateSuperTasks -> Unimplemented')
 		trace('    IR -> IR: ' + description + ':Sub:CreateIterableInstructionTasks')
 		replaceIterableInstructionJobs(ir)
-		return true
+		trace('    IR -> IR: ' + description + ':Verification')
+		val ok = assertAllJobsTouched(ir)
+		msg('status: ' + ok)
+		return ok
 	}
 	
-	private def void replaceTimeLoopJob(TimeLoopJob to_replace, Job replacement)
+	private def boolean
+	assertAllJobsTouched(IrRoot ir)
+	{
+		ir.eAllContents.filter(Job)
+			.reject[ j | ! (j instanceof ExecuteTimeLoopJob) ] 		// Don't need them
+			.map[ j | TouchedJobs.getOrDefault(j.name, 0) == 1 ]	// Is the job touched?
+			.reduce[ t1, t2 | t1 && t2 ]							// All jobs are to be touched
+	}
+	
+	private def void
+	replaceTimeLoopJob(TimeLoopJob to_replace, Job replacement)
 	{
 		msg('Replace TimeLoopJob by InstructionJob for ' + to_replace.name + '@' + to_replace.at)
 		val mod    = EcoreUtil2.getContainerOfType(to_replace, IrModule)
@@ -60,11 +75,26 @@ class IrTransformationTasks extends IrTransformationStep
 		mod.jobs.add(replacement)
 	}
 	
-	private def void replaceIterableInstructionJobs(IrRoot ir)
+	private def void
+	___replaceIterableInstructionJobs(InstructionJob j)
 	{
 	}
 	
-	private def boolean ___replaceNonLoopJobs(Job j)
+	private def void
+	replaceIterableInstructionJobs(IrRoot ir)
+	{
+		for (j : ir.eAllContents.filter(Job).reject[ j |
+			j instanceof ExecuteTimeLoopJob 				/* Won't be inside the // region */
+		].filter[ j |
+			(TouchedJobs.getOrDefault(j.name, 0) == 0) && 	/* Not already touched jobs (Super Tasks already done) */
+			(j instanceof InstructionJob) 					/* Get only instruction jobs here, because II are inside them */
+		].toList) {
+			___replaceIterableInstructionJobs(j as InstructionJob)
+		}
+	}
+	
+	private def boolean
+	___replaceNonLoopJobs(Job j)
 	{
 		val noTasks =  j.eAllContents.filter(TaskInstruction).size == 0 						// Don't re-replace
 		val loops   =  j.eAllContents.filter[ k | k instanceof IterableInstruction ].size > 0 	// Replace loops by tasks
@@ -76,20 +106,7 @@ class IrTransformationTasks extends IrTransformationStep
 		/* The TimeLoopCopy special case */
 		if (j instanceof TimeLoopJob) {
 			msg('Job ' + j.name + '@' + j.at + ' is a time loop job, generate one task for it')
-			replaceTimeLoopJob(j, IrFactory::eINSTANCE.createInstructionJob => [
-				caller      = j.caller
-				name 		= j.name + 'Task'
-				at   		= j.at
-				onCycle     = j.onCycle
-				instruction = IrFactory::eINSTANCE.createTaskInstruction => [
-					j.copies.map[ source.createTaskDependencyVariable ].forEach[ v | inVars += v ]
-					j.copies.map[ destination.createTaskDependencyVariable ].forEach[ v | outVars += v ]
-					minimalInVars += inVars
-					content        = IrFactory::eINSTANCE.createInstructionBlock => [
-						instructions += createTimeLoopCopyInstruction(j.copies)
-					]
-				]
-			])
+			replaceTimeLoopJob(j, createInstructionJob(j))
 
 			/* Invalidate */
 			TouchedJobs.put(j.name, 1)
@@ -120,7 +137,8 @@ class IrTransformationTasks extends IrTransformationStep
 		return false;
 	}
 	
-	private def void replaceNonLoopJobs(IrRoot ir)
+	private def void
+	replaceNonLoopJobs(IrRoot ir)
 	{
 		var invalidated_list = false
 		do {

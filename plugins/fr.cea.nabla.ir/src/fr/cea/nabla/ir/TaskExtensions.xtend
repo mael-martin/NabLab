@@ -9,12 +9,17 @@
  *******************************************************************************/
 package fr.cea.nabla.ir
 
-import fr.cea.nabla.ir.ir.Variable
-import fr.cea.nabla.ir.ir.IrFactory
 import fr.cea.nabla.ir.ir.ConnectivityType
-import java.util.stream.IntStream
+import fr.cea.nabla.ir.ir.InstructionJob
+import fr.cea.nabla.ir.ir.IrFactory
 import fr.cea.nabla.ir.ir.TimeLoopCopy
+import fr.cea.nabla.ir.ir.TimeLoopJob
+import fr.cea.nabla.ir.ir.Variable
+import java.util.stream.IntStream
 import org.eclipse.emf.common.util.EList
+import fr.cea.nabla.ir.ir.TimeLoopCopyInstruction
+import java.util.List
+import fr.cea.nabla.ir.ir.TaskDependencyVariable
 
 class TaskExtensions
 {
@@ -23,7 +28,8 @@ class TaskExtensions
 	static int num_tasks = 1
 	static def setNumTasks(int ntasks) { num_tasks = ntasks }
 
-	static private def getConnectivityName(Variable v)
+	static private def String
+	getConnectivityName(Variable v)
 	{
 		if (v.type instanceof ConnectivityType) {
 			return (v.type as ConnectivityType).connectivities.head.name
@@ -32,9 +38,31 @@ class TaskExtensions
 		else { return "simple" }
 	}
 	
+	/* Create an InstructionJob from a TimeLoopJob */
+	
+	static def InstructionJob
+	createInstructionJob(TimeLoopJob j)
+	{
+		IrFactory::eINSTANCE.createInstructionJob => [
+			caller      = j.caller
+			name 		= j.name + 'Task'
+			at   		= j.at
+			onCycle     = j.onCycle
+			instruction = IrFactory::eINSTANCE.createTaskInstruction => [
+				j.copies.map[ source.createTaskDependencyVariable ].forEach[ v | inVars += v ]
+				j.copies.map[ destination.createTaskDependencyVariable ].forEach[ v | outVars += v ]
+				minimalInVars += inVars
+				content        = IrFactory::eINSTANCE.createInstructionBlock => [
+					instructions += createTimeLoopCopyInstruction(j.copies)
+				]
+			]
+		]
+	}
+	
 	/* Create the TimeLoopCopyInstruction */
 	
-	static private def createTimeLoopCopyInstruction(TimeLoopCopy tlc)
+	static private def TimeLoopCopyInstruction
+	createTimeLoopCopyInstruction(TimeLoopCopy tlc)
 	{
 		return IrFactory::eINSTANCE.createTimeLoopCopyInstruction => [
 			content = IrFactory::eINSTANCE.createTimeLoopCopy => [
@@ -44,14 +72,16 @@ class TaskExtensions
 		]
 	}
 
-	static def createTimeLoopCopyInstruction(EList<TimeLoopCopy> tlcs)
+	static def List<TimeLoopCopyInstruction>
+	createTimeLoopCopyInstruction(EList<TimeLoopCopy> tlcs)
 	{
 		tlcs.map[ createTimeLoopCopyInstruction ]
 	}
 	
 	/* Create the TaskDependencyVariable */
 
-	static def createTaskDependencyVariable(Variable v)
+	static def List<TaskDependencyVariable>
+	createTaskDependencyVariable(Variable v)
 	{
 		val connName = v.connectivityName
 		/* Simple, index is null */
