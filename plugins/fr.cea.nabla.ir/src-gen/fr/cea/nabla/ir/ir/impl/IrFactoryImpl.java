@@ -75,6 +75,7 @@ public class IrFactoryImpl extends EFactoryImpl implements IrFactory {
 			case IrPackage.SET_UP_TIME_LOOP_JOB: return createSetUpTimeLoopJob();
 			case IrPackage.TEAR_DOWN_TIME_LOOP_JOB: return createTearDownTimeLoopJob();
 			case IrPackage.TIME_LOOP_COPY: return createTimeLoopCopy();
+			case IrPackage.TIME_LOOP_COPY_INSTRUCTION: return createTimeLoopCopyInstruction();
 			case IrPackage.INSTRUCTION_BLOCK: return createInstructionBlock();
 			case IrPackage.VARIABLE_DECLARATION: return createVariableDeclaration();
 			case IrPackage.AFFECTATION: return createAffectation();
@@ -347,6 +348,17 @@ public class IrFactoryImpl extends EFactoryImpl implements IrFactory {
 	public TimeLoopCopy createTimeLoopCopy() {
 		TimeLoopCopyImpl timeLoopCopy = new TimeLoopCopyImpl();
 		return timeLoopCopy;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public TimeLoopCopyInstruction createTimeLoopCopyInstruction() {
+		TimeLoopCopyInstructionImpl timeLoopCopyInstruction = new TimeLoopCopyInstructionImpl();
+		return timeLoopCopyInstruction;
 	}
 
 	/**

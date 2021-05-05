@@ -160,6 +160,10 @@ public class IrAdapterFactory extends AdapterFactoryImpl {
 				return createTimeLoopCopyAdapter();
 			}
 			@Override
+			public Adapter caseTimeLoopCopyInstruction(TimeLoopCopyInstruction object) {
+				return createTimeLoopCopyInstructionAdapter();
+			}
+			@Override
 			public Adapter caseInstruction(Instruction object) {
 				return createInstructionAdapter();
 			}
@@ -686,6 +690,20 @@ public class IrAdapterFactory extends AdapterFactoryImpl {
 	 * @generated
 	 */
 	public Adapter createTimeLoopCopyAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link fr.cea.nabla.ir.ir.TimeLoopCopyInstruction <em>Time Loop Copy Instruction</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see fr.cea.nabla.ir.ir.TimeLoopCopyInstruction
+	 * @generated
+	 */
+	public Adapter createTimeLoopCopyInstructionAdapter() {
 		return null;
 	}
 

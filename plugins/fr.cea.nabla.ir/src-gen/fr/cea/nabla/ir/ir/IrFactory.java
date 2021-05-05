@@ -184,6 +184,15 @@ public interface IrFactory extends EFactory {
 	TimeLoopCopy createTimeLoopCopy();
 
 	/**
+	 * Returns a new object of class '<em>Time Loop Copy Instruction</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Time Loop Copy Instruction</em>'.
+	 * @generated
+	 */
+	TimeLoopCopyInstruction createTimeLoopCopyInstruction();
+
+	/**
 	 * Returns a new object of class '<em>Instruction Block</em>'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->

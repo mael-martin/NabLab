@@ -1969,7 +1969,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getInstruction()
 	 * @generated
 	 */
-	int INSTRUCTION = 23;
+	int INSTRUCTION = 24;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -1999,6 +1999,52 @@ public interface IrPackage extends EPackage {
 	int INSTRUCTION_OPERATION_COUNT = IR_ANNOTABLE_OPERATION_COUNT + 0;
 
 	/**
+	 * The meta object id for the '{@link fr.cea.nabla.ir.ir.impl.TimeLoopCopyInstructionImpl <em>Time Loop Copy Instruction</em>}' class.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see fr.cea.nabla.ir.ir.impl.TimeLoopCopyInstructionImpl
+	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getTimeLoopCopyInstruction()
+	 * @generated
+	 */
+	int TIME_LOOP_COPY_INSTRUCTION = 23;
+
+	/**
+	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TIME_LOOP_COPY_INSTRUCTION__ANNOTATIONS = INSTRUCTION__ANNOTATIONS;
+
+	/**
+	 * The feature id for the '<em><b>Content</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TIME_LOOP_COPY_INSTRUCTION__CONTENT = INSTRUCTION_FEATURE_COUNT + 0;
+
+	/**
+	 * The number of structural features of the '<em>Time Loop Copy Instruction</em>' class.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TIME_LOOP_COPY_INSTRUCTION_FEATURE_COUNT = INSTRUCTION_FEATURE_COUNT + 1;
+
+	/**
+	 * The number of operations of the '<em>Time Loop Copy Instruction</em>' class.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TIME_LOOP_COPY_INSTRUCTION_OPERATION_COUNT = INSTRUCTION_OPERATION_COUNT + 0;
+
+	/**
 	 * The meta object id for the '{@link fr.cea.nabla.ir.ir.impl.InstructionBlockImpl <em>Instruction Block</em>}' class.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -2006,7 +2052,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getInstructionBlock()
 	 * @generated
 	 */
-	int INSTRUCTION_BLOCK = 24;
+	int INSTRUCTION_BLOCK = 25;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2061,7 +2107,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getVariableDeclaration()
 	 * @generated
 	 */
-	int VARIABLE_DECLARATION = 25;
+	int VARIABLE_DECLARATION = 26;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2107,7 +2153,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getAffectation()
 	 * @generated
 	 */
-	int AFFECTATION = 26;
+	int AFFECTATION = 27;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2162,7 +2208,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getIterableInstruction()
 	 * @generated
 	 */
-	int ITERABLE_INSTRUCTION = 27;
+	int ITERABLE_INSTRUCTION = 28;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2208,7 +2254,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getTaskInstruction()
 	 * @generated
 	 */
-	int TASK_INSTRUCTION = 28;
+	int TASK_INSTRUCTION = 29;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2281,7 +2327,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getReductionInstruction()
 	 * @generated
 	 */
-	int REDUCTION_INSTRUCTION = 29;
+	int REDUCTION_INSTRUCTION = 30;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2363,7 +2409,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getLoop()
 	 * @generated
 	 */
-	int LOOP = 30;
+	int LOOP = 31;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2427,7 +2473,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getItemIndexDefinition()
 	 * @generated
 	 */
-	int ITEM_INDEX_DEFINITION = 31;
+	int ITEM_INDEX_DEFINITION = 32;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2482,7 +2528,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getItemIdDefinition()
 	 * @generated
 	 */
-	int ITEM_ID_DEFINITION = 32;
+	int ITEM_ID_DEFINITION = 33;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2537,7 +2583,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getSetDefinition()
 	 * @generated
 	 */
-	int SET_DEFINITION = 33;
+	int SET_DEFINITION = 34;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2592,7 +2638,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getIf()
 	 * @generated
 	 */
-	int IF = 34;
+	int IF = 35;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2656,7 +2702,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getWhile()
 	 * @generated
 	 */
-	int WHILE = 35;
+	int WHILE = 36;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2711,7 +2757,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getReturn()
 	 * @generated
 	 */
-	int RETURN = 36;
+	int RETURN = 37;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2757,7 +2803,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getExit()
 	 * @generated
 	 */
-	int EXIT = 37;
+	int EXIT = 38;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2803,7 +2849,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getIterationBlock()
 	 * @generated
 	 */
-	int ITERATION_BLOCK = 38;
+	int ITERATION_BLOCK = 39;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2840,7 +2886,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getIterator()
 	 * @generated
 	 */
-	int ITERATOR = 39;
+	int ITERATOR = 40;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2904,7 +2950,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getInterval()
 	 * @generated
 	 */
-	int INTERVAL = 40;
+	int INTERVAL = 41;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -2959,7 +3005,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getExpression()
 	 * @generated
 	 */
-	int EXPRESSION = 41;
+	int EXPRESSION = 42;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3014,7 +3060,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getContractedIf()
 	 * @generated
 	 */
-	int CONTRACTED_IF = 42;
+	int CONTRACTED_IF = 43;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3096,7 +3142,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getBinaryExpression()
 	 * @generated
 	 */
-	int BINARY_EXPRESSION = 43;
+	int BINARY_EXPRESSION = 44;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3178,7 +3224,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getUnaryExpression()
 	 * @generated
 	 */
-	int UNARY_EXPRESSION = 44;
+	int UNARY_EXPRESSION = 45;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3251,7 +3297,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getParenthesis()
 	 * @generated
 	 */
-	int PARENTHESIS = 45;
+	int PARENTHESIS = 46;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3315,7 +3361,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getIntConstant()
 	 * @generated
 	 */
-	int INT_CONSTANT = 46;
+	int INT_CONSTANT = 47;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3379,7 +3425,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getRealConstant()
 	 * @generated
 	 */
-	int REAL_CONSTANT = 47;
+	int REAL_CONSTANT = 48;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3443,7 +3489,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getBoolConstant()
 	 * @generated
 	 */
-	int BOOL_CONSTANT = 48;
+	int BOOL_CONSTANT = 49;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3507,7 +3553,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getMinConstant()
 	 * @generated
 	 */
-	int MIN_CONSTANT = 49;
+	int MIN_CONSTANT = 50;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3562,7 +3608,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getMaxConstant()
 	 * @generated
 	 */
-	int MAX_CONSTANT = 50;
+	int MAX_CONSTANT = 51;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3617,7 +3663,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getFunctionCall()
 	 * @generated
 	 */
-	int FUNCTION_CALL = 51;
+	int FUNCTION_CALL = 52;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3690,7 +3736,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getBaseTypeConstant()
 	 * @generated
 	 */
-	int BASE_TYPE_CONSTANT = 52;
+	int BASE_TYPE_CONSTANT = 53;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3754,7 +3800,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getVectorConstant()
 	 * @generated
 	 */
-	int VECTOR_CONSTANT = 53;
+	int VECTOR_CONSTANT = 54;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3818,7 +3864,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getCardinality()
 	 * @generated
 	 */
-	int CARDINALITY = 54;
+	int CARDINALITY = 55;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3882,7 +3928,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getArgOrVarRef()
 	 * @generated
 	 */
-	int ARG_OR_VAR_REF = 55;
+	int ARG_OR_VAR_REF = 56;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -3964,7 +4010,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getItemType()
 	 * @generated
 	 */
-	int ITEM_TYPE = 56;
+	int ITEM_TYPE = 57;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4010,7 +4056,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getIrType()
 	 * @generated
 	 */
-	int IR_TYPE = 57;
+	int IR_TYPE = 58;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4047,7 +4093,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getBaseType()
 	 * @generated
 	 */
-	int BASE_TYPE = 58;
+	int BASE_TYPE = 59;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4102,7 +4148,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getConnectivityType()
 	 * @generated
 	 */
-	int CONNECTIVITY_TYPE = 59;
+	int CONNECTIVITY_TYPE = 60;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4157,7 +4203,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getLinearAlgebraType()
 	 * @generated
 	 */
-	int LINEAR_ALGEBRA_TYPE = 60;
+	int LINEAR_ALGEBRA_TYPE = 61;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4212,7 +4258,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getContainer()
 	 * @generated
 	 */
-	int CONTAINER = 61;
+	int CONTAINER = 62;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4249,7 +4295,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getConnectivityCall()
 	 * @generated
 	 */
-	int CONNECTIVITY_CALL = 62;
+	int CONNECTIVITY_CALL = 63;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4304,7 +4350,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getSetRef()
 	 * @generated
 	 */
-	int SET_REF = 63;
+	int SET_REF = 64;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4350,7 +4396,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getItemId()
 	 * @generated
 	 */
-	int ITEM_ID = 64;
+	int ITEM_ID = 65;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4405,7 +4451,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getItemIdValue()
 	 * @generated
 	 */
-	int ITEM_ID_VALUE = 65;
+	int ITEM_ID_VALUE = 66;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4442,7 +4488,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getItemIdValueIterator()
 	 * @generated
 	 */
-	int ITEM_ID_VALUE_ITERATOR = 66;
+	int ITEM_ID_VALUE_ITERATOR = 67;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4497,7 +4543,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getItemIdValueContainer()
 	 * @generated
 	 */
-	int ITEM_ID_VALUE_CONTAINER = 67;
+	int ITEM_ID_VALUE_CONTAINER = 68;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4543,7 +4589,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getItemIndex()
 	 * @generated
 	 */
-	int ITEM_INDEX = 68;
+	int ITEM_INDEX = 69;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4598,7 +4644,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getItemIndexValue()
 	 * @generated
 	 */
-	int ITEM_INDEX_VALUE = 69;
+	int ITEM_INDEX_VALUE = 70;
 
 	/**
 	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
@@ -4653,7 +4699,7 @@ public interface IrPackage extends EPackage {
 	 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getPrimitiveType()
 	 * @generated
 	 */
-	int PRIMITIVE_TYPE = 70;
+	int PRIMITIVE_TYPE = 71;
 
 
 	/**
@@ -5633,6 +5679,27 @@ public interface IrPackage extends EPackage {
 	 * @generated
 	 */
 	EReference getTimeLoopCopy_Source();
+
+	/**
+	 * Returns the meta object for class '{@link fr.cea.nabla.ir.ir.TimeLoopCopyInstruction <em>Time Loop Copy Instruction</em>}'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the meta object for class '<em>Time Loop Copy Instruction</em>'.
+	 * @see fr.cea.nabla.ir.ir.TimeLoopCopyInstruction
+	 * @generated
+	 */
+	EClass getTimeLoopCopyInstruction();
+
+	/**
+	 * Returns the meta object for the containment reference '{@link fr.cea.nabla.ir.ir.TimeLoopCopyInstruction#getContent <em>Content</em>}'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return the meta object for the containment reference '<em>Content</em>'.
+	 * @see fr.cea.nabla.ir.ir.TimeLoopCopyInstruction#getContent()
+	 * @see #getTimeLoopCopyInstruction()
+	 * @generated
+	 */
+	EReference getTimeLoopCopyInstruction_Content();
 
 	/**
 	 * Returns the meta object for class '{@link fr.cea.nabla.ir.ir.Instruction <em>Instruction</em>}'.
@@ -7735,6 +7802,24 @@ public interface IrPackage extends EPackage {
 		 * @generated
 		 */
 		EReference TIME_LOOP_COPY__SOURCE = eINSTANCE.getTimeLoopCopy_Source();
+
+		/**
+		 * The meta object literal for the '{@link fr.cea.nabla.ir.ir.impl.TimeLoopCopyInstructionImpl <em>Time Loop Copy Instruction</em>}' class.
+		 * <!-- begin-user-doc -->
+		 * <!-- end-user-doc -->
+		 * @see fr.cea.nabla.ir.ir.impl.TimeLoopCopyInstructionImpl
+		 * @see fr.cea.nabla.ir.ir.impl.IrPackageImpl#getTimeLoopCopyInstruction()
+		 * @generated
+		 */
+		EClass TIME_LOOP_COPY_INSTRUCTION = eINSTANCE.getTimeLoopCopyInstruction();
+
+		/**
+		 * The meta object literal for the '<em><b>Content</b></em>' containment reference feature.
+		 * <!-- begin-user-doc -->
+		 * <!-- end-user-doc -->
+		 * @generated
+		 */
+		EReference TIME_LOOP_COPY_INSTRUCTION__CONTENT = eINSTANCE.getTimeLoopCopyInstruction_Content();
 
 		/**
 		 * The meta object literal for the '{@link fr.cea.nabla.ir.ir.impl.InstructionImpl <em>Instruction</em>}' class.
