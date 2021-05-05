@@ -158,7 +158,6 @@ class TaskExtensions
 	}
 	
 	/* Create an InstructionJob from a TimeLoopJob */
-	
 	static def InstructionJob
 	createInstructionJob(TimeLoopJob j)
 	{
@@ -179,7 +178,6 @@ class TaskExtensions
 	}
 	
 	/* Create the TimeLoopCopyInstruction */
-	
 	static private def TimeLoopCopyInstruction
 	createTimeLoopCopyInstruction(TimeLoopCopy tlc)
 	{
@@ -191,21 +189,40 @@ class TaskExtensions
 		]
 	}
 
+	/* Create the TimeLoopCopyInstruction list if needed */
 	static def List<TimeLoopCopyInstruction>
 	createTimeLoopCopyInstruction(EList<TimeLoopCopy> tlcs)
 	{
 		tlcs.map[ createTimeLoopCopyInstruction ]
 	}
 	
-	/* Slice a loop for a job */
-
+	/* Slice a loop for a job.
+	 * We now that the job is slice-able:
+	 * - Only II
+	 * - OK when an Affectation follows a RI
+	 */
 	static def
 	createSlicedJob(InstructionJob j)
 	{
+		switch j.instruction {
+			/* Multiple loops or a RI followed by an Affectation */
+			InstructionBlock: {
+				
+			}
+			
+			/* Simple loop */
+			IterableInstruction: {
+				
+			}
+			
+			/* PANIK!!! */
+			default: {
+				throw new Exception("Invalid input: no II only or RI followed by Affectation")
+			}
+		}
 	}
-	
-	/* Create the TaskDependencyVariable */
 
+	/* Create the TaskDependencyVariable */
 	static def List<TaskDependencyVariable>
 	createTaskDependencyVariable(Variable v)
 	{
