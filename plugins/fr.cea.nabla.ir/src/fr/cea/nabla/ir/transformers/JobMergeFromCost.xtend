@@ -38,6 +38,7 @@ import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.transformers.ComputeCostTransformation.*
+import fr.cea.nabla.ir.TaskExtensions
 
 @Data
 class JobMergeFromCost extends IrTransformationStep
@@ -71,6 +72,7 @@ class JobMergeFromCost extends IrTransformationStep
 			jobsByAt.keySet.map[ at | jobsByAt.get(at).size ].max
 		].max
 		num_tasks = num_threads * (max_concurrent_jobs + 1);
+		TaskExtensions.numTasks = num_tasks
 
 		/* Global variable types */
 		trace('    IR -> IR: ' + description + ':VariableReport')
