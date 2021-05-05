@@ -97,7 +97,8 @@ class IrTransformationTasks extends IrTransformationStep
 								.filter[ k |
 									jobMustBeSuperTask(k as InstructionJob) && TouchedJobs.getOrDefault(k.name, 0) == 0
 								].toList) {
-			msg('Job ' + j.name + '@' + j.at + ' must be a SuperTask')
+			msg('Job ' + j.name + '@' + j.at + ' must be a SuperTask => glob it inside a task')
+			(j as InstructionJob).instruction = createTaskInstruction(j as InstructionJob)
 			TouchedJobs.put(j.name, 1)
 		}
 	}
