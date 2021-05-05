@@ -39,6 +39,7 @@ import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.transformers.ComputeCostTransformation.*
 import fr.cea.nabla.ir.TaskExtensions
+import java.util.List
 
 @Data
 class JobMergeFromCost extends IrTransformationStep
@@ -58,7 +59,8 @@ class JobMergeFromCost extends IrTransformationStep
 	
 	static val SourceNodeLabel = 'SourceJob'
 
-	override transform(IrRoot ir) 
+	override boolean
+	transform(IrRoot ir) 
 	{
 		/* Minimal IN variables */
 		trace('    IR -> IR: ' + description + ':ComputeMinimalInVars')
@@ -115,7 +117,8 @@ class JobMergeFromCost extends IrTransformationStep
 	 * helpers *
 	 ***********/
 
-	static private def getTypeCanBePartitionized(IrType it)
+	static private def boolean
+	getTypeCanBePartitionized(IrType it)
 	{
 		switch it {
 			case null:                   false
@@ -126,7 +129,8 @@ class JobMergeFromCost extends IrTransformationStep
 		}
 	}
 
-	static private def getImplTypeEnum(IrType it)
+	static private def IMPL_TYPE
+	getImplTypeEnum(IrType it)
 	{
 		switch it {
 			case null:                 IMPL_TYPE::NULL
@@ -138,7 +142,8 @@ class JobMergeFromCost extends IrTransformationStep
 		}
 	}
 
-	private static def getParallelJobs(JobCaller it)
+	private static def List<Job>
+	getParallelJobs(JobCaller it)
 	{
 		if (it === null) return #[]
 		return calls.reject[ j | j instanceof TimeLoopJob || j instanceof ExecuteTimeLoopJob ].toList
@@ -149,19 +154,22 @@ class JobMergeFromCost extends IrTransformationStep
 	 * the 'sequenciality' of a job                                           *
 	 **************************************************************************/
 
-	static private def boolean isRangeVariable(Variable it)
+	static private def boolean
+	isRangeVariable(Variable it)
 	{
 		return (!isOption)
 		|| (GlobalVariableIndexTypes.getOrDefault(name, INDEX_TYPE::NULL) != INDEX_TYPE::NULL)
 	}
 	 
-	 static def getSynchroCoeff(Job it)
+	 static def int
+	 getSynchroCoeff(Job it)
 	 {
 	 	if (it === null) return 0
 	 	return JobSynchroCoeffs.getOrDefault(name, 0)
 	 }
 	 
-	 private def computeSynchroCoeff(Job it)
+	 private def void
+	 computeSynchroCoeff(Job it)
 	 {
 	 	/* Job will need all the produced part of a range variable => massively synchronizing job */
 		val jobNeedMoreSynchro =
@@ -185,7 +193,8 @@ class JobMergeFromCost extends IrTransformationStep
 	 * is its cost                                                         *
 	 ***********************************************************************/
 	 
-	 static private def computeDAG(JobCaller it)
+	 static private def DirectedWeightedPseudograph<Job, DefaultWeightedEdge>
+	 computeDAG(JobCaller it)
 	 {
 	 	/* Create nodes */
 	 	val jobs = parallelJobs
@@ -204,7 +213,7 @@ class JobMergeFromCost extends IrTransformationStep
 	 			}
 	 		}
 	 	}
-	 	
+
 	 	/* Add source */
 	 	val source = IrFactory::eINSTANCE.createInstructionJob => [ name = SourceNodeLabel ]
 	 	g.addVertex(source)
@@ -220,7 +229,26 @@ class JobMergeFromCost extends IrTransformationStep
 	 * In/Out/MinIn variables from Jobs *
 	 ************************************/
 
-	static def Set<Variable> getInVars(Job it)
+	static def Set<Variable>
+	getFalseInVars(Job it)
+	{
+		val parentJobCaller = caller
+		if (parentJobCaller === null) {
+			throw new Exception("Job " + name + '@' + at + " doesn't have a caller")
+		}
+		var allouts = new HashSet<Variable>();
+		var allins  = new HashSet<Variable>();
+		for (j : parentJobCaller.calls) {
+			allins.addAll(j.inVars)
+			allouts.addAll(j.outVars)
+		}
+		allins.removeAll(allouts)
+		return allins
+	}
+
+
+	static def Set<Variable>
+	getInVars(Job it)
 	{
 		if (it === null)
 			return #[].toSet
@@ -233,7 +261,8 @@ class JobMergeFromCost extends IrTransformationStep
 		 .toSet
 	}
 
-	static def Set<Variable> getOutVars(Job it)
+	static def Set<Variable>
+	getOutVars(Job it)
 	{
 		if (it === null)
 			return #[].toSet
@@ -244,7 +273,8 @@ class JobMergeFromCost extends IrTransformationStep
 					  	   .toSet
 	}
 	
-	static def int getOutReusedVarsNumber(Job it)
+	static def int
+	getOutReusedVarsNumber(Job it)
 	{
 		caller.parallelJobs.filter[ j | j.name != name ]
 		      .map[ inVars.toList ].flatten
@@ -252,7 +282,8 @@ class JobMergeFromCost extends IrTransformationStep
 		      .size
 	}
 
-	static def Set<Variable> getMinimalInVars(Job it)
+	static def Set<Variable>
+	getMinimalInVars(Job it)
 	{
 		if (it === null) return new HashSet();
 		return MinimalInVariablesPerJobs.getOrDefault(name, new HashSet())
@@ -321,7 +352,8 @@ class JobMergeFromCost extends IrTransformationStep
 	 * Global variable => index type *
 	 *********************************/
 
-	static private def void registerGlobalVariable(IrModule it)
+	static private def void
+	registerGlobalVariable(IrModule it)
 	{
 		for (v : variables.filter[!option].filter[ t |
 			t.type.typeCanBePartitionized &&
@@ -339,12 +371,14 @@ class JobMergeFromCost extends IrTransformationStep
 		}
 	}
 	
-	static def getVariableIndexType(String name)
+	static def INDEX_TYPE
+	getVariableIndexType(String name)
 	{
 		return GlobalVariableIndexTypes.getOrDefault(name, INDEX_TYPE::NULL)
 	}
 
-	static def String getVariableIndexTypeAsString(String name)
+	static def String
+	getVariableIndexTypeAsString(String name)
 	{
 		return GlobalVariableIndexTypes.getOrDefault(name, INDEX_TYPE::NULL) + ""
 	}
@@ -353,7 +387,8 @@ class JobMergeFromCost extends IrTransformationStep
 	 * Get a Job priority *
 	 **********************/
 
-	 static private def void computeTaskPriorities(Job it, int max_at)
+	 static private def void
+	 computeTaskPriorities(Job it, int max_at)
 	 {
 	 	/* ORDER_IN_DAG: Class of quality
 	 	 * Other terms (what in formula): modulate inside the current class of quality
@@ -377,7 +412,8 @@ class JobMergeFromCost extends IrTransformationStep
 	 	JobPriorities.put(name, priority.intValue)
 	 }
 
-	 static def int getPriority(Job it)
+	 static def int
+	 getPriority(Job it)
 	 {
 	 	if (it === null) throw new Exception("Asking a priority for a 'null' job")
 	 	return JobPriorities.getOrDefault(name, 1)

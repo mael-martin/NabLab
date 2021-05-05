@@ -18,11 +18,15 @@ import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.TaskInstruction
 import fr.cea.nabla.ir.ir.TimeLoopJob
+import fr.cea.nabla.ir.ir.Variable
 import java.util.HashMap
+import java.util.HashSet
 import org.eclipse.xtext.EcoreUtil2
 
-import static fr.cea.nabla.ir.TaskExtensions.*
 import static fr.cea.nabla.ir.LoopLevelGetter.*
+import static fr.cea.nabla.ir.TaskExtensions.*
+
+import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 
 class IrTransformationTasks extends IrTransformationStep
 {
@@ -50,6 +54,62 @@ class IrTransformationTasks extends IrTransformationStep
 		return ok
 	}
 	
+	/* Parse the IR and task-icize the jobs */
+
+	private def void
+	replaceNonLoopJobs(IrRoot ir)
+	{
+		var invalidated_list = false
+		do {
+			invalidated_list = false;
+			for (j : ir.eAllContents.filter(Job).reject[ j | j instanceof ExecuteTimeLoopJob ].toList) {
+				/* Because XTEND don't support BREAK and CONTINUE */
+				if (!invalidated_list && j !== null) {
+					invalidated_list = ___replaceNonLoopJobs(j)
+				}
+			}
+		} while (invalidated_list);
+		
+		/* Verify that we did get ride of the TimeLoopJobs */
+		val tlj_list = ir.eAllContents.filter(TimeLoopJob).reject[ j | j instanceof ExecuteTimeLoopJob].toList
+		if (tlj_list !== null && tlj_list.size > 0) {
+			throw new Exception(
+				"There are still references to " + tlj_list.size + " TimeLoopJob objects: " +
+				tlj_list.map[ name ].reduce[ s1, s2 | s1 + ', ' + s2 ]
+			)
+		}
+	}
+
+	private def void
+	replaceIterableInstructionJobs(IrRoot ir)
+	{
+		for (j : ir.eAllContents.filter(Job).reject[ j |
+			j instanceof ExecuteTimeLoopJob 				/* Won't be inside the // region */
+		].filter[ j |
+			(TouchedJobs.getOrDefault(j.name, 0) == 0) && 	/* Not already touched jobs (Super Tasks already done) */
+			(j instanceof InstructionJob) &&				/* Get only instruction jobs here, because II are inside them */
+			!(jobMustBeSuperTask(j as InstructionJob))		/* No super task here */
+		].toList) {
+			___replaceIterableInstructionJobs(j as InstructionJob)
+		}
+	}
+	
+	private def void
+	replaceSuperTasks(IrRoot ir)
+	{
+		for (j : ir.eAllContents.filter(Job)
+								.filter[ k | k instanceof InstructionJob ]
+								.filter[ k |
+									jobMustBeSuperTask(k as InstructionJob) && TouchedJobs.getOrDefault(k.name, 0) == 0
+								].toList) {
+			msg('Job ' + j.name + '@' + j.at + ' must be a SuperTask => glob it inside a task')
+			(j as InstructionJob).instruction = createTaskInstruction(j as InstructionJob)
+			TouchedJobs.put(j.name, 1)
+		}
+	}
+	
+	/* Ensure that all the jobs are treated */
+
 	private def boolean
 	assertAllJobsTouched(IrRoot ir)
 	{
@@ -63,6 +123,8 @@ class IrTransformationTasks extends IrTransformationStep
 			]
 			.reduce[ t1, t2 | t1 && t2 ] // All jobs are to be touched
 	}
+	
+	/* Internal helper functions */
 
 	private def void
 	replaceTimeLoopJob(TimeLoopJob to_replace, Job replacement)
@@ -90,38 +152,10 @@ class IrTransformationTasks extends IrTransformationStep
 	}
 	
 	private def void
-	replaceSuperTasks(IrRoot ir)
-	{
-		for (j : ir.eAllContents.filter(Job)
-								.filter[ k | k instanceof InstructionJob ]
-								.filter[ k |
-									jobMustBeSuperTask(k as InstructionJob) && TouchedJobs.getOrDefault(k.name, 0) == 0
-								].toList) {
-			msg('Job ' + j.name + '@' + j.at + ' must be a SuperTask => glob it inside a task')
-			(j as InstructionJob).instruction = createTaskInstruction(j as InstructionJob)
-			TouchedJobs.put(j.name, 1)
-		}
-	}
-	
-	private def void
 	___replaceIterableInstructionJobs(InstructionJob j)
 	{
 		msg('Job ' + j.name + '@' + j.at + ' is a slice-able job')
 		TouchedJobs.put(j.name, 1)
-	}
-	
-	private def void
-	replaceIterableInstructionJobs(IrRoot ir)
-	{
-		for (j : ir.eAllContents.filter(Job).reject[ j |
-			j instanceof ExecuteTimeLoopJob 				/* Won't be inside the // region */
-		].filter[ j |
-			(TouchedJobs.getOrDefault(j.name, 0) == 0) && 	/* Not already touched jobs (Super Tasks already done) */
-			(j instanceof InstructionJob) &&				/* Get only instruction jobs here, because II are inside them */
-			!(jobMustBeSuperTask(j as InstructionJob))		/* No super task here */
-		].toList) {
-			___replaceIterableInstructionJobs(j as InstructionJob)
-		}
 	}
 	
 	private def boolean
@@ -157,29 +191,5 @@ class IrTransformationTasks extends IrTransformationStep
 		}
 		
 		return false;	/* Still valid */
-	}
-	
-	private def void
-	replaceNonLoopJobs(IrRoot ir)
-	{
-		var invalidated_list = false
-		do {
-			invalidated_list = false;
-			for (j : ir.eAllContents.filter(Job).reject[ j | j instanceof ExecuteTimeLoopJob ].toList) {
-				/* Because XTEND don't support BREAK and CONTINUE */
-				if (!invalidated_list && j !== null) {
-					invalidated_list = ___replaceNonLoopJobs(j)
-				}
-			}
-		} while (invalidated_list);
-		
-		/* Verify that we did get ride of the TimeLoopJobs */
-		val tlj_list = ir.eAllContents.filter(TimeLoopJob).reject[ j | j instanceof ExecuteTimeLoopJob].toList
-		if (tlj_list !== null && tlj_list.size > 0) {
-			throw new Exception(
-				"There are still references to " + tlj_list.size + " TimeLoopJob objects: " +
-				tlj_list.map[ name ].reduce[ s1, s2 | s1 + ', ' + s2 ]
-			)
-		}
 	}
 }

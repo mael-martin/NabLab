@@ -148,8 +148,9 @@ class TaskExtensions
 	static def TaskInstruction
 	createTaskInstruction(InstructionJob j)
 	{
+		val falseIns = j.falseInVars
 		IrFactory::eINSTANCE.createTaskInstruction => [
-			inVars        += j.inVars.map[ createTaskDependencyVariable ].flatten.toSet
+			inVars        += j.inVars.filter[ v | !falseIns.contains(v) ].map[ createTaskDependencyVariable ].flatten.toSet
 			outVars       += j.outVars.map[ createTaskDependencyVariable ].flatten.toSet
 			minimalInVars += j.minimalInVars.map[ createTaskDependencyVariable ].flatten.toSet
 			content        = j.instruction
