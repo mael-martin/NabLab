@@ -367,7 +367,7 @@ class JobMergeFromCost extends IrTransformationStep
 	 	 *   'few variables unlock a lots of variables'.
 	 	 * - the granularity: do jobs with more work before others
 	 	 */
-	 	 
+
 	    val max_syncro = caller.parallelJobs.map[ JobSynchroCoeffs.getOrDefault(name, 0) ].reduce[ p1, p2 | p1 + p2 ]
 
 	 	val synchro     = priority_coefficient_task_synchronization * (JobSynchroCoeffs.getOrDefault(name, 0) / max_syncro);

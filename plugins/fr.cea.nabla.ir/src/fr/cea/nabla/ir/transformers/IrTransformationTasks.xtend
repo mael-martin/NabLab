@@ -36,9 +36,11 @@ class IrTransformationTasks extends IrTransformationStep
 	override transform(IrRoot ir)
 	{
 		trace('    IR -> IR: ' + description)
-		trace('    IR -> IR: ' + description + ':Sub:CreateTasks')
+		trace('    IR -> IR: ' + description + ':Sub:CreateSimpleTasks')
 		replaceNonLoopJobs(ir)
-
+		trace('    IR -> IR: ' + description + ':Sub:CreateSuperTasks -> Unimplemented')
+		trace('    IR -> IR: ' + description + ':Sub:CreateIterableInstructionTasks')
+		replaceIterableInstructionJobs(ir)
 		return true
 	}
 	
@@ -56,6 +58,10 @@ class IrTransformationTasks extends IrTransformationStep
 		ir.jobs.add(replacement)
 		caller.calls.add(replacement)
 		mod.jobs.add(replacement)
+	}
+	
+	private def void replaceIterableInstructionJobs(IrRoot ir)
+	{
 	}
 	
 	private def boolean ___replaceNonLoopJobs(Job j)
@@ -76,9 +82,9 @@ class IrTransformationTasks extends IrTransformationStep
 				at   		= j.at
 				onCycle     = j.onCycle
 				instruction = IrFactory::eINSTANCE.createTaskInstruction => [
-					inVars        += j.inVars.map[ createTaskDependencyVariable ].flatten.toSet
-					outVars       += j.minimalInVars.map[ createTaskDependencyVariable ].flatten.toSet
-					minimalInVars += j.outVars.map[ createTaskDependencyVariable ].flatten.toSet
+					j.copies.map[ source.createTaskDependencyVariable ].forEach[ v | inVars += v ]
+					j.copies.map[ destination.createTaskDependencyVariable ].forEach[ v | outVars += v ]
+					minimalInVars += inVars
 					content        = IrFactory::eINSTANCE.createInstructionBlock => [
 						instructions += createTimeLoopCopyInstruction(j.copies)
 					]
@@ -96,8 +102,8 @@ class IrTransformationTasks extends IrTransformationStep
 			msg('Job ' + j.name + '@' + j.at + ' is not a loop job, generate one task for it')
 			(j as InstructionJob).instruction = IrFactory::eINSTANCE.createTaskInstruction => [
 				inVars        += j.inVars.map[ createTaskDependencyVariable ].flatten.toSet
-				outVars       += j.minimalInVars.map[ createTaskDependencyVariable ].flatten.toSet
-				minimalInVars += j.outVars.map[ createTaskDependencyVariable ].flatten.toSet
+				outVars       += j.outVars.map[ createTaskDependencyVariable ].flatten.toSet
+				minimalInVars += j.minimalInVars.map[ createTaskDependencyVariable ].flatten.toSet
 				content        = (j as InstructionJob).instruction
 			]
 
