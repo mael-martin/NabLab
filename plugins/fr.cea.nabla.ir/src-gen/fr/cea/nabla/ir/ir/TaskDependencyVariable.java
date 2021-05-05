@@ -12,7 +12,7 @@ package fr.cea.nabla.ir.ir;
  * The following features are supported:
  * </p>
  * <ul>
- *   <li>{@link fr.cea.nabla.ir.ir.TaskDependencyVariable#getName <em>Name</em>}</li>
+ *   <li>{@link fr.cea.nabla.ir.ir.TaskDependencyVariable#getConnectivityName <em>Connectivity Name</em>}</li>
  *   <li>{@link fr.cea.nabla.ir.ir.TaskDependencyVariable#getIndexType <em>Index Type</em>}</li>
  *   <li>{@link fr.cea.nabla.ir.ir.TaskDependencyVariable#getIndex <em>Index</em>}</li>
  * </ul>
@@ -21,28 +21,28 @@ package fr.cea.nabla.ir.ir;
  * @model
  * @generated
  */
-public interface TaskDependencyVariable extends IrAnnotable {
+public interface TaskDependencyVariable extends Variable {
 	/**
-	 * Returns the value of the '<em><b>Name</b></em>' attribute.
+	 * Returns the value of the '<em><b>Connectivity Name</b></em>' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Name</em>' attribute.
-	 * @see #setName(String)
-	 * @see fr.cea.nabla.ir.ir.IrPackage#getTaskDependencyVariable_Name()
+	 * @return the value of the '<em>Connectivity Name</em>' attribute.
+	 * @see #setConnectivityName(String)
+	 * @see fr.cea.nabla.ir.ir.IrPackage#getTaskDependencyVariable_ConnectivityName()
 	 * @model required="true"
 	 * @generated
 	 */
-	String getName();
+	String getConnectivityName();
 
 	/**
-	 * Sets the value of the '{@link fr.cea.nabla.ir.ir.TaskDependencyVariable#getName <em>Name</em>}' attribute.
+	 * Sets the value of the '{@link fr.cea.nabla.ir.ir.TaskDependencyVariable#getConnectivityName <em>Connectivity Name</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Name</em>' attribute.
-	 * @see #getName()
+	 * @param value the new value of the '<em>Connectivity Name</em>' attribute.
+	 * @see #getConnectivityName()
 	 * @generated
 	 */
-	void setName(String value);
+	void setConnectivityName(String value);
 
 	/**
 	 * Returns the value of the '<em><b>Index Type</b></em>' attribute.
@@ -71,12 +71,12 @@ public interface TaskDependencyVariable extends IrAnnotable {
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @return the value of the '<em>Index</em>' attribute.
-	 * @see #setIndex(String)
+	 * @see #setIndex(int)
 	 * @see fr.cea.nabla.ir.ir.IrPackage#getTaskDependencyVariable_Index()
 	 * @model required="true"
 	 * @generated
 	 */
-	String getIndex();
+	int getIndex();
 
 	/**
 	 * Sets the value of the '{@link fr.cea.nabla.ir.ir.TaskDependencyVariable#getIndex <em>Index</em>}' attribute.
@@ -86,6 +86,6 @@ public interface TaskDependencyVariable extends IrAnnotable {
 	 * @see #getIndex()
 	 * @generated
 	 */
-	void setIndex(String value);
+	void setIndex(int value);
 
 } // TaskDependencyVariable

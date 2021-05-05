@@ -83,7 +83,7 @@
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//ArgOrVar/type"/>
     </genClasses>
     <genClasses ecoreClass="Ir.ecore#//TaskDependencyVariable">
-      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//TaskDependencyVariable/name"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//TaskDependencyVariable/connectivityName"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//TaskDependencyVariable/indexType"/>
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//TaskDependencyVariable/index"/>
     </genClasses>

@@ -122,6 +122,8 @@ public class IrSwitch<T> extends Switch<T> {
 			case IrPackage.TASK_DEPENDENCY_VARIABLE: {
 				TaskDependencyVariable taskDependencyVariable = (TaskDependencyVariable)theEObject;
 				T result = caseTaskDependencyVariable(taskDependencyVariable);
+				if (result == null) result = caseVariable(taskDependencyVariable);
+				if (result == null) result = caseArgOrVar(taskDependencyVariable);
 				if (result == null) result = caseIrAnnotable(taskDependencyVariable);
 				if (result == null) result = defaultCase(theEObject);
 				return result;

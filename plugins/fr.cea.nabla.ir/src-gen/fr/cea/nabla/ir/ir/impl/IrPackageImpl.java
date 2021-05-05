@@ -1074,7 +1074,7 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 	 * @generated
 	 */
 	@Override
-	public EAttribute getTaskDependencyVariable_Name() {
+	public EAttribute getTaskDependencyVariable_ConnectivityName() {
 		return (EAttribute)taskDependencyVariableEClass.getEStructuralFeatures().get(0);
 	}
 
@@ -2871,7 +2871,7 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 		createEReference(argOrVarEClass, ARG_OR_VAR__TYPE);
 
 		taskDependencyVariableEClass = createEClass(TASK_DEPENDENCY_VARIABLE);
-		createEAttribute(taskDependencyVariableEClass, TASK_DEPENDENCY_VARIABLE__NAME);
+		createEAttribute(taskDependencyVariableEClass, TASK_DEPENDENCY_VARIABLE__CONNECTIVITY_NAME);
 		createEAttribute(taskDependencyVariableEClass, TASK_DEPENDENCY_VARIABLE__INDEX_TYPE);
 		createEAttribute(taskDependencyVariableEClass, TASK_DEPENDENCY_VARIABLE__INDEX);
 
@@ -3137,7 +3137,7 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 		postProcessingEClass.getESuperTypes().add(this.getIrAnnotable());
 		extensionProviderEClass.getESuperTypes().add(this.getIrAnnotable());
 		argOrVarEClass.getESuperTypes().add(this.getIrAnnotable());
-		taskDependencyVariableEClass.getESuperTypes().add(this.getIrAnnotable());
+		taskDependencyVariableEClass.getESuperTypes().add(this.getVariable());
 		argEClass.getESuperTypes().add(this.getArgOrVar());
 		variableEClass.getESuperTypes().add(this.getArgOrVar());
 		functionEClass.getESuperTypes().add(this.getIrAnnotable());
@@ -3256,9 +3256,9 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 		initEReference(getArgOrVar_Type(), this.getIrType(), null, "type", null, 1, 1, ArgOrVar.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(taskDependencyVariableEClass, TaskDependencyVariable.class, "TaskDependencyVariable", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-		initEAttribute(getTaskDependencyVariable_Name(), ecorePackage.getEString(), "name", null, 1, 1, TaskDependencyVariable.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getTaskDependencyVariable_ConnectivityName(), ecorePackage.getEString(), "connectivityName", null, 1, 1, TaskDependencyVariable.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEAttribute(getTaskDependencyVariable_IndexType(), ecorePackage.getEString(), "indexType", null, 1, 1, TaskDependencyVariable.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEAttribute(getTaskDependencyVariable_Index(), ecorePackage.getEString(), "index", null, 1, 1, TaskDependencyVariable.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEAttribute(getTaskDependencyVariable_Index(), ecorePackage.getEInt(), "index", null, 1, 1, TaskDependencyVariable.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(argEClass, Arg.class, "Arg", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 

@@ -19,33 +19,33 @@ import org.eclipse.emf.ecore.impl.ENotificationImpl;
  * The following features are implemented:
  * </p>
  * <ul>
- *   <li>{@link fr.cea.nabla.ir.ir.impl.TaskDependencyVariableImpl#getName <em>Name</em>}</li>
+ *   <li>{@link fr.cea.nabla.ir.ir.impl.TaskDependencyVariableImpl#getConnectivityName <em>Connectivity Name</em>}</li>
  *   <li>{@link fr.cea.nabla.ir.ir.impl.TaskDependencyVariableImpl#getIndexType <em>Index Type</em>}</li>
  *   <li>{@link fr.cea.nabla.ir.ir.impl.TaskDependencyVariableImpl#getIndex <em>Index</em>}</li>
  * </ul>
  *
  * @generated
  */
-public class TaskDependencyVariableImpl extends IrAnnotableImpl implements TaskDependencyVariable {
+public class TaskDependencyVariableImpl extends VariableImpl implements TaskDependencyVariable {
 	/**
-	 * The default value of the '{@link #getName() <em>Name</em>}' attribute.
+	 * The default value of the '{@link #getConnectivityName() <em>Connectivity Name</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getName()
+	 * @see #getConnectivityName()
 	 * @generated
 	 * @ordered
 	 */
-	protected static final String NAME_EDEFAULT = null;
+	protected static final String CONNECTIVITY_NAME_EDEFAULT = null;
 
 	/**
-	 * The cached value of the '{@link #getName() <em>Name</em>}' attribute.
+	 * The cached value of the '{@link #getConnectivityName() <em>Connectivity Name</em>}' attribute.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @see #getName()
+	 * @see #getConnectivityName()
 	 * @generated
 	 * @ordered
 	 */
-	protected String name = NAME_EDEFAULT;
+	protected String connectivityName = CONNECTIVITY_NAME_EDEFAULT;
 
 	/**
 	 * The default value of the '{@link #getIndexType() <em>Index Type</em>}' attribute.
@@ -75,7 +75,7 @@ public class TaskDependencyVariableImpl extends IrAnnotableImpl implements TaskD
 	 * @generated
 	 * @ordered
 	 */
-	protected static final String INDEX_EDEFAULT = null;
+	protected static final int INDEX_EDEFAULT = 0;
 
 	/**
 	 * The cached value of the '{@link #getIndex() <em>Index</em>}' attribute.
@@ -85,7 +85,7 @@ public class TaskDependencyVariableImpl extends IrAnnotableImpl implements TaskD
 	 * @generated
 	 * @ordered
 	 */
-	protected String index = INDEX_EDEFAULT;
+	protected int index = INDEX_EDEFAULT;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -112,8 +112,8 @@ public class TaskDependencyVariableImpl extends IrAnnotableImpl implements TaskD
 	 * @generated
 	 */
 	@Override
-	public String getName() {
-		return name;
+	public String getConnectivityName() {
+		return connectivityName;
 	}
 
 	/**
@@ -122,11 +122,11 @@ public class TaskDependencyVariableImpl extends IrAnnotableImpl implements TaskD
 	 * @generated
 	 */
 	@Override
-	public void setName(String newName) {
-		String oldName = name;
-		name = newName;
+	public void setConnectivityName(String newConnectivityName) {
+		String oldConnectivityName = connectivityName;
+		connectivityName = newConnectivityName;
 		if (eNotificationRequired())
-			eNotify(new ENotificationImpl(this, Notification.SET, IrPackage.TASK_DEPENDENCY_VARIABLE__NAME, oldName, name));
+			eNotify(new ENotificationImpl(this, Notification.SET, IrPackage.TASK_DEPENDENCY_VARIABLE__CONNECTIVITY_NAME, oldConnectivityName, connectivityName));
 	}
 
 	/**
@@ -158,7 +158,7 @@ public class TaskDependencyVariableImpl extends IrAnnotableImpl implements TaskD
 	 * @generated
 	 */
 	@Override
-	public String getIndex() {
+	public int getIndex() {
 		return index;
 	}
 
@@ -168,8 +168,8 @@ public class TaskDependencyVariableImpl extends IrAnnotableImpl implements TaskD
 	 * @generated
 	 */
 	@Override
-	public void setIndex(String newIndex) {
-		String oldIndex = index;
+	public void setIndex(int newIndex) {
+		int oldIndex = index;
 		index = newIndex;
 		if (eNotificationRequired())
 			eNotify(new ENotificationImpl(this, Notification.SET, IrPackage.TASK_DEPENDENCY_VARIABLE__INDEX, oldIndex, index));
@@ -183,8 +183,8 @@ public class TaskDependencyVariableImpl extends IrAnnotableImpl implements TaskD
 	@Override
 	public Object eGet(int featureID, boolean resolve, boolean coreType) {
 		switch (featureID) {
-			case IrPackage.TASK_DEPENDENCY_VARIABLE__NAME:
-				return getName();
+			case IrPackage.TASK_DEPENDENCY_VARIABLE__CONNECTIVITY_NAME:
+				return getConnectivityName();
 			case IrPackage.TASK_DEPENDENCY_VARIABLE__INDEX_TYPE:
 				return getIndexType();
 			case IrPackage.TASK_DEPENDENCY_VARIABLE__INDEX:
@@ -201,14 +201,14 @@ public class TaskDependencyVariableImpl extends IrAnnotableImpl implements TaskD
 	@Override
 	public void eSet(int featureID, Object newValue) {
 		switch (featureID) {
-			case IrPackage.TASK_DEPENDENCY_VARIABLE__NAME:
-				setName((String)newValue);
+			case IrPackage.TASK_DEPENDENCY_VARIABLE__CONNECTIVITY_NAME:
+				setConnectivityName((String)newValue);
 				return;
 			case IrPackage.TASK_DEPENDENCY_VARIABLE__INDEX_TYPE:
 				setIndexType((String)newValue);
 				return;
 			case IrPackage.TASK_DEPENDENCY_VARIABLE__INDEX:
-				setIndex((String)newValue);
+				setIndex((Integer)newValue);
 				return;
 		}
 		super.eSet(featureID, newValue);
@@ -222,8 +222,8 @@ public class TaskDependencyVariableImpl extends IrAnnotableImpl implements TaskD
 	@Override
 	public void eUnset(int featureID) {
 		switch (featureID) {
-			case IrPackage.TASK_DEPENDENCY_VARIABLE__NAME:
-				setName(NAME_EDEFAULT);
+			case IrPackage.TASK_DEPENDENCY_VARIABLE__CONNECTIVITY_NAME:
+				setConnectivityName(CONNECTIVITY_NAME_EDEFAULT);
 				return;
 			case IrPackage.TASK_DEPENDENCY_VARIABLE__INDEX_TYPE:
 				setIndexType(INDEX_TYPE_EDEFAULT);
@@ -243,12 +243,12 @@ public class TaskDependencyVariableImpl extends IrAnnotableImpl implements TaskD
 	@Override
 	public boolean eIsSet(int featureID) {
 		switch (featureID) {
-			case IrPackage.TASK_DEPENDENCY_VARIABLE__NAME:
-				return NAME_EDEFAULT == null ? name != null : !NAME_EDEFAULT.equals(name);
+			case IrPackage.TASK_DEPENDENCY_VARIABLE__CONNECTIVITY_NAME:
+				return CONNECTIVITY_NAME_EDEFAULT == null ? connectivityName != null : !CONNECTIVITY_NAME_EDEFAULT.equals(connectivityName);
 			case IrPackage.TASK_DEPENDENCY_VARIABLE__INDEX_TYPE:
 				return INDEX_TYPE_EDEFAULT == null ? indexType != null : !INDEX_TYPE_EDEFAULT.equals(indexType);
 			case IrPackage.TASK_DEPENDENCY_VARIABLE__INDEX:
-				return INDEX_EDEFAULT == null ? index != null : !INDEX_EDEFAULT.equals(index);
+				return index != INDEX_EDEFAULT;
 		}
 		return super.eIsSet(featureID);
 	}
@@ -263,8 +263,8 @@ public class TaskDependencyVariableImpl extends IrAnnotableImpl implements TaskD
 		if (eIsProxy()) return super.toString();
 
 		StringBuilder result = new StringBuilder(super.toString());
-		result.append(" (name: ");
-		result.append(name);
+		result.append(" (connectivityName: ");
+		result.append(connectivityName);
 		result.append(", indexType: ");
 		result.append(indexType);
 		result.append(", index: ");

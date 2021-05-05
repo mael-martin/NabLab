@@ -670,60 +670,6 @@ public interface IrPackage extends EPackage {
 	int TASK_DEPENDENCY_VARIABLE = 8;
 
 	/**
-	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 * @ordered
-	 */
-	int TASK_DEPENDENCY_VARIABLE__ANNOTATIONS = IR_ANNOTABLE__ANNOTATIONS;
-
-	/**
-	 * The feature id for the '<em><b>Name</b></em>' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 * @ordered
-	 */
-	int TASK_DEPENDENCY_VARIABLE__NAME = IR_ANNOTABLE_FEATURE_COUNT + 0;
-
-	/**
-	 * The feature id for the '<em><b>Index Type</b></em>' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 * @ordered
-	 */
-	int TASK_DEPENDENCY_VARIABLE__INDEX_TYPE = IR_ANNOTABLE_FEATURE_COUNT + 1;
-
-	/**
-	 * The feature id for the '<em><b>Index</b></em>' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 * @ordered
-	 */
-	int TASK_DEPENDENCY_VARIABLE__INDEX = IR_ANNOTABLE_FEATURE_COUNT + 2;
-
-	/**
-	 * The number of structural features of the '<em>Task Dependency Variable</em>' class.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 * @ordered
-	 */
-	int TASK_DEPENDENCY_VARIABLE_FEATURE_COUNT = IR_ANNOTABLE_FEATURE_COUNT + 3;
-
-	/**
-	 * The number of operations of the '<em>Task Dependency Variable</em>' class.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 * @ordered
-	 */
-	int TASK_DEPENDENCY_VARIABLE_OPERATION_COUNT = IR_ANNOTABLE_OPERATION_COUNT + 0;
-
-	/**
 	 * The meta object id for the '{@link fr.cea.nabla.ir.ir.impl.ArgImpl <em>Arg</em>}' class.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -732,51 +678,6 @@ public interface IrPackage extends EPackage {
 	 * @generated
 	 */
 	int ARG = 9;
-
-	/**
-	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 * @ordered
-	 */
-	int ARG__ANNOTATIONS = ARG_OR_VAR__ANNOTATIONS;
-
-	/**
-	 * The feature id for the '<em><b>Name</b></em>' attribute.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 * @ordered
-	 */
-	int ARG__NAME = ARG_OR_VAR__NAME;
-
-	/**
-	 * The feature id for the '<em><b>Type</b></em>' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 * @ordered
-	 */
-	int ARG__TYPE = ARG_OR_VAR__TYPE;
-
-	/**
-	 * The number of structural features of the '<em>Arg</em>' class.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 * @ordered
-	 */
-	int ARG_FEATURE_COUNT = ARG_OR_VAR_FEATURE_COUNT + 0;
-
-	/**
-	 * The number of operations of the '<em>Arg</em>' class.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 * @ordered
-	 */
-	int ARG_OPERATION_COUNT = ARG_OR_VAR_OPERATION_COUNT + 0;
 
 	/**
 	 * The meta object id for the '{@link fr.cea.nabla.ir.ir.impl.VariableImpl <em>Variable</em>}' class.
@@ -868,6 +769,159 @@ public interface IrPackage extends EPackage {
 	 * @ordered
 	 */
 	int VARIABLE_OPERATION_COUNT = ARG_OR_VAR_OPERATION_COUNT + 0;
+
+	/**
+	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TASK_DEPENDENCY_VARIABLE__ANNOTATIONS = VARIABLE__ANNOTATIONS;
+
+	/**
+	 * The feature id for the '<em><b>Name</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TASK_DEPENDENCY_VARIABLE__NAME = VARIABLE__NAME;
+
+	/**
+	 * The feature id for the '<em><b>Type</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TASK_DEPENDENCY_VARIABLE__TYPE = VARIABLE__TYPE;
+
+	/**
+	 * The feature id for the '<em><b>Default Value</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TASK_DEPENDENCY_VARIABLE__DEFAULT_VALUE = VARIABLE__DEFAULT_VALUE;
+
+	/**
+	 * The feature id for the '<em><b>Const</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TASK_DEPENDENCY_VARIABLE__CONST = VARIABLE__CONST;
+
+	/**
+	 * The feature id for the '<em><b>Const Expr</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TASK_DEPENDENCY_VARIABLE__CONST_EXPR = VARIABLE__CONST_EXPR;
+
+	/**
+	 * The feature id for the '<em><b>Option</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TASK_DEPENDENCY_VARIABLE__OPTION = VARIABLE__OPTION;
+
+	/**
+	 * The feature id for the '<em><b>Connectivity Name</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TASK_DEPENDENCY_VARIABLE__CONNECTIVITY_NAME = VARIABLE_FEATURE_COUNT + 0;
+
+	/**
+	 * The feature id for the '<em><b>Index Type</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TASK_DEPENDENCY_VARIABLE__INDEX_TYPE = VARIABLE_FEATURE_COUNT + 1;
+
+	/**
+	 * The feature id for the '<em><b>Index</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TASK_DEPENDENCY_VARIABLE__INDEX = VARIABLE_FEATURE_COUNT + 2;
+
+	/**
+	 * The number of structural features of the '<em>Task Dependency Variable</em>' class.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TASK_DEPENDENCY_VARIABLE_FEATURE_COUNT = VARIABLE_FEATURE_COUNT + 3;
+
+	/**
+	 * The number of operations of the '<em>Task Dependency Variable</em>' class.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int TASK_DEPENDENCY_VARIABLE_OPERATION_COUNT = VARIABLE_OPERATION_COUNT + 0;
+
+	/**
+	 * The feature id for the '<em><b>Annotations</b></em>' containment reference list.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int ARG__ANNOTATIONS = ARG_OR_VAR__ANNOTATIONS;
+
+	/**
+	 * The feature id for the '<em><b>Name</b></em>' attribute.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int ARG__NAME = ARG_OR_VAR__NAME;
+
+	/**
+	 * The feature id for the '<em><b>Type</b></em>' containment reference.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int ARG__TYPE = ARG_OR_VAR__TYPE;
+
+	/**
+	 * The number of structural features of the '<em>Arg</em>' class.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int ARG_FEATURE_COUNT = ARG_OR_VAR_FEATURE_COUNT + 0;
+
+	/**
+	 * The number of operations of the '<em>Arg</em>' class.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 * @ordered
+	 */
+	int ARG_OPERATION_COUNT = ARG_OR_VAR_OPERATION_COUNT + 0;
 
 	/**
 	 * The meta object id for the '{@link fr.cea.nabla.ir.ir.impl.FunctionImpl <em>Function</em>}' class.
@@ -5100,15 +5154,15 @@ public interface IrPackage extends EPackage {
 	EClass getTaskDependencyVariable();
 
 	/**
-	 * Returns the meta object for the attribute '{@link fr.cea.nabla.ir.ir.TaskDependencyVariable#getName <em>Name</em>}'.
+	 * Returns the meta object for the attribute '{@link fr.cea.nabla.ir.ir.TaskDependencyVariable#getConnectivityName <em>Connectivity Name</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for the attribute '<em>Name</em>'.
-	 * @see fr.cea.nabla.ir.ir.TaskDependencyVariable#getName()
+	 * @return the meta object for the attribute '<em>Connectivity Name</em>'.
+	 * @see fr.cea.nabla.ir.ir.TaskDependencyVariable#getConnectivityName()
 	 * @see #getTaskDependencyVariable()
 	 * @generated
 	 */
-	EAttribute getTaskDependencyVariable_Name();
+	EAttribute getTaskDependencyVariable_ConnectivityName();
 
 	/**
 	 * Returns the meta object for the attribute '{@link fr.cea.nabla.ir.ir.TaskDependencyVariable#getIndexType <em>Index Type</em>}'.
@@ -7295,12 +7349,12 @@ public interface IrPackage extends EPackage {
 		EClass TASK_DEPENDENCY_VARIABLE = eINSTANCE.getTaskDependencyVariable();
 
 		/**
-		 * The meta object literal for the '<em><b>Name</b></em>' attribute feature.
+		 * The meta object literal for the '<em><b>Connectivity Name</b></em>' attribute feature.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute TASK_DEPENDENCY_VARIABLE__NAME = eINSTANCE.getTaskDependencyVariable_Name();
+		EAttribute TASK_DEPENDENCY_VARIABLE__CONNECTIVITY_NAME = eINSTANCE.getTaskDependencyVariable_ConnectivityName();
 
 		/**
 		 * The meta object literal for the '<em><b>Index Type</b></em>' attribute feature.

@@ -59,15 +59,15 @@
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="type" lowerBound="1" eType="#//IrType" containment="true"/>
   </eClassifiers>
-  <eClassifiers xsi:type="ecore:EClass" name="TaskDependencyVariable" eSuperTypes="#//IrAnnotable">
+  <eClassifiers xsi:type="ecore:EClass" name="TaskDependencyVariable" eSuperTypes="#//Variable">
         <!-- The connectivity name: innerCells, etc -->
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="connectivityName" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
 
         <!-- The type of the first dimension index: NULL, CELLS, NODES, FACES -->
         <eStructuralFeatures xsi:type="ecore:EAttribute" name="indexType" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
 
         <!-- The index in the variables: 10, '3', '' (for NULL), i.e. which part of the loop: will be transformed into: '10 * (nbCells/nbTasks)', '3 * (nbCells/nbTasks)', nothing -->
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="index" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="index" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
 
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Arg" eSuperTypes="#//ArgOrVar"/>
