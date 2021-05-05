@@ -12,14 +12,17 @@ package fr.cea.nabla.ir
 import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.InstructionJob
 import fr.cea.nabla.ir.ir.IrFactory
+import fr.cea.nabla.ir.ir.TaskDependencyVariable
+import fr.cea.nabla.ir.ir.TaskInstruction
 import fr.cea.nabla.ir.ir.TimeLoopCopy
+import fr.cea.nabla.ir.ir.TimeLoopCopyInstruction
 import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.Variable
+import java.util.List
 import java.util.stream.IntStream
 import org.eclipse.emf.common.util.EList
-import fr.cea.nabla.ir.ir.TimeLoopCopyInstruction
-import java.util.List
-import fr.cea.nabla.ir.ir.TaskDependencyVariable
+
+import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 
 class TaskExtensions
 {
@@ -36,6 +39,18 @@ class TaskExtensions
 		}
 
 		else { return "simple" }
+	}
+	
+	/* Create a simple TaskInstruction from an InstructionJob */
+	static def TaskInstruction
+	createTaskInstruction(InstructionJob j)
+	{
+		IrFactory::eINSTANCE.createTaskInstruction => [
+			inVars        += j.inVars.map[ createTaskDependencyVariable ].flatten.toSet
+			outVars       += j.outVars.map[ createTaskDependencyVariable ].flatten.toSet
+			minimalInVars += j.minimalInVars.map[ createTaskDependencyVariable ].flatten.toSet
+			content        = j.instruction
+		]
 	}
 	
 	/* Create an InstructionJob from a TimeLoopJob */

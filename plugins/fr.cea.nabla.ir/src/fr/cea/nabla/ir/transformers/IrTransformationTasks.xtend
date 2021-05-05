@@ -11,7 +11,6 @@ package fr.cea.nabla.ir.transformers
 
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.ir.InstructionJob
-import fr.cea.nabla.ir.ir.IrFactory
 import fr.cea.nabla.ir.ir.IrModule
 import fr.cea.nabla.ir.ir.IrRoot
 import fr.cea.nabla.ir.ir.IterableInstruction
@@ -21,8 +20,7 @@ import fr.cea.nabla.ir.ir.TimeLoopJob
 import java.util.HashMap
 import org.eclipse.xtext.EcoreUtil2
 
-import static extension fr.cea.nabla.ir.TaskExtensions.*
-import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
+import static fr.cea.nabla.ir.TaskExtensions.*
 
 class IrTransformationTasks extends IrTransformationStep
 {
@@ -101,32 +99,23 @@ class IrTransformationTasks extends IrTransformationStep
 					&& noTasks 																	// Already replaced?
 					
 		if (TouchedJobs.getOrDefault(j.name, 0) == 1)
-			return false;
+			return false;	/* Still valid */
 
 		/* The TimeLoopCopy special case */
 		if (j instanceof TimeLoopJob) {
 			msg('Job ' + j.name + '@' + j.at + ' is a time loop job, generate one task for it')
 			replaceTimeLoopJob(j, createInstructionJob(j))
-
-			/* Invalidate */
 			TouchedJobs.put(j.name, 1)
 			TouchedJobs.put(j.name + 'Task', 1)
-			return true;
+			return true;	/* Invalidate */
 		}
 
 		/* Jobs without loops or reductions */
 		else if (!loops && j instanceof InstructionJob) {
 			msg('Job ' + j.name + '@' + j.at + ' is not a loop job, generate one task for it')
-			(j as InstructionJob).instruction = IrFactory::eINSTANCE.createTaskInstruction => [
-				inVars        += j.inVars.map[ createTaskDependencyVariable ].flatten.toSet
-				outVars       += j.outVars.map[ createTaskDependencyVariable ].flatten.toSet
-				minimalInVars += j.minimalInVars.map[ createTaskDependencyVariable ].flatten.toSet
-				content        = (j as InstructionJob).instruction
-			]
-
-			/* Still valid */
+			(j as InstructionJob).instruction = createTaskInstruction(j as InstructionJob)
 			TouchedJobs.put(j.name, 1)
-			return false;
+			return false;	/* Still valid */
 		}
 		
 		else if (! (j instanceof InstructionJob)) {
@@ -134,7 +123,7 @@ class IrTransformationTasks extends IrTransformationStep
 			throw new Exception("Unknown job type for " + j.name + "@" + j.at + ": " + j.toString)
 		}
 		
-		return false;
+		return false;	/* Still valid */
 	}
 	
 	private def void
