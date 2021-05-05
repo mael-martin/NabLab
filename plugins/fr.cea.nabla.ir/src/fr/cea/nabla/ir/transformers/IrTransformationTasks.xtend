@@ -10,23 +10,23 @@
 package fr.cea.nabla.ir.transformers
 
 import fr.cea.nabla.ir.LoopLevelGetter
+import fr.cea.nabla.ir.ir.Affectation
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
+import fr.cea.nabla.ir.ir.Instruction
+import fr.cea.nabla.ir.ir.InstructionBlock
 import fr.cea.nabla.ir.ir.InstructionJob
 import fr.cea.nabla.ir.ir.IrModule
 import fr.cea.nabla.ir.ir.IrRoot
 import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.Job
+import fr.cea.nabla.ir.ir.ReductionInstruction
 import fr.cea.nabla.ir.ir.TaskInstruction
 import fr.cea.nabla.ir.ir.TimeLoopJob
-import fr.cea.nabla.ir.ir.Variable
 import java.util.HashMap
-import java.util.HashSet
 import org.eclipse.xtext.EcoreUtil2
 
 import static fr.cea.nabla.ir.LoopLevelGetter.*
 import static fr.cea.nabla.ir.TaskExtensions.*
-
-import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 
 class IrTransformationTasks extends IrTransformationStep
 {
@@ -125,6 +125,42 @@ class IrTransformationTasks extends IrTransformationStep
 	}
 	
 	/* Internal helper functions */
+	
+	private def void
+	assertInstructionJobSliceable(InstructionJob j)
+	{
+		switch j.instruction {
+			/* It's OK */
+			IterableInstruction: {
+				msg('Job ' + j.name + '@' + j.at + ' is a slice-able job')
+			}
+
+			/* IB must only be composed of loops/reductions */
+			InstructionBlock: {
+				var Instruction last_inst = null
+				for (ib_content : (j.instruction as InstructionBlock).instructions) {
+					val II_only_condition 			= (ib_content instanceof IterableInstruction)
+					val RI_followedby_AFF_condition = (last_inst !== null
+													&& last_inst instanceof ReductionInstruction
+													&& ib_content instanceof Affectation)
+
+					if (!(II_only_condition || RI_followedby_AFF_condition)) {
+						val jobname = "Job " + j.name + "@" + j.at
+						if (!RI_followedby_AFF_condition)
+							throw new Exception(jobname + ": an Affectation is not the successor of a RI")
+						if (!II_only_condition)
+							throw new Exception(jobname + ": IB is not composed of only II")
+					}
+					
+					// Register previous instruction
+					last_inst = ib_content
+				}
+			}
+
+			/* PANIK!!! */
+			default: { throw new Exception("Job " + j.name + "@" + j.at + " is not slice-able! Incorrect II positions") }
+		}
+	}
 
 	private def void
 	replaceTimeLoopJob(TimeLoopJob to_replace, Job replacement)
@@ -154,7 +190,7 @@ class IrTransformationTasks extends IrTransformationStep
 	private def void
 	___replaceIterableInstructionJobs(InstructionJob j)
 	{
-		msg('Job ' + j.name + '@' + j.at + ' is a slice-able job')
+		assertInstructionJobSliceable(j)
 		TouchedJobs.put(j.name, 1)
 	}
 	

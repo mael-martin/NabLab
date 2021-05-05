@@ -44,6 +44,7 @@ class ReplaceReductions extends IrTransformationStep
 		trace('    IR -> IR: ' + description)
 		var reductions = ir.eAllContents.filter(ReductionInstruction)
 		if (!replaceAllReductions) reductions = reductions.filter[!external]
+		var count = 0
 
 		for (reduction : reductions.toList)
 		{
@@ -57,6 +58,12 @@ class ReplaceReductions extends IrTransformationStep
 			// instantiate the VarDefinition at the end to prevent reduction.result from becoming null
 			val variableDefinition = IrFactory::eINSTANCE.createVariableDeclaration => [ variable = reduction.result ]
 			replace(reduction, #[variableDefinition, loop])
+			
+			count += 1
+		}
+		
+		if (count > 0) {
+			msg('Number of replaced reductions: ' + count)
 		}
 		return true
 	}

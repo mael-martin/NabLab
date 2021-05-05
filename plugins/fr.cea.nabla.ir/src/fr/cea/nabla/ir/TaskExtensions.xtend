@@ -197,6 +197,13 @@ class TaskExtensions
 		tlcs.map[ createTimeLoopCopyInstruction ]
 	}
 	
+	/* Slice a loop for a job */
+
+	static def
+	createSlicedJob(InstructionJob j)
+	{
+	}
+	
 	/* Create the TaskDependencyVariable */
 
 	static def List<TaskDependencyVariable>
