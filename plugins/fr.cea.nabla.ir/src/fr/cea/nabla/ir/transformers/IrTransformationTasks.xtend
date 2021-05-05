@@ -44,13 +44,17 @@ class IrTransformationTasks extends IrTransformationStep
 	
 	private def void replaceTimeLoopJob(TimeLoopJob to_replace, Job replacement)
 	{
-		val mod = EcoreUtil2.getContainerOfType(to_replace, IrModule)
-		if (mod === null) {
-			msg("Can't TimeLoopJob by InstructionJob for " + to_replace.name + '@' + to_replace.at)
-			return;
-		}
 		msg('Replace TimeLoopJob by InstructionJob for ' + to_replace.name + '@' + to_replace.at)
+		val mod    = EcoreUtil2.getContainerOfType(to_replace, IrModule)
+		val ir     = EcoreUtil2.getContainerOfType(to_replace, IrRoot)
+		val caller = to_replace.caller
+		
+		ir.jobs.remove(to_replace)
+		caller.calls.remove(to_replace)
 		mod.jobs.remove(to_replace)
+		
+		ir.jobs.add(replacement)
+		caller.calls.add(replacement)
 		mod.jobs.add(replacement)
 	}
 	
@@ -67,8 +71,10 @@ class IrTransformationTasks extends IrTransformationStep
 		if (j instanceof TimeLoopJob) {
 			msg('Job ' + j.name + '@' + j.at + ' is a time loop job, generate one task for it')
 			replaceTimeLoopJob(j, IrFactory::eINSTANCE.createInstructionJob => [
-				name 		= j.name
+				caller      = j.caller
+				name 		= j.name + 'Task'
 				at   		= j.at
+				onCycle     = j.onCycle
 				instruction = IrFactory::eINSTANCE.createTaskInstruction => [
 					inVars        += j.inVars.map[ createTaskDependencyVariable ].flatten.toSet
 					outVars       += j.minimalInVars.map[ createTaskDependencyVariable ].flatten.toSet
@@ -81,6 +87,7 @@ class IrTransformationTasks extends IrTransformationStep
 
 			/* Invalidate */
 			TouchedJobs.put(j.name, 1)
+			TouchedJobs.put(j.name + 'Task', 1)
 			return true;
 		}
 
@@ -111,19 +118,22 @@ class IrTransformationTasks extends IrTransformationStep
 	{
 		var invalidated_list = false
 		do {
-			/* Invalidate the iterator */
-			val jobList = ir.eAllContents.filter(Job).reject[ j |
-				/* Don't generate tasks for ExecuteTimeLoop jobs */
-				j instanceof ExecuteTimeLoopJob
-			].toList
-			
 			invalidated_list = false;
-			for (j : jobList) {
+			for (j : ir.eAllContents.filter(Job).reject[ j | j instanceof ExecuteTimeLoopJob ].toList) {
 				/* Because XTEND don't support BREAK and CONTINUE */
 				if (!invalidated_list && j !== null) {
 					invalidated_list = ___replaceNonLoopJobs(j)
 				}
 			}
 		} while (invalidated_list);
+		
+		/* Verify that we did get ride of the TimeLoopJobs */
+		val tlj_list = ir.eAllContents.filter(TimeLoopJob).reject[ j | j instanceof ExecuteTimeLoopJob].toList
+		if (tlj_list !== null && tlj_list.size > 0) {
+			throw new Exception(
+				"There are still references to " + tlj_list.size + " TimeLoopJob objects: " +
+				tlj_list.map[ name ].reduce[ s1, s2 | s1 + ', ' + s2 ]
+			)
+		}
 	}
 }
