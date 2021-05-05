@@ -12,10 +12,10 @@ package fr.cea.nabla.ir.transformers
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.ir.InstructionJob
 import fr.cea.nabla.ir.ir.IrFactory
+import fr.cea.nabla.ir.ir.IrModule
 import fr.cea.nabla.ir.ir.IrRoot
 import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.Job
-import fr.cea.nabla.ir.ir.JobCaller
 import fr.cea.nabla.ir.ir.TaskInstruction
 import fr.cea.nabla.ir.ir.TimeLoopJob
 import java.util.HashMap
@@ -44,12 +44,14 @@ class IrTransformationTasks extends IrTransformationStep
 	
 	private def void replaceTimeLoopJob(TimeLoopJob to_replace, Job replacement)
 	{
-		msg('Replace TimeLoopJob by InstructionJob for ' + to_replace.name + '@' + to_replace.at)
-		val jc = EcoreUtil2.getContainerOfType(to_replace, JobCaller)
-		if (jc === null)
+		val mod = EcoreUtil2.getContainerOfType(to_replace, IrModule)
+		if (mod === null) {
+			msg("Can't TimeLoopJob by InstructionJob for " + to_replace.name + '@' + to_replace.at)
 			return;
-		jc.calls.remove(to_replace)
-		jc.calls.add(replacement)
+		}
+		msg('Replace TimeLoopJob by InstructionJob for ' + to_replace.name + '@' + to_replace.at)
+		mod.jobs.remove(to_replace)
+		mod.jobs.add(replacement)
 	}
 	
 	private def boolean ___replaceNonLoopJobs(Job j)

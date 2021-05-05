@@ -222,18 +222,26 @@ class JobMergeFromCost extends IrTransformationStep
 
 	static def Set<Variable> getInVars(Job it)
 	{
-		return (it === null) ? #[].toSet
-		: eAllContents.filter(ArgOrVarRef).filter[ x |
+		if (it === null)
+			return #[].toSet
+		return eAllContents.filter(ArgOrVarRef).filter[ x |
 			x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left
-		].map[target].filter(Variable).filter[global].toSet
+		].map[ target ]
+		 .filter(Variable)
+		 .filter[ global ]
+		 .filter[ !isOption ]
+		 .toSet
 	}
 
 	static def Set<Variable> getOutVars(Job it)
 	{
-		return (it === null) ? #[].toSet
-		: eAllContents.filter(Affectation).map[left.target]
-					  .filter(Variable)
-					  .filter[global].toSet
+		if (it === null)
+			return #[].toSet
+		return eAllContents.filter(Affectation).map[ left.target ]
+					  	   .filter(Variable)
+					  	   .filter[ global ]
+					   	   .filter[ !isOption ]
+					  	   .toSet
 	}
 	
 	static def int getOutReusedVarsNumber(Job it)
