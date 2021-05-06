@@ -23,7 +23,9 @@ import fr.cea.nabla.ir.ir.ItemIdDefinition
 import fr.cea.nabla.ir.ir.ItemIndexDefinition
 import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.Iterator
+import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.Loop
+import fr.cea.nabla.ir.ir.LoopSliceInstruction
 import fr.cea.nabla.ir.ir.ReductionInstruction
 import fr.cea.nabla.ir.ir.Return
 import fr.cea.nabla.ir.ir.SetDefinition
@@ -42,6 +44,7 @@ import java.util.Map
 import java.util.Set
 import java.util.stream.IntStream
 import org.eclipse.emf.common.util.EList
+import org.eclipse.xtext.EcoreUtil2
 
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 
@@ -134,6 +137,7 @@ class TaskExtensions
 	static int num_tasks = 1
 	static def setNumTasks(int ntasks) { num_tasks = ntasks }
 
+	/* Get the connectivity of a variable */
 	static private def String
 	getConnectivityName(Variable v)
 	{
@@ -144,16 +148,19 @@ class TaskExtensions
 		else { return "simple" }
 	}
 	
-	/* Create a simple TaskInstruction from an InstructionJob */
+	/* Create a simple TaskInstruction from an InstructionJob, this is used to
+	 * wrap the content of a job inside its own task */
 	static def TaskInstruction
 	createTaskInstruction(InstructionJob j)
 	{
 		val falseIns = j.falseInVars
 		IrFactory::eINSTANCE.createTaskInstruction => [
+			/* All slices are needed */
 			inVars        += j.inVars.filter[ v | !falseIns.contains(v) ].map[ createTaskDependencyVariable ].flatten.toSet
 			outVars       += j.outVars.map[ createTaskDependencyVariable ].flatten.toSet
 			minimalInVars += j.minimalInVars.map[ createTaskDependencyVariable ].flatten.toSet
-			content        = j.instruction
+			/* Copy the inner content of the job */
+			content = j.instruction
 		]
 	}
 	
@@ -167,10 +174,12 @@ class TaskExtensions
 			at   		= j.at
 			onCycle     = j.onCycle
 			instruction = IrFactory::eINSTANCE.createTaskInstruction => [
+				/* Get all slices of data that is used/modified */
 				j.copies.map[ source.createTaskDependencyVariable ].forEach[ v | inVars += v ]
 				j.copies.map[ destination.createTaskDependencyVariable ].forEach[ v | outVars += v ]
 				minimalInVars += inVars
-				content        = IrFactory::eINSTANCE.createInstructionBlock => [
+				/* Copy the content that is wrapped inside the task */
+				content = IrFactory::eINSTANCE.createInstructionBlock => [
 					instructions += createTimeLoopCopyInstruction(j.copies)
 				]
 			]
@@ -196,23 +205,107 @@ class TaskExtensions
 		tlcs.map[ createTimeLoopCopyInstruction ]
 	}
 	
+	/* Create a slice of a Loop */
+	private static def List<LoopSliceInstruction>
+	createSliceLoop(Loop l)
+	{
+		val parentJob = EcoreUtil2.getContainerOfType(l, Job)
+		val falseIns  = parentJob.falseInVars
+		return IntStream.range(0, num_tasks).iterator.map[ i | IrFactory::eINSTANCE.createLoopSliceInstruction => [
+			/* A slice will be executed in its own task */
+			task = IrFactory::eINSTANCE.createTaskInstruction => [
+				/* Keep only the slice of data that is modified/used by this loop slice */
+				inVars        += parentJob.inVars.filter[ v | !falseIns.contains(v) ].map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
+				outVars       += parentJob.outVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
+				minimalInVars += parentJob.minimalInVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
+
+				/* the inner content of the loop is the same for all slices */
+				content = l.body
+			]
+			/* Keep the iteration block as the thing that should be if no slice was generated */
+			iterationBlock = l.iterationBlock
+		]].toList
+	}
+	
+	/* Create a slice of a Reduction, we generate the declaration for the partial reduction data holder */
+	private static def List<Instruction>
+	createSlicedReduction(ReductionInstruction RI)
+	{
+		throw new Exception("Not implemented")
+	}
+	
+	private static def Instruction
+	createSlicedReductionFinalReduction(ReductionInstruction RI, String finalResult)
+	{
+		throw new Exception("Not implemented")
+	}
+	
+	/* Create a slice of a IB:
+	 * - Only Loop
+	 * - OK when Affectation follows a RI
+	 */
+	 private static def InstructionBlock
+	 createSlicedInstructionBlock(InstructionBlock IB)
+	 {
+	 	var Instruction last_instruction = null
+	 	val List<Instruction> IS         = #[].toList
+	 	
+	 	/* Slice all the instructions */
+	 	for (I : IB.instructions) {
+	 		switch I {
+	 			/* Slice the loops */
+	 			Loop: {
+	 				IS += createSliceLoop(I as Loop)
+	 			}
+
+				/* Slice the reduction, we expect that the next instruction is an affectation */
+	 			ReductionInstruction: {
+	 				IS += createSlicedReduction(I as ReductionInstruction)
+	 			}
+	 			
+	 			/* Affectation: only if last slice (generate one final reduction), check if last instruction was a reduction! */
+	 			Affectation: {
+	 				if ((last_instruction !== null) && (last_instruction instanceof ReductionInstruction)) {
+	 					IS += createSlicedReductionFinalReduction(last_instruction as ReductionInstruction, (I as Affectation).left.target.name)
+	 				}
+	 			}
+
+	 			default: throw new Exception("Unhandled instruction for slice creation")
+	 		}
+	 		last_instruction = I
+	 	}
+	 	
+	 	/* No affectation after the last reduction? Create the final reduction here */
+	 	if ((last_instruction !== null) && (last_instruction instanceof ReductionInstruction)) {
+	 		val RI = last_instruction as ReductionInstruction
+	 		IS += createSlicedReductionFinalReduction(RI, RI.result.name)
+	 	}
+	 	
+	 	/* Return the sliced InstructionBlock */
+	 	return IrFactory::eINSTANCE.createInstructionBlock => [
+	 		instructions += IS
+	 	]
+	 }
+	
 	/* Slice a loop for a job.
 	 * We now that the job is slice-able:
 	 * - Only II
 	 * - OK when an Affectation follows a RI
 	 */
-	static def
+	static def void
 	createSlicedJob(InstructionJob j)
 	{
 		switch j.instruction {
 			/* Multiple loops or a RI followed by an Affectation */
 			InstructionBlock: {
-				
+				j.instruction = createSlicedInstructionBlock(j.instruction as InstructionBlock)
 			}
 			
 			/* Simple loop */
-			IterableInstruction: {
-				
+			Loop: {
+				j.instruction = IrFactory::eINSTANCE.createInstructionBlock => [
+					instructions += createSliceLoop(j.instruction as Loop)
+				]
 			}
 			
 			/* PANIK!!! */
