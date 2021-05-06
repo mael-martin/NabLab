@@ -229,6 +229,15 @@ public interface IrFactory extends EFactory {
 	TaskInstruction createTaskInstruction();
 
 	/**
+	 * Returns a new object of class '<em>Loop Slice Instruction</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>Loop Slice Instruction</em>'.
+	 * @generated
+	 */
+	LoopSliceInstruction createLoopSliceInstruction();
+
+	/**
 	 * Returns a new object of class '<em>Reduction Instruction</em>'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->

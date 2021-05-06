@@ -80,6 +80,7 @@ public class IrFactoryImpl extends EFactoryImpl implements IrFactory {
 			case IrPackage.VARIABLE_DECLARATION: return createVariableDeclaration();
 			case IrPackage.AFFECTATION: return createAffectation();
 			case IrPackage.TASK_INSTRUCTION: return createTaskInstruction();
+			case IrPackage.LOOP_SLICE_INSTRUCTION: return createLoopSliceInstruction();
 			case IrPackage.REDUCTION_INSTRUCTION: return createReductionInstruction();
 			case IrPackage.LOOP: return createLoop();
 			case IrPackage.ITEM_INDEX_DEFINITION: return createItemIndexDefinition();
@@ -403,6 +404,17 @@ public class IrFactoryImpl extends EFactoryImpl implements IrFactory {
 	public TaskInstruction createTaskInstruction() {
 		TaskInstructionImpl taskInstruction = new TaskInstructionImpl();
 		return taskInstruction;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public LoopSliceInstruction createLoopSliceInstruction() {
+		LoopSliceInstructionImpl loopSliceInstruction = new LoopSliceInstructionImpl();
+		return loopSliceInstruction;
 	}
 
 	/**

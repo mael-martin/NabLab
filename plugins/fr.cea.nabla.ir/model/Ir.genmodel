@@ -164,6 +164,10 @@
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//TaskInstruction/outVars"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//TaskInstruction/minimalInVars"/>
     </genClasses>
+    <genClasses ecoreClass="Ir.ecore#//LoopSliceInstruction">
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//LoopSliceInstruction/iterationBlock"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//LoopSliceInstruction/task"/>
+    </genClasses>
     <genClasses ecoreClass="Ir.ecore#//ReductionInstruction">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//ReductionInstruction/innerInstructions"/>
       <genFeatures notify="false" createChild="false" propertySortChoices="true" ecoreFeature="ecore:EReference Ir.ecore#//ReductionInstruction/binaryFunction"/>

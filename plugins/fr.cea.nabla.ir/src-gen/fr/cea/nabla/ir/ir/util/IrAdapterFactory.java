@@ -188,6 +188,10 @@ public class IrAdapterFactory extends AdapterFactoryImpl {
 				return createTaskInstructionAdapter();
 			}
 			@Override
+			public Adapter caseLoopSliceInstruction(LoopSliceInstruction object) {
+				return createLoopSliceInstructionAdapter();
+			}
+			@Override
 			public Adapter caseReductionInstruction(ReductionInstruction object) {
 				return createReductionInstructionAdapter();
 			}
@@ -788,6 +792,20 @@ public class IrAdapterFactory extends AdapterFactoryImpl {
 	 * @generated
 	 */
 	public Adapter createTaskInstructionAdapter() {
+		return null;
+	}
+
+	/**
+	 * Creates a new adapter for an object of class '{@link fr.cea.nabla.ir.ir.LoopSliceInstruction <em>Loop Slice Instruction</em>}'.
+	 * <!-- begin-user-doc -->
+	 * This default implementation returns null so that we can easily ignore cases;
+	 * it's useful to ignore a case when inheritance will catch all the cases anyway.
+	 * <!-- end-user-doc -->
+	 * @return the new adapter.
+	 * @see fr.cea.nabla.ir.ir.LoopSliceInstruction
+	 * @generated
+	 */
+	public Adapter createLoopSliceInstructionAdapter() {
 		return null;
 	}
 

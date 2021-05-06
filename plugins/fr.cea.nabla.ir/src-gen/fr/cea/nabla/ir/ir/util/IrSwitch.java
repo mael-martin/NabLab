@@ -294,6 +294,14 @@ public class IrSwitch<T> extends Switch<T> {
 				if (result == null) result = defaultCase(theEObject);
 				return result;
 			}
+			case IrPackage.LOOP_SLICE_INSTRUCTION: {
+				LoopSliceInstruction loopSliceInstruction = (LoopSliceInstruction)theEObject;
+				T result = caseLoopSliceInstruction(loopSliceInstruction);
+				if (result == null) result = caseInstruction(loopSliceInstruction);
+				if (result == null) result = caseIrAnnotable(loopSliceInstruction);
+				if (result == null) result = defaultCase(theEObject);
+				return result;
+			}
 			case IrPackage.REDUCTION_INSTRUCTION: {
 				ReductionInstruction reductionInstruction = (ReductionInstruction)theEObject;
 				T result = caseReductionInstruction(reductionInstruction);
@@ -1066,6 +1074,21 @@ public class IrSwitch<T> extends Switch<T> {
 	 * @generated
 	 */
 	public T caseTaskInstruction(TaskInstruction object) {
+		return null;
+	}
+
+	/**
+	 * Returns the result of interpreting the object as an instance of '<em>Loop Slice Instruction</em>'.
+	 * <!-- begin-user-doc -->
+	 * This implementation returns null;
+	 * returning a non-null result will terminate the switch.
+	 * <!-- end-user-doc -->
+	 * @param object the target of the switch.
+	 * @return the result of interpreting the object as an instance of '<em>Loop Slice Instruction</em>'.
+	 * @see #doSwitch(org.eclipse.emf.ecore.EObject) doSwitch(EObject)
+	 * @generated
+	 */
+	public T caseLoopSliceInstruction(LoopSliceInstruction object) {
 		return null;
 	}
 

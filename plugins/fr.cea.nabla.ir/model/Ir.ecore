@@ -151,15 +151,21 @@
         <eStructuralFeatures xsi:type="ecore:EReference" name="minimalInVars" upperBound="-1" eType="ecore:EDataType #//TaskDependencyVariable" containment="true"/>
 
     </eClassifiers>
+    <eClassifiers xsi:type="ecore:EClass" name="LoopSliceInstruction" eSuperTypes="#//Instruction">
+        <!-- This class should inherit the Loop and TaskInstruction, prefer to use composition here :')
+             We only take the IterationBlock from the loop, the body of the loop is contained in the task thing -->
+        <eStructuralFeatures xsi:type="ecore:EReference" name="iterationBlock" upperBound="1" eType="#//IterationBlock"  containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="task"           upperBound="1" eType="#//TaskInstruction" containment="true"/>
+    </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="ReductionInstruction" eSuperTypes="#//IterableInstruction">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="innerInstructions" upperBound="-1" eType="#//Instruction" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="binaryFunction" lowerBound="1" eType="#//Function"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="lambda" lowerBound="1" eType="#//Expression" containment="true" resolveProxies="false"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="result" lowerBound="1" eType="#//Variable" containment="true" resolveProxies="false"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="innerInstructions"   upperBound="-1" eType="#//Instruction" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="binaryFunction"      lowerBound="1"  eType="#//Function"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="lambda"              lowerBound="1"  eType="#//Expression" containment="true" resolveProxies="false"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="result"              lowerBound="1"  eType="#//Variable"   containment="true" resolveProxies="false"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="Loop" eSuperTypes="#//IterableInstruction">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="body" lowerBound="1" eType="#//Instruction" containment="true" resolveProxies="false"/>
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="multithreadable" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" defaultValueLiteral="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="body"            lowerBound="1" eType="#//Instruction" containment="true" resolveProxies="false"/>
+        <eStructuralFeatures xsi:type="ecore:EAttribute" name="multithreadable"                eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean" defaultValueLiteral="true"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="ItemIndexDefinition" eSuperTypes="#//Instruction">
         <eStructuralFeatures xsi:type="ecore:EReference" name="index" lowerBound="1" eType="#//ItemIndex" containment="true"/>
@@ -190,12 +196,12 @@
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="IterationBlock" abstract="true" eSuperTypes="#//IrAnnotable"/>
     <eClassifiers xsi:type="ecore:EClass" name="Iterator" eSuperTypes="#//IterationBlock">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" lowerBound="1" eType="#//ItemIndex" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index"     lowerBound="1" eType="#//ItemIndex" containment="true"/>
         <eStructuralFeatures xsi:type="ecore:EReference" name="container" lowerBound="1" eType="#//Container" containment="true"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="counter" eType="#//Variable" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="counter"                  eType="#//Variable"  containment="true"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="Interval" eSuperTypes="#//IterationBlock">
-        <eStructuralFeatures xsi:type="ecore:EReference" name="index" lowerBound="1" eType="#//Variable" containment="true"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="index"   lowerBound="1" eType="#//Variable"   containment="true"/>
         <eStructuralFeatures xsi:type="ecore:EReference" name="nbElems" lowerBound="1" eType="#//Expression" containment="true"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="Expression" abstract="true" eSuperTypes="#//IrAnnotable">

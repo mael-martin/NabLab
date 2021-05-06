@@ -52,6 +52,7 @@ import fr.cea.nabla.ir.ir.Job;
 import fr.cea.nabla.ir.ir.JobCaller;
 import fr.cea.nabla.ir.ir.LinearAlgebraType;
 import fr.cea.nabla.ir.ir.Loop;
+import fr.cea.nabla.ir.ir.LoopSliceInstruction;
 import fr.cea.nabla.ir.ir.MaxConstant;
 import fr.cea.nabla.ir.ir.MinConstant;
 import fr.cea.nabla.ir.ir.Parenthesis;
@@ -300,6 +301,13 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 	 * @generated
 	 */
 	private EClass taskInstructionEClass = null;
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	private EClass loopSliceInstructionEClass = null;
 
 	/**
 	 * <!-- begin-user-doc -->
@@ -1752,6 +1760,36 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 	 * @generated
 	 */
 	@Override
+	public EClass getLoopSliceInstruction() {
+		return loopSliceInstructionEClass;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EReference getLoopSliceInstruction_IterationBlock() {
+		return (EReference)loopSliceInstructionEClass.getEStructuralFeatures().get(0);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public EReference getLoopSliceInstruction_Task() {
+		return (EReference)loopSliceInstructionEClass.getEStructuralFeatures().get(1);
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
 	public EClass getReductionInstruction() {
 		return reductionInstructionEClass;
 	}
@@ -2984,6 +3022,10 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 		createEReference(taskInstructionEClass, TASK_INSTRUCTION__OUT_VARS);
 		createEReference(taskInstructionEClass, TASK_INSTRUCTION__MINIMAL_IN_VARS);
 
+		loopSliceInstructionEClass = createEClass(LOOP_SLICE_INSTRUCTION);
+		createEReference(loopSliceInstructionEClass, LOOP_SLICE_INSTRUCTION__ITERATION_BLOCK);
+		createEReference(loopSliceInstructionEClass, LOOP_SLICE_INSTRUCTION__TASK);
+
 		reductionInstructionEClass = createEClass(REDUCTION_INSTRUCTION);
 		createEReference(reductionInstructionEClass, REDUCTION_INSTRUCTION__INNER_INSTRUCTIONS);
 		createEReference(reductionInstructionEClass, REDUCTION_INSTRUCTION__BINARY_FUNCTION);
@@ -3191,6 +3233,7 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 		affectationEClass.getESuperTypes().add(this.getInstruction());
 		iterableInstructionEClass.getESuperTypes().add(this.getInstruction());
 		taskInstructionEClass.getESuperTypes().add(this.getInstruction());
+		loopSliceInstructionEClass.getESuperTypes().add(this.getInstruction());
 		reductionInstructionEClass.getESuperTypes().add(this.getIterableInstruction());
 		loopEClass.getESuperTypes().add(this.getIterableInstruction());
 		itemIndexDefinitionEClass.getESuperTypes().add(this.getInstruction());
@@ -3372,6 +3415,10 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 		initEReference(getTaskInstruction_InVars(), this.getTaskDependencyVariable(), null, "inVars", null, 0, -1, TaskInstruction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEReference(getTaskInstruction_OutVars(), this.getTaskDependencyVariable(), null, "outVars", null, 0, -1, TaskInstruction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEReference(getTaskInstruction_MinimalInVars(), this.getTaskDependencyVariable(), null, "minimalInVars", null, 0, -1, TaskInstruction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+
+		initEClass(loopSliceInstructionEClass, LoopSliceInstruction.class, "LoopSliceInstruction", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
+		initEReference(getLoopSliceInstruction_IterationBlock(), this.getIterationBlock(), null, "iterationBlock", null, 0, 1, LoopSliceInstruction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEReference(getLoopSliceInstruction_Task(), this.getTaskInstruction(), null, "task", null, 0, 1, LoopSliceInstruction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(reductionInstructionEClass, ReductionInstruction.class, "ReductionInstruction", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 		initEReference(getReductionInstruction_InnerInstructions(), this.getInstruction(), null, "innerInstructions", null, 0, -1, ReductionInstruction.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
