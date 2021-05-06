@@ -47,6 +47,7 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.xtext.EcoreUtil2
 
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
+import fr.cea.nabla.ir.ir.CArray
 
 class LoopLevelGetter
 {
@@ -211,29 +212,81 @@ class TaskExtensions
 	{
 		val parentJob = EcoreUtil2.getContainerOfType(l, Job)
 		val falseIns  = parentJob.falseInVars
-		return IntStream.range(0, num_tasks).iterator.map[ i | IrFactory::eINSTANCE.createLoopSliceInstruction => [
-			/* A slice will be executed in its own task */
-			task = IrFactory::eINSTANCE.createTaskInstruction => [
-				/* Keep only the slice of data that is modified/used by this loop slice */
-				inVars        += parentJob.inVars.filter[ v | !falseIns.contains(v) ].map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
-				outVars       += parentJob.outVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
-				minimalInVars += parentJob.minimalInVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
+		return IntStream.range(0, num_tasks).iterator.map[ i |
+			IrFactory::eINSTANCE.createLoopSliceInstruction => [
+				/* A slice will be executed in its own task */
+				task = IrFactory::eINSTANCE.createTaskInstruction => [
+					/* Keep only the slice of data that is modified/used by this loop slice */
+					inVars        += parentJob.inVars.filter[ v | !falseIns.contains(v) ].map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
+					outVars       += parentJob.outVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
+					minimalInVars += parentJob.minimalInVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
 
-				/* the inner content of the loop is the same for all slices */
-				content = l.body
+					/* the inner content of the loop is the same for all slices */
+					content = l.body
+				]
+				/* Keep the iteration block as the thing that should be if no slice was generated */
+				iterationBlock = l.iterationBlock
 			]
-			/* Keep the iteration block as the thing that should be if no slice was generated */
-			iterationBlock = l.iterationBlock
-		]].toList
+		].toList
 	}
 	
-	/* Create a slice of a Reduction, we generate the declaration for the partial reduction data holder */
+	/* Create a slice of a Reduction, we generate the declaration for the
+	 * partial reduction data holder */
 	private static def List<Instruction>
 	createSlicedReduction(ReductionInstruction RI)
+	{
+		val List<Instruction> ret = #[].toList
+		val storage               = createPartialReductionStorage(RI)
+		val parentJob             = EcoreUtil2.getContainerOfType(RI, Job)
+		val falseIns              = parentJob.falseInVars
+		ret += IrFactory::eINSTANCE.createVariableDeclaration => [ variable = storage ]
+		
+		return IntStream.range(0, num_tasks).iterator.map[ i |
+			IrFactory::eINSTANCE.createLoopSliceInstruction => [
+				iterationBlock = RI.iterationBlock
+				task           = IrFactory::eINSTANCE.createTaskInstruction => [
+					inVars        += parentJob.inVars.filter[ v | !falseIns.contains(v) ].map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
+					outVars       += parentJob.outVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
+					minimalInVars += parentJob.minimalInVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
+					content        = createSlicedReductionCoreAffectation(RI)
+				]
+			]
+		].toList
+	}
+	
+	/* Create the affectation for the core of the reduction */
+	private static def Instruction
+	createSlicedReductionCoreAffectation(ReductionInstruction RI)
 	{
 		throw new Exception("Not implemented")
 	}
 	
+	/* Create the temporary storage, it's static for now */
+	private static def Variable
+	createPartialReductionStorage(ReductionInstruction RI)
+	{
+		/* Assert: reduction on simple types */
+		if (RI.result.type instanceof CArray) {
+			throw new Exception("Reductions on CArrays are not supported: it will create composed CArrays")
+		}
+		
+		/* The storage */
+		return IrFactory::eINSTANCE.createVariable => [
+			name = RI.result.name + "_tab"
+			type = IrFactory::eINSTANCE.createCArray => [
+				primitive = RI.result.type
+				size      = num_tasks
+				static    = true
+			]
+			defaultValue = RI.result.defaultValue
+			const        = false
+			constExpr    = false
+			option       = false
+		]
+	}
+	
+	/* Generate the final reduction, where all the partial reduction results are
+	 * reduced and stored in the final variable */
 	private static def Instruction
 	createSlicedReductionFinalReduction(ReductionInstruction RI, String finalResult)
 	{
