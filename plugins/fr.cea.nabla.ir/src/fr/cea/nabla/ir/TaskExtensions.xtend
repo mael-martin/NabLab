@@ -245,10 +245,10 @@ class TaskExtensions
 			IrFactory::eINSTANCE.createLoopSliceInstruction => [
 				iterationBlock = RI.iterationBlock
 				task           = IrFactory::eINSTANCE.createTaskInstruction => [
-					inVars        += parentJob.inVars.filter[ v | !falseIns.contains(v) ].map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
-					outVars       += parentJob.outVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
-					minimalInVars += parentJob.minimalInVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
-					content        = createSlicedReductionCoreAffectation(RI)
+					inVars        += parentJob.inVars.filter[ v | !falseIns.contains(v) ].map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet  /* Ins are the one of the job, but sliced     */
+					outVars       += createTaskDependencyVariable(storage)																								/* Will produced a partial reduction          */
+					minimalInVars += parentJob.minimalInVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet								/* Slice the minimal IN variables             */
+					content        = createSlicedReductionCoreAffectation(RI)																							/* generate the affectation for the reduction */
 				]
 			]
 		].toList
@@ -290,7 +290,26 @@ class TaskExtensions
 	private static def Instruction
 	createSlicedReductionFinalReduction(ReductionInstruction RI, String finalResult)
 	{
-		throw new Exception("Not implemented")
+		val parentJob = EcoreUtil2.getContainerOfType(RI, Job)
+		val storage   = createPartialReductionStorage(RI)
+		IrFactory::eINSTANCE.createLoopSliceInstruction => [
+			iterationBlock = RI.iterationBlock
+			task           = IrFactory::eINSTANCE.createTaskInstruction => [
+				/* Get all the temporary variables generated */
+				inVars += IntStream.range(0, num_tasks).iterator.map[ i |
+					val deps = createTaskDependencyVariable(storage)
+					deps.forEach[ d | d.index = i ]
+					return deps.iterator
+				].flatten.toList
+				outVars       += parentJob.outVars.map[ createTaskDependencyVariable ].flatten.toSet	/* Out is out from job     */
+				minimalInVars += inVars																	/* Ins are already minimal */
+				/* Create the affectation. Note that it's an IB because it is
+				 * possible that there is a trailing Affectation */
+				content = IrFactory::eINSTANCE.createInstructionBlock => [
+					instructions += createSlicedReductionCoreAffectation(RI)
+				]
+			]
+		]
 	}
 	
 	/* Create a slice of a IB:
@@ -316,10 +335,21 @@ class TaskExtensions
 	 				IS += createSlicedReduction(I as ReductionInstruction)
 	 			}
 	 			
-	 			/* Affectation: only if last slice (generate one final reduction), check if last instruction was a reduction! */
+	 			/* Affectation: only if last slice (generate one final
+	 			 * reduction), check if last instruction was a reduction!
+	 			 * Algorithm:
+	 			 * - Create the final reduction
+	 			 * - The LoopSliceInstruction task's content will be an IB
+	 			 *   because it's create with the right function
+	 			 * - Add the Affectation to the task's work */
 	 			Affectation: {
 	 				if ((last_instruction !== null) && (last_instruction instanceof ReductionInstruction)) {
-	 					IS += createSlicedReductionFinalReduction(last_instruction as ReductionInstruction, (I as Affectation).left.target.name)
+	 					val LoopSliceInstruction finalReduction = createSlicedReductionFinalReduction(
+	 						last_instruction as ReductionInstruction,
+	 						(I as Affectation).left.target.name
+	 					) as LoopSliceInstruction;
+	 					(finalReduction.task as InstructionBlock).instructions += I
+	 					IS += finalReduction
 	 				}
 	 			}
 
@@ -328,10 +358,15 @@ class TaskExtensions
 	 		last_instruction = I
 	 	}
 	 	
-	 	/* No affectation after the last reduction? Create the final reduction here */
+	 	/* No affectation after the last reduction? Create the final reduction
+	 	 * here. Here we can simplify the IB in the task because it's only one
+	 	 * affectation (don't need to add a trailing affectation). */
 	 	if ((last_instruction !== null) && (last_instruction instanceof ReductionInstruction)) {
-	 		val RI = last_instruction as ReductionInstruction
-	 		IS += createSlicedReductionFinalReduction(RI, RI.result.name)
+	 		val ReductionInstruction RI = last_instruction as ReductionInstruction
+	 		val finalReduction          = createSlicedReductionFinalReduction(RI, RI.result.name) as LoopSliceInstruction
+	 		val innerAffectation        = (finalReduction.task.content as InstructionBlock).instructions.head
+	 		finalReduction.task.content = innerAffectation
+	 		IS += finalReduction
 	 	}
 	 	
 	 	/* Return the sliced InstructionBlock */
