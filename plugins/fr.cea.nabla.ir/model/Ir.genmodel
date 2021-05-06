@@ -269,6 +269,12 @@
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//ItemType/name"/>
     </genClasses>
     <genClasses ecoreClass="Ir.ecore#//IrType"/>
+    <genClasses ecoreClass="Ir.ecore#//CArray">
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//CArray/primitive"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//CArray/size"/>
+      <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//CArray/static"/>
+      <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//CArray/defaultValue"/>
+    </genClasses>
     <genClasses ecoreClass="Ir.ecore#//BaseType">
       <genFeatures createChild="false" ecoreFeature="ecore:EAttribute Ir.ecore#//BaseType/primitive"/>
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference Ir.ecore#//BaseType/sizes"/>

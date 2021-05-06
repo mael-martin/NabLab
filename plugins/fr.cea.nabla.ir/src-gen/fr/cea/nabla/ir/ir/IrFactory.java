@@ -481,6 +481,15 @@ public interface IrFactory extends EFactory {
 	IrType createIrType();
 
 	/**
+	 * Returns a new object of class '<em>CArray</em>'.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @return a new object of class '<em>CArray</em>'.
+	 * @generated
+	 */
+	CArray createCArray();
+
+	/**
 	 * Returns a new object of class '<em>Base Type</em>'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->

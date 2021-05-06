@@ -108,6 +108,7 @@ public class IrFactoryImpl extends EFactoryImpl implements IrFactory {
 			case IrPackage.ARG_OR_VAR_REF: return createArgOrVarRef();
 			case IrPackage.ITEM_TYPE: return createItemType();
 			case IrPackage.IR_TYPE: return createIrType();
+			case IrPackage.CARRAY: return createCArray();
 			case IrPackage.BASE_TYPE: return createBaseType();
 			case IrPackage.CONNECTIVITY_TYPE: return createConnectivityType();
 			case IrPackage.LINEAR_ALGEBRA_TYPE: return createLinearAlgebraType();
@@ -712,6 +713,17 @@ public class IrFactoryImpl extends EFactoryImpl implements IrFactory {
 	public IrType createIrType() {
 		IrTypeImpl irType = new IrTypeImpl();
 		return irType;
+	}
+
+	/**
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @generated
+	 */
+	@Override
+	public CArray createCArray() {
+		CArrayImpl cArray = new CArrayImpl();
+		return cArray;
 	}
 
 	/**
