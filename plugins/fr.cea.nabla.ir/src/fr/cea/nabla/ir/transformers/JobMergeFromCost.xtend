@@ -246,7 +246,6 @@ class JobMergeFromCost extends IrTransformationStep
 		return allins
 	}
 
-
 	static def Set<Variable>
 	getInVars(Job it)
 	{
@@ -255,7 +254,7 @@ class JobMergeFromCost extends IrTransformationStep
 		return eAllContents.filter(ArgOrVarRef).filter[ x |
 			x.eContainingFeature != IrPackage::eINSTANCE.affectation_Left
 		].map[ target ]
-		 .filter(Variable)
+		 .filter( Variable )
 		 .filter[ global ]
 		 .filter[ !isOption ]
 		 .toSet
@@ -266,8 +265,9 @@ class JobMergeFromCost extends IrTransformationStep
 	{
 		if (it === null)
 			return #[].toSet
-		return eAllContents.filter(Affectation).map[ left.target ]
-					  	   .filter(Variable)
+		return eAllContents.filter( Affectation )
+						   .map[ left.target ]
+					  	   .filter( Variable )
 					  	   .filter[ global ]
 					   	   .filter[ !isOption ]
 					  	   .toSet
@@ -276,7 +276,8 @@ class JobMergeFromCost extends IrTransformationStep
 	static def int
 	getOutReusedVarsNumber(Job it)
 	{
-		caller.parallelJobs.filter[ j | j.name != name ]
+		caller.parallelJobs
+			  .filter[ j | j.name != name ]
 		      .map[ inVars.toList ].flatten
 		      .filter[ v | outVars.contains(v) ]
 		      .size

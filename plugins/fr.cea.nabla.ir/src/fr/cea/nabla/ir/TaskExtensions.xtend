@@ -14,6 +14,7 @@ import fr.cea.nabla.ir.ir.CArray
 import fr.cea.nabla.ir.ir.ConnectivityCall
 import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.Exit
+import fr.cea.nabla.ir.ir.Expression
 import fr.cea.nabla.ir.ir.If
 import fr.cea.nabla.ir.ir.Instruction
 import fr.cea.nabla.ir.ir.InstructionBlock
@@ -21,6 +22,7 @@ import fr.cea.nabla.ir.ir.InstructionJob
 import fr.cea.nabla.ir.ir.Interval
 import fr.cea.nabla.ir.ir.IrFactory
 import fr.cea.nabla.ir.ir.ItemIdDefinition
+import fr.cea.nabla.ir.ir.ItemIndex
 import fr.cea.nabla.ir.ir.ItemIndexDefinition
 import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.Iterator
@@ -38,6 +40,7 @@ import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.Variable
 import fr.cea.nabla.ir.ir.VariableDeclaration
 import fr.cea.nabla.ir.ir.While
+import java.util.ArrayList
 import java.util.HashMap
 import java.util.HashSet
 import java.util.List
@@ -45,14 +48,11 @@ import java.util.Map
 import java.util.Set
 import java.util.stream.IntStream
 import org.eclipse.emf.common.util.EList
+import org.eclipse.emf.ecore.util.EcoreUtil
+import org.eclipse.emf.ecore.util.EcoreUtil.Copier
 import org.eclipse.xtext.EcoreUtil2
 
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
-import fr.cea.nabla.ir.ir.ItemIndex
-import fr.cea.nabla.ir.ir.Expression
-import fr.cea.nabla.ir.ir.ArgOrVarRef
-import org.eclipse.emf.ecore.util.EcoreUtil.Copier
-import java.util.ArrayList
 
 class LoopLevelGetter
 {
@@ -118,7 +118,7 @@ class LoopLevelGetter
 			Loop | ReductionInstruction: {
 				/* Register the loop */
 				val set = loops.getOrDefault(currentLevel, new HashSet())
-				set.add(it)
+				set.add(EcoreUtil::copy(it))
 				loops.put(currentLevel, set)
 			}
 
@@ -181,9 +181,9 @@ class TaskExtensions
 			onCycle     = j.onCycle
 			instruction = IrFactory::eINSTANCE.createTaskInstruction => [
 				/* Get all slices of data that is used/modified */
-				j.copies.map[ source.createTaskDependencyVariable ].forEach[ v | inVars += v ]
-				j.copies.map[ destination.createTaskDependencyVariable ].forEach[ v | outVars += v ]
-				minimalInVars += inVars
+				j.copies.map[ source.createTaskDependencyVariable ].forEach[ v | inVars += EcoreUtil::copyAll(v) ]
+				j.copies.map[ destination.createTaskDependencyVariable ].forEach[ v | outVars += EcoreUtil::copyAll(v) ]
+				minimalInVars += EcoreUtil::copyAll(inVars)
 				/* Copy the content that is wrapped inside the task */
 				content = IrFactory::eINSTANCE.createInstructionBlock => [
 					instructions += createTimeLoopCopyInstruction(j.copies)
@@ -198,8 +198,8 @@ class TaskExtensions
 	{
 		return IrFactory::eINSTANCE.createTimeLoopCopyInstruction => [
 			content = IrFactory::eINSTANCE.createTimeLoopCopy => [
-				destination = tlc.destination
-				source      = tlc.source
+				destination = EcoreUtil::copy(tlc.destination)
+				source      = EcoreUtil::copy(tlc.source)
 			]
 		]
 	}
@@ -227,10 +227,10 @@ class TaskExtensions
 					minimalInVars += parentJob.minimalInVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet
 
 					/* the inner content of the loop is the same for all slices */
-					content = l.body
+					content = EcoreUtil::copy(l.body)
 				]
 				/* Keep the iteration block as the thing that should be if no slice was generated */
-				iterationBlock = l.iterationBlock
+				iterationBlock = EcoreUtil::copy(l.iterationBlock)
 			]
 		].toList
 	}
@@ -243,16 +243,15 @@ class TaskExtensions
 		val storage     = createPartialReductionStorage(RI)
 		val parentJob   = EcoreUtil2.getContainerOfType(RI, Job)
 		val falseIns    = parentJob.falseInVars
-		val copier      = new Copier()
-		val RI_iterator = copier.copy(RI.iterationBlock) as Iterator
-		println("    NTASKS = " + num_tasks)
+		val RI_iterator = EcoreUtil::copy(RI.iterationBlock) as Iterator
 
 		return (
-			#[ (IrFactory::eINSTANCE.createVariableDeclaration => [ variable = storage ]) as Instruction ] +
+			#[ (IrFactory::eINSTANCE.createVariableDeclaration => [
+				variable = EcoreUtil::copy(storage)
+			]) as Instruction ] +
 			IntStream.range(0, num_tasks).iterator.toList.map[ i |
-				println("    BEGIN: " + i)
 				val local_loop = IrFactory::eINSTANCE.createLoopSliceInstruction => [
-					iterationBlock = RI_iterator
+					iterationBlock = EcoreUtil::copy(RI_iterator)
 					task           = IrFactory::eINSTANCE.createTaskInstruction => [
 						inVars        += parentJob.inVars.filter[ v | !falseIns.contains(v) ]
 														 .map[ createTaskDependencyVariable ].flatten
@@ -267,7 +266,6 @@ class TaskExtensions
 						content = createSlicedReductionCoreAffectation(RI, storage, RI_iterator.index)
 					]
 				]
-				println("    END: " + i)
 				return local_loop
 			]
 		).toList
@@ -277,21 +275,18 @@ class TaskExtensions
 	private static def Instruction
 	createSlicedReductionCoreAffectation(ReductionInstruction RI, Variable static_storage, ItemIndex idx)
 	{
-		/* The temporary storage location (at certain index...) */
-		val storage_indexed = IrFactory::eINSTANCE.createArgOrVarRef => [
-			target     = static_storage
-			iterators += #[idx]
+		val Expression lambda = EcoreUtil::copy(RI.lambda)
+		val storage_indexed   = IrFactory::eINSTANCE.createArgOrVarRef => [
+			target     = EcoreUtil::copy(static_storage)
+			iterators += EcoreUtil::copy(idx)
 		]
-		
-		val copier = new Copier()
-		val Expression lambda = copier.copy(RI.lambda) as Expression
 
 		/* The inner affectation */
 		return IrFactory::eINSTANCE.createAffectation => [
-			left = storage_indexed
+			left  = EcoreUtil::copy(storage_indexed)
 			right = IrFactory::eINSTANCE.createFunctionCall => [
-				function = RI.binaryFunction
-				args += #[ storage_indexed, lambda ]
+				function = EcoreUtil::copy(RI.binaryFunction)
+				args    += #[ EcoreUtil::copy(storage_indexed), lambda ]
 			]
 		]
 	}
@@ -309,11 +304,11 @@ class TaskExtensions
 		return IrFactory::eINSTANCE.createVariable => [
 			name = RI.result.name + "_tab"
 			type = IrFactory::eINSTANCE.createCArray => [
-				primitive = RI.result.type
+				primitive = EcoreUtil::copy(RI.result.type)
 				size      = num_tasks
 				static    = true
 			]
-			defaultValue = RI.result.defaultValue
+			defaultValue = EcoreUtil::copy(RI.result.defaultValue)
 			const        = false
 			constExpr    = false
 			option       = false
@@ -327,30 +322,25 @@ class TaskExtensions
 	{
 		val parentJob   = EcoreUtil2.getContainerOfType(RI, Job)
 		val storage     = createPartialReductionStorage(RI)
-		val RI_iterator = RI.iterationBlock as Iterator
-		
-		if (RI_iterator === null) {
-			throw new Exception("Reduction was not done on a Connectivity following an Iterator")
-		}
 		
 		IrFactory::eINSTANCE.createLoopSliceInstruction => [
-			iterationBlock = RI.iterationBlock
+			iterationBlock = EcoreUtil::copy(RI.iterationBlock)
 			task           = IrFactory::eINSTANCE.createTaskInstruction => [
 				/* Get all the temporary variables generated */
 				inVars += IntStream.range(0, num_tasks).iterator.map[ i |
-					val deps = createTaskDependencyVariable(storage)
+					val deps = createTaskDependencyVariable(EcoreUtil::copy(storage))
 					deps.forEach[ d | d.index = i ]
 					return deps.iterator
 				].flatten.toList
 				outVars       += parentJob.outVars.map[ createTaskDependencyVariable ].flatten.toSet	/* Out is out from job     */
-				minimalInVars += inVars																	/* Ins are already minimal */
+				minimalInVars += EcoreUtil::copyAll(inVars)												/* Ins are already minimal */
 				/* Create the affectation. Note that it's an IB because it is
 				 * possible that there is a trailing Affectation */
 				content = IrFactory::eINSTANCE.createInstructionBlock => [
 					instructions += createSlicedReductionCoreAffectation(
-						RI,
-						storage,
-						RI_iterator.index
+						EcoreUtil::copy(RI),
+						EcoreUtil::copy(storage),
+						EcoreUtil::copy((RI.iterationBlock as Iterator).index)
 					)
 				]
 			]
@@ -384,9 +374,6 @@ class TaskExtensions
 	 				if (!(I.iterationBlock instanceof Iterator)) {
 	 					throw new Exception("Reductions must be done on connectivities, i.e. variables indexed by an iterator")
 	 				}
-	 				if ((I.iterationBlock as Iterator) === null) {
-	 					throw new Exception("Iterator is null")
-	 				}
 	 				println("  Found a reduction")
 	 				IS.addAll(createSlicedReduction(I as ReductionInstruction))
 	 			}
@@ -405,7 +392,7 @@ class TaskExtensions
 	 						last_instruction as ReductionInstruction,
 	 						(I as Affectation).left.target.name
 	 					) as LoopSliceInstruction;
-	 					(finalReduction.task as InstructionBlock).instructions += I
+	 					(finalReduction.task.content as InstructionBlock).instructions.add(EcoreUtil::copy(I))
 	 					IS.add(finalReduction)
 	 				}
 	 			}
@@ -471,7 +458,7 @@ class TaskExtensions
 		/* Simple, index is null */
 		if (connName == "simple") {
 			return #[IrFactory::eINSTANCE.createTaskDependencyVariable => [
-				defaultValue 	 = v.defaultValue
+				defaultValue 	 = EcoreUtil::copy(v.defaultValue)
 				const 		 	 = false
 				constExpr 	 	 = false
 				option 		 	 = false
@@ -483,7 +470,7 @@ class TaskExtensions
 		}
 
 		return IntStream.range(0, num_tasks).iterator.map[ i | IrFactory::eINSTANCE.createTaskDependencyVariable => [
-			defaultValue 	 = v.defaultValue
+			defaultValue 	 = EcoreUtil::copy(v.defaultValue)
 			const 		 	 = false
 			constExpr 	 	 = false
 			option 		 	 = false
