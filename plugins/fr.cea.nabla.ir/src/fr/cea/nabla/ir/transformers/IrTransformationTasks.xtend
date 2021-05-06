@@ -188,11 +188,11 @@ class IrTransformationTasks extends IrTransformationStep
 	}
 	
 	private def void
-	___replaceIterableInstructionJobs(InstructionJob it)
+	___replaceIterableInstructionJobs(InstructionJob j)
 	{
-		assertInstructionJobSliceable
-		TouchedJobs.put(name, 1)
-		createSlicedJob(it)
+		assertInstructionJobSliceable(j)
+		TouchedJobs.put(j.name, 1)
+		createSlicedJob(j)
 	}
 	
 	private def boolean

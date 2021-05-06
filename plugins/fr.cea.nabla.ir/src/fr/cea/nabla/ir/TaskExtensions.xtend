@@ -10,6 +10,7 @@
 package fr.cea.nabla.ir
 
 import fr.cea.nabla.ir.ir.Affectation
+import fr.cea.nabla.ir.ir.CArray
 import fr.cea.nabla.ir.ir.ConnectivityCall
 import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.Exit
@@ -47,7 +48,11 @@ import org.eclipse.emf.common.util.EList
 import org.eclipse.xtext.EcoreUtil2
 
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
-import fr.cea.nabla.ir.ir.CArray
+import fr.cea.nabla.ir.ir.ItemIndex
+import fr.cea.nabla.ir.ir.Expression
+import fr.cea.nabla.ir.ir.ArgOrVarRef
+import org.eclipse.emf.ecore.util.EcoreUtil.Copier
+import java.util.ArrayList
 
 class LoopLevelGetter
 {
@@ -235,30 +240,60 @@ class TaskExtensions
 	private static def List<Instruction>
 	createSlicedReduction(ReductionInstruction RI)
 	{
-		val List<Instruction> ret = #[].toList
-		val storage               = createPartialReductionStorage(RI)
-		val parentJob             = EcoreUtil2.getContainerOfType(RI, Job)
-		val falseIns              = parentJob.falseInVars
-		ret += IrFactory::eINSTANCE.createVariableDeclaration => [ variable = storage ]
-		
-		return IntStream.range(0, num_tasks).iterator.map[ i |
-			IrFactory::eINSTANCE.createLoopSliceInstruction => [
-				iterationBlock = RI.iterationBlock
-				task           = IrFactory::eINSTANCE.createTaskInstruction => [
-					inVars        += parentJob.inVars.filter[ v | !falseIns.contains(v) ].map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet  /* Ins are the one of the job, but sliced     */
-					outVars       += createTaskDependencyVariable(storage)																								/* Will produced a partial reduction          */
-					minimalInVars += parentJob.minimalInVars.map[ createTaskDependencyVariable ].flatten.filter[ v | v.index == i ].toSet								/* Slice the minimal IN variables             */
-					content        = createSlicedReductionCoreAffectation(RI)																							/* generate the affectation for the reduction */
+		val storage     = createPartialReductionStorage(RI)
+		val parentJob   = EcoreUtil2.getContainerOfType(RI, Job)
+		val falseIns    = parentJob.falseInVars
+		val copier      = new Copier()
+		val RI_iterator = copier.copy(RI.iterationBlock) as Iterator
+		println("    NTASKS = " + num_tasks)
+
+		return (
+			#[ (IrFactory::eINSTANCE.createVariableDeclaration => [ variable = storage ]) as Instruction ] +
+			IntStream.range(0, num_tasks).iterator.toList.map[ i |
+				println("    BEGIN: " + i)
+				val local_loop = IrFactory::eINSTANCE.createLoopSliceInstruction => [
+					iterationBlock = RI_iterator
+					task           = IrFactory::eINSTANCE.createTaskInstruction => [
+						inVars        += parentJob.inVars.filter[ v | !falseIns.contains(v) ]
+														 .map[ createTaskDependencyVariable ].flatten
+														 .filter[ v | v.index == i ]
+														 .toSet  /* Ins are the one of the job, but sliced */
+						outVars       += createTaskDependencyVariable(storage)																								/* Will produced a partial reduction          */
+						minimalInVars += parentJob.minimalInVars.clone
+																.map[ createTaskDependencyVariable ].flatten
+																.filter[ v | v.index == i ]
+																.toSet	/* Slice the minimal IN variables */
+						/* generate the affectation for the RI */
+						content = createSlicedReductionCoreAffectation(RI, storage, RI_iterator.index)
+					]
 				]
+				println("    END: " + i)
+				return local_loop
 			]
-		].toList
+		).toList
 	}
 	
 	/* Create the affectation for the core of the reduction */
 	private static def Instruction
-	createSlicedReductionCoreAffectation(ReductionInstruction RI)
+	createSlicedReductionCoreAffectation(ReductionInstruction RI, Variable static_storage, ItemIndex idx)
 	{
-		throw new Exception("Not implemented")
+		/* The temporary storage location (at certain index...) */
+		val storage_indexed = IrFactory::eINSTANCE.createArgOrVarRef => [
+			target     = static_storage
+			iterators += #[idx]
+		]
+		
+		val copier = new Copier()
+		val Expression lambda = copier.copy(RI.lambda) as Expression
+
+		/* The inner affectation */
+		return IrFactory::eINSTANCE.createAffectation => [
+			left = storage_indexed
+			right = IrFactory::eINSTANCE.createFunctionCall => [
+				function = RI.binaryFunction
+				args += #[ storage_indexed, lambda ]
+			]
+		]
 	}
 	
 	/* Create the temporary storage, it's static for now */
@@ -290,8 +325,14 @@ class TaskExtensions
 	private static def Instruction
 	createSlicedReductionFinalReduction(ReductionInstruction RI, String finalResult)
 	{
-		val parentJob = EcoreUtil2.getContainerOfType(RI, Job)
-		val storage   = createPartialReductionStorage(RI)
+		val parentJob   = EcoreUtil2.getContainerOfType(RI, Job)
+		val storage     = createPartialReductionStorage(RI)
+		val RI_iterator = RI.iterationBlock as Iterator
+		
+		if (RI_iterator === null) {
+			throw new Exception("Reduction was not done on a Connectivity following an Iterator")
+		}
+		
 		IrFactory::eINSTANCE.createLoopSliceInstruction => [
 			iterationBlock = RI.iterationBlock
 			task           = IrFactory::eINSTANCE.createTaskInstruction => [
@@ -306,7 +347,11 @@ class TaskExtensions
 				/* Create the affectation. Note that it's an IB because it is
 				 * possible that there is a trailing Affectation */
 				content = IrFactory::eINSTANCE.createInstructionBlock => [
-					instructions += createSlicedReductionCoreAffectation(RI)
+					instructions += createSlicedReductionCoreAffectation(
+						RI,
+						storage,
+						RI_iterator.index
+					)
 				]
 			]
 		]
@@ -320,19 +365,30 @@ class TaskExtensions
 	 createSlicedInstructionBlock(InstructionBlock IB)
 	 {
 	 	var Instruction last_instruction = null
-	 	val List<Instruction> IS         = #[].toList
-	 	
+	 	var List<Instruction> IS         = new ArrayList();
+
 	 	/* Slice all the instructions */
 	 	for (I : IB.instructions) {
 	 		switch I {
 	 			/* Slice the loops */
 	 			Loop: {
-	 				IS += createSliceLoop(I as Loop)
+	 				println("  Found a loop")
+	 				IS.addAll(createSliceLoop(I as Loop))
 	 			}
 
 				/* Slice the reduction, we expect that the next instruction is an affectation */
 	 			ReductionInstruction: {
-	 				IS += createSlicedReduction(I as ReductionInstruction)
+	 				if (I.iterationBlock === null) {
+	 					throw new Exception("IterationBlock is null")
+	 				}
+	 				if (!(I.iterationBlock instanceof Iterator)) {
+	 					throw new Exception("Reductions must be done on connectivities, i.e. variables indexed by an iterator")
+	 				}
+	 				if ((I.iterationBlock as Iterator) === null) {
+	 					throw new Exception("Iterator is null")
+	 				}
+	 				println("  Found a reduction")
+	 				IS.addAll(createSlicedReduction(I as ReductionInstruction))
 	 			}
 	 			
 	 			/* Affectation: only if last slice (generate one final
@@ -343,13 +399,14 @@ class TaskExtensions
 	 			 *   because it's create with the right function
 	 			 * - Add the Affectation to the task's work */
 	 			Affectation: {
+	 				println("  Found an affectation")
 	 				if ((last_instruction !== null) && (last_instruction instanceof ReductionInstruction)) {
 	 					val LoopSliceInstruction finalReduction = createSlicedReductionFinalReduction(
 	 						last_instruction as ReductionInstruction,
 	 						(I as Affectation).left.target.name
 	 					) as LoopSliceInstruction;
 	 					(finalReduction.task as InstructionBlock).instructions += I
-	 					IS += finalReduction
+	 					IS.add(finalReduction)
 	 				}
 	 			}
 
@@ -366,15 +423,16 @@ class TaskExtensions
 	 		val finalReduction          = createSlicedReductionFinalReduction(RI, RI.result.name) as LoopSliceInstruction
 	 		val innerAffectation        = (finalReduction.task.content as InstructionBlock).instructions.head
 	 		finalReduction.task.content = innerAffectation
-	 		IS += finalReduction
+	 		IS.add(finalReduction)
 	 	}
 	 	
 	 	/* Return the sliced InstructionBlock */
+	 	val final_IS = IS
 	 	return IrFactory::eINSTANCE.createInstructionBlock => [
-	 		instructions += IS
+	 		instructions += final_IS
 	 	]
 	 }
-	
+
 	/* Slice a loop for a job.
 	 * We now that the job is slice-able:
 	 * - Only II
@@ -386,11 +444,13 @@ class TaskExtensions
 		switch j.instruction {
 			/* Multiple loops or a RI followed by an Affectation */
 			InstructionBlock: {
+				println("Job " + j.name + "@" + j.at + " is IB job")
 				j.instruction = createSlicedInstructionBlock(j.instruction as InstructionBlock)
 			}
 			
 			/* Simple loop */
 			Loop: {
+				println("Job " + j.name + "@" + j.at + " is Loop job")
 				j.instruction = IrFactory::eINSTANCE.createInstructionBlock => [
 					instructions += createSliceLoop(j.instruction as Loop)
 				]
@@ -412,9 +472,9 @@ class TaskExtensions
 		if (connName == "simple") {
 			return #[IrFactory::eINSTANCE.createTaskDependencyVariable => [
 				defaultValue 	 = v.defaultValue
-				const 		 	 = v.const
-				constExpr 	 	 = v.constExpr
-				option 		 	 = v.option
+				const 		 	 = false
+				constExpr 	 	 = false
+				option 		 	 = false
 				name 		 	 = v.name
 				connectivityName = connName // Can be 'faces', 'nodes', 'cells'
 				indexType 	 	 = connName // Same for now, this should be innerCells, leftNodes, etc
@@ -424,9 +484,9 @@ class TaskExtensions
 
 		return IntStream.range(0, num_tasks).iterator.map[ i | IrFactory::eINSTANCE.createTaskDependencyVariable => [
 			defaultValue 	 = v.defaultValue
-			const 		 	 = v.const
-			constExpr 	 	 = v.constExpr
-			option 		 	 = v.option
+			const 		 	 = false
+			constExpr 	 	 = false
+			option 		 	 = false
 			name 		 	 = v.name
 			connectivityName = connName // Can be 'faces', 'nodes', 'cells'
 			indexType 	 	 = connName // Same for now, this should be innerCells, leftNodes, etc
