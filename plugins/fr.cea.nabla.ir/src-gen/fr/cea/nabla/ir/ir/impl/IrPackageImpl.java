@@ -2568,8 +2568,8 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 	 * @generated
 	 */
 	@Override
-	public EAttribute getCArray_Primitive() {
-		return (EAttribute)cArrayEClass.getEStructuralFeatures().get(0);
+	public EReference getCArray_Primitive() {
+		return (EReference)cArrayEClass.getEStructuralFeatures().get(0);
 	}
 
 	/**
@@ -2590,16 +2590,6 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 	@Override
 	public EAttribute getCArray_Static() {
 		return (EAttribute)cArrayEClass.getEStructuralFeatures().get(2);
-	}
-
-	/**
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 */
-	@Override
-	public EReference getCArray_DefaultValue() {
-		return (EReference)cArrayEClass.getEStructuralFeatures().get(3);
 	}
 
 	/**
@@ -3190,10 +3180,9 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 		irTypeEClass = createEClass(IR_TYPE);
 
 		cArrayEClass = createEClass(CARRAY);
-		createEAttribute(cArrayEClass, CARRAY__PRIMITIVE);
+		createEReference(cArrayEClass, CARRAY__PRIMITIVE);
 		createEAttribute(cArrayEClass, CARRAY__SIZE);
 		createEAttribute(cArrayEClass, CARRAY__STATIC);
-		createEReference(cArrayEClass, CARRAY__DEFAULT_VALUE);
 
 		baseTypeEClass = createEClass(BASE_TYPE);
 		createEAttribute(baseTypeEClass, BASE_TYPE__PRIMITIVE);
@@ -3591,10 +3580,9 @@ public class IrPackageImpl extends EPackageImpl implements IrPackage {
 		initEClass(irTypeEClass, IrType.class, "IrType", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 
 		initEClass(cArrayEClass, CArray.class, "CArray", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
-		initEAttribute(getCArray_Primitive(), this.getPrimitiveType(), "primitive", null, 0, 1, CArray.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
+		initEReference(getCArray_Primitive(), this.getIrType(), null, "primitive", null, 0, 1, CArray.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEAttribute(getCArray_Size(), ecorePackage.getEInt(), "size", null, 0, 1, CArray.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 		initEAttribute(getCArray_Static(), ecorePackage.getEBoolean(), "static", null, 0, 1, CArray.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
-		initEReference(getCArray_DefaultValue(), this.getExpression(), null, "defaultValue", null, 0, 1, CArray.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, IS_COMPOSITE, !IS_RESOLVE_PROXIES, !IS_UNSETTABLE, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);
 
 		initEClass(baseTypeEClass, BaseType.class, "BaseType", !IS_ABSTRACT, !IS_INTERFACE, IS_GENERATED_INSTANCE_CLASS);
 		initEAttribute(getBaseType_Primitive(), this.getPrimitiveType(), "primitive", null, 1, 1, BaseType.class, !IS_TRANSIENT, !IS_VOLATILE, IS_CHANGEABLE, !IS_UNSETTABLE, !IS_ID, IS_UNIQUE, !IS_DERIVED, IS_ORDERED);

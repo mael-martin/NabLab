@@ -4160,7 +4160,7 @@ public interface IrPackage extends EPackage {
 	int CARRAY__ANNOTATIONS = IR_TYPE__ANNOTATIONS;
 
 	/**
-	 * The feature id for the '<em><b>Primitive</b></em>' attribute.
+	 * The feature id for the '<em><b>Primitive</b></em>' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
@@ -4187,22 +4187,13 @@ public interface IrPackage extends EPackage {
 	int CARRAY__STATIC = IR_TYPE_FEATURE_COUNT + 2;
 
 	/**
-	 * The feature id for the '<em><b>Default Value</b></em>' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @generated
-	 * @ordered
-	 */
-	int CARRAY__DEFAULT_VALUE = IR_TYPE_FEATURE_COUNT + 3;
-
-	/**
 	 * The number of structural features of the '<em>CArray</em>' class.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
 	 * @generated
 	 * @ordered
 	 */
-	int CARRAY_FEATURE_COUNT = IR_TYPE_FEATURE_COUNT + 4;
+	int CARRAY_FEATURE_COUNT = IR_TYPE_FEATURE_COUNT + 3;
 
 	/**
 	 * The number of operations of the '<em>CArray</em>' class.
@@ -6849,15 +6840,15 @@ public interface IrPackage extends EPackage {
 	EClass getCArray();
 
 	/**
-	 * Returns the meta object for the attribute '{@link fr.cea.nabla.ir.ir.CArray#getPrimitive <em>Primitive</em>}'.
+	 * Returns the meta object for the containment reference '{@link fr.cea.nabla.ir.ir.CArray#getPrimitive <em>Primitive</em>}'.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the meta object for the attribute '<em>Primitive</em>'.
+	 * @return the meta object for the containment reference '<em>Primitive</em>'.
 	 * @see fr.cea.nabla.ir.ir.CArray#getPrimitive()
 	 * @see #getCArray()
 	 * @generated
 	 */
-	EAttribute getCArray_Primitive();
+	EReference getCArray_Primitive();
 
 	/**
 	 * Returns the meta object for the attribute '{@link fr.cea.nabla.ir.ir.CArray#getSize <em>Size</em>}'.
@@ -6880,17 +6871,6 @@ public interface IrPackage extends EPackage {
 	 * @generated
 	 */
 	EAttribute getCArray_Static();
-
-	/**
-	 * Returns the meta object for the containment reference '{@link fr.cea.nabla.ir.ir.CArray#getDefaultValue <em>Default Value</em>}'.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the meta object for the containment reference '<em>Default Value</em>'.
-	 * @see fr.cea.nabla.ir.ir.CArray#getDefaultValue()
-	 * @see #getCArray()
-	 * @generated
-	 */
-	EReference getCArray_DefaultValue();
 
 	/**
 	 * Returns the meta object for class '{@link fr.cea.nabla.ir.ir.BaseType <em>Base Type</em>}'.
@@ -8878,12 +8858,12 @@ public interface IrPackage extends EPackage {
 		EClass CARRAY = eINSTANCE.getCArray();
 
 		/**
-		 * The meta object literal for the '<em><b>Primitive</b></em>' attribute feature.
+		 * The meta object literal for the '<em><b>Primitive</b></em>' containment reference feature.
 		 * <!-- begin-user-doc -->
 		 * <!-- end-user-doc -->
 		 * @generated
 		 */
-		EAttribute CARRAY__PRIMITIVE = eINSTANCE.getCArray_Primitive();
+		EReference CARRAY__PRIMITIVE = eINSTANCE.getCArray_Primitive();
 
 		/**
 		 * The meta object literal for the '<em><b>Size</b></em>' attribute feature.
@@ -8900,14 +8880,6 @@ public interface IrPackage extends EPackage {
 		 * @generated
 		 */
 		EAttribute CARRAY__STATIC = eINSTANCE.getCArray_Static();
-
-		/**
-		 * The meta object literal for the '<em><b>Default Value</b></em>' containment reference feature.
-		 * <!-- begin-user-doc -->
-		 * <!-- end-user-doc -->
-		 * @generated
-		 */
-		EReference CARRAY__DEFAULT_VALUE = eINSTANCE.getCArray_DefaultValue();
 
 		/**
 		 * The meta object literal for the '{@link fr.cea.nabla.ir.ir.impl.BaseTypeImpl <em>Base Type</em>}' class.

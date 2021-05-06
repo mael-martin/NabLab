@@ -264,10 +264,9 @@
         <eLiterals name="Bool" value="3" literal="ℾ"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name ="CArray" eSuperTypes="#//IrType">
-        <eStructuralFeatures xsi:type="ecore:EAttribute" name="primitive" upperBound="1" eType="#//PrimitiveType"/>
+        <eStructuralFeatures xsi:type="ecore:EReference" name="primitive" upperBound="1" eType="#//IrType" containment="true"/>
         <eStructuralFeatures xsi:type="ecore:EAttribute" name="size"                     eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EInt"/>
         <eStructuralFeatures xsi:type="ecore:EAttribute" name="static"                   eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
-        <eStructuralFeatures xsi:type="ecore:EReference" name="defaultValue"             eType="#//Expression" containment="true" resolveProxies="false"/>
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="BaseType" eSuperTypes="#//IrType">
         <eStructuralFeatures xsi:type="ecore:EAttribute" name="primitive" lowerBound="1" eType="#//PrimitiveType"/>

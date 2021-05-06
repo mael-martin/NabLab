@@ -15,7 +15,6 @@ package fr.cea.nabla.ir.ir;
  *   <li>{@link fr.cea.nabla.ir.ir.CArray#getPrimitive <em>Primitive</em>}</li>
  *   <li>{@link fr.cea.nabla.ir.ir.CArray#getSize <em>Size</em>}</li>
  *   <li>{@link fr.cea.nabla.ir.ir.CArray#isStatic <em>Static</em>}</li>
- *   <li>{@link fr.cea.nabla.ir.ir.CArray#getDefaultValue <em>Default Value</em>}</li>
  * </ul>
  *
  * @see fr.cea.nabla.ir.ir.IrPackage#getCArray()
@@ -24,29 +23,26 @@ package fr.cea.nabla.ir.ir;
  */
 public interface CArray extends IrType {
 	/**
-	 * Returns the value of the '<em><b>Primitive</b></em>' attribute.
-	 * The literals are from the enumeration {@link fr.cea.nabla.ir.ir.PrimitiveType}.
+	 * Returns the value of the '<em><b>Primitive</b></em>' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Primitive</em>' attribute.
-	 * @see fr.cea.nabla.ir.ir.PrimitiveType
-	 * @see #setPrimitive(PrimitiveType)
+	 * @return the value of the '<em>Primitive</em>' containment reference.
+	 * @see #setPrimitive(IrType)
 	 * @see fr.cea.nabla.ir.ir.IrPackage#getCArray_Primitive()
-	 * @model
+	 * @model containment="true" resolveProxies="true"
 	 * @generated
 	 */
-	PrimitiveType getPrimitive();
+	IrType getPrimitive();
 
 	/**
-	 * Sets the value of the '{@link fr.cea.nabla.ir.ir.CArray#getPrimitive <em>Primitive</em>}' attribute.
+	 * Sets the value of the '{@link fr.cea.nabla.ir.ir.CArray#getPrimitive <em>Primitive</em>}' containment reference.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Primitive</em>' attribute.
-	 * @see fr.cea.nabla.ir.ir.PrimitiveType
+	 * @param value the new value of the '<em>Primitive</em>' containment reference.
 	 * @see #getPrimitive()
 	 * @generated
 	 */
-	void setPrimitive(PrimitiveType value);
+	void setPrimitive(IrType value);
 
 	/**
 	 * Returns the value of the '<em><b>Size</b></em>' attribute.
@@ -91,27 +87,5 @@ public interface CArray extends IrType {
 	 * @generated
 	 */
 	void setStatic(boolean value);
-
-	/**
-	 * Returns the value of the '<em><b>Default Value</b></em>' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @return the value of the '<em>Default Value</em>' containment reference.
-	 * @see #setDefaultValue(Expression)
-	 * @see fr.cea.nabla.ir.ir.IrPackage#getCArray_DefaultValue()
-	 * @model containment="true"
-	 * @generated
-	 */
-	Expression getDefaultValue();
-
-	/**
-	 * Sets the value of the '{@link fr.cea.nabla.ir.ir.CArray#getDefaultValue <em>Default Value</em>}' containment reference.
-	 * <!-- begin-user-doc -->
-	 * <!-- end-user-doc -->
-	 * @param value the new value of the '<em>Default Value</em>' containment reference.
-	 * @see #getDefaultValue()
-	 * @generated
-	 */
-	void setDefaultValue(Expression value);
 
 } // CArray
