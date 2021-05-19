@@ -230,7 +230,7 @@ class ComputeCostTransformation extends IrTransformationStep
 			default:        throw new Exception("Unknown Function type for " + it.toString)
 		}
 	}
-
+	
 	/* FIXME: Hack, force X and Y and Mesh2D geometry, get for glace2D, used json in tests */
 	int HACK_X = 600
 	int HACK_Y = 60
@@ -261,13 +261,79 @@ class ComputeCostTransformation extends IrTransformationStep
 		
 		trace('    IR -> IR: ' + description + ':ComputeContributions')
 		ir.eAllContents.filter(JobCaller).forEach[evaluateContribution]
+		
+		trace('    IR -> IR: ' + description + ':DetectGPUAbleJobs')
+		detectGPU(ir)
 
 		reportHashMap('Cost', reverseHashMap(jobCostMap), 'Cost', ': ')
 		reportHashMap('Cost', reverseHashMap(jobContributionMap), 'Contribution', ': ')
+		reportHashMap('GPU-Able-Job-', reverseHashMap(jobCantBePlacedOnGPU), 'Unable state <', ' > for: ')
 		return true
 	}
+
+	/***********************************************************************
+	 * Analize the AST and detect function and jobs that can't be executed *
+	 * on GPU. Don't handle the case where a function call another one.    *
+	 ***********************************************************************/
+	 
+	static private def void
+	detectGPU(IrRoot ir)
+	{
+		ir.eAllContents.filter(ExternFunction).forEach[ func | functionCantBePlacedOnGPU.put(func.name, true) ]
+		ir.eAllContents.filter(InternFunction).forEach[ func | detectGPUFunctions(func) ]
+		ir.eAllContents.filter(Job).forEach[ job | detectGPUJobs(job) ]
+	}
 	
-	/* Get the contribution from the cost */
+	static private def void
+	detectGPUJobs(Job it)
+	{
+		switch it {
+			case null: 					{ return }
+			TimeLoopCopy | TimeLoopJob: jobCantBePlacedOnGPU.put(name, true)
+			InstructionJob: {
+				val boolean nop1 = eAllContents.filter(Expression).filter[ expressionNotPossibleOnGPU ].size > 0
+				val boolean nop2 = eAllContents.filter(Instruction).filter[ instructionNotPossibleOnGPU ].size > 0
+				if (nop1 || nop2)
+					jobCantBePlacedOnGPU.put(name, true)
+				else
+					jobCantBePlacedOnGPU.put(name, false)
+			}
+			default: throw new Exception("Can't handle unknown job type for " + it.toString)
+		}
+	}
+
+	static private def void
+	detectGPUFunctions(InternFunction it)
+	{
+		/* Instruction or Expression that can't be run on GPU */
+		val boolean nop1 = eAllContents.filter(Expression).filter[ expressionNotPossibleOnGPU ].size > 0
+		val boolean nop2 = eAllContents.filter(Instruction).filter[ instructionNotPossibleOnGPU ].size > 0
+		if (nop1 || nop2)
+			functionCantBePlacedOnGPU.put(name, true)
+	}
+	 
+	static private def boolean
+	isExpressionNotPossibleOnGPU(Expression it)
+	{
+		switch it {
+			ContractedIf: return true
+			FunctionCall: return functionCantBePlacedOnGPU.getOrDefault(function.name, false)
+			default:      return false
+		}
+	}
+
+	static private def boolean
+	isInstructionNotPossibleOnGPU(Instruction it)
+	{
+		switch it {
+			If | While | Exit: return true
+			default:           return false
+		}
+	}
+	
+	/**************************************
+	 * Get the contribution from the cost *
+	 **************************************/
 	
 	private def void
 	evaluateContribution(JobCaller it)
@@ -284,7 +350,9 @@ class ComputeCostTransformation extends IrTransformationStep
 		]
 	}
 	
-	/* Cost evaluation methods */
+	/***************************
+	 * Cost evaluation methods *
+	 ***************************/
 	
 	private def int
 	evaluateCost(Function it)
@@ -402,7 +470,9 @@ class ComputeCostTransformation extends IrTransformationStep
 		throw new Exception("Unknown operator '" + op + "', can't evaluate its cost")
 	}
 	
-	/* Repetition evaluation methods */
+	/*********************************
+	 * Repetition evaluation methods *
+	 *********************************/
 	
 	private def double
 	evaluateRep(Container it)
