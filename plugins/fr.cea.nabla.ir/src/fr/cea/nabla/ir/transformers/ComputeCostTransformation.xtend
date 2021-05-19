@@ -44,6 +44,7 @@ import fr.cea.nabla.ir.ir.RealConstant
 import fr.cea.nabla.ir.ir.ReductionInstruction
 import fr.cea.nabla.ir.ir.Return
 import fr.cea.nabla.ir.ir.SetDefinition
+import fr.cea.nabla.ir.ir.TimeLoopCopy
 import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.UnaryExpression
 import fr.cea.nabla.ir.ir.VariableDeclaration
@@ -162,50 +163,71 @@ class ComputeCostTransformation extends IrTransformationStep
 	static final int    operationCostLOGIC          = 1                                // || &&
 	static final int    operationCostCOMPARISON     = 1                                // <= >= == < > !=
 	static final int    operationCostNOT            = 1                                // !
-	
+
 	/* A default cost, for external functions */
 	static final int    defaultUnknownCost          = 10
-	
-	/* HashMaps to store cost of functions, jobs, etc */
-	static Map<String, Integer> functionCostMap    = new HashMap();
-	static Map<String, Integer> jobCostMap         = new HashMap();
-	static Map<String, Double> jobContributionMap  = new HashMap();
-	
-	static def int getJobCost(Job it)
-	{
-		if (it === null)
-			throw new Exception("Invalid parameter, passing 'null' as a Job")
 
+	/* HashMaps to store cost of functions, jobs, etc */
+	static Map<String, Integer> functionCostMap           = new HashMap();
+	static Map<String, Integer> jobCostMap                = new HashMap();
+	static Map<String, Double>  jobContributionMap        = new HashMap();
+	static Map<String, Boolean> jobCantBePlacedOnGPU      = new HashMap();
+	static Map<String, Boolean> functionCantBePlacedOnGPU = new HashMap();
+	
+	static def int
+	getJobCost(Job it)
+	{
 		switch it {
+			case null: throw new Exception("Invalid parameter, passing 'null' as a Job")
 			InstructionJob: {
 				val int ret = jobCostMap.getOrDefault(name, 0)
 				if (ret == 0)
 					throw new Exception("Cost of job '" + name + "' was not computed during transformation steps")
 				return ret
 				}
-
 			/* Things not handled */
 			TimeLoopJob: return 0
 			default: throw new Exception("Unknown Job type for " + it.toString)
 		}
 	}
 	
-	static def double getJobContribution(Job it)
+	static def double
+	getJobContribution(Job it)
 	{
-		if (it === null)
-			throw new Exception("Invalid parameter, passing 'null' as a Job")
-
 		switch it {
+			case null: throw new Exception("Invalid parameter, passing 'null' as a Job")
 			InstructionJob: {
 				val double ret = jobContributionMap.getOrDefault(name, 0.0)
 				if (ret == 0)
 					throw new Exception("Contribution of job '" + name + "' was not computed during transformation steps")
 				return ret
 				}
-
 			/* Things not handled */
 			TimeLoopJob: return 0
 			default: throw new Exception("Unknown Job type for " + it.toString)
+		}
+	}
+
+	static def boolean
+	isJobGPUBlacklisted(Job it)
+	{
+		switch it {
+			case null:      throw new Exception("Invalid parameter, passing 'null' as a Job")
+			InstructionJob: return jobCantBePlacedOnGPU.getOrDefault(name, false)
+			TimeLoopJob:    true
+			TimeLoopCopy:   true
+			default:        throw new Exception("Unknown Job type for " + it.toString)
+		}
+	}
+
+	static def boolean
+	isFunctionGPUBlacklisted(Job it)
+	{
+		switch it {
+			case null:      throw new Exception("Invalid parameter, passing 'null' as a Function")
+			ExternFunction: return true
+			InternFunction: return functionCantBePlacedOnGPU.getOrDefault(name, false)
+			default:        throw new Exception("Unknown Function type for " + it.toString)
 		}
 	}
 
@@ -228,7 +250,8 @@ class ComputeCostTransformation extends IrTransformationStep
 		geometry_domain_size = geometry.cellsNumber
 	}
 
-	override transform(IrRoot ir) 
+	override boolean
+	transform(IrRoot ir) 
 	{
 		trace('    IR -> IR: ' + description + ':ComputeFunctionCost')
 		ir.eAllContents.filter(Function).forEach[evaluateCost]
@@ -246,7 +269,8 @@ class ComputeCostTransformation extends IrTransformationStep
 	
 	/* Get the contribution from the cost */
 	
-	private def void evaluateContribution(JobCaller it)
+	private def void
+	evaluateContribution(JobCaller it)
 	{
 		if (it === null) { throw new Exception("Passing a NULL JobCaller") }
 
@@ -262,7 +286,8 @@ class ComputeCostTransformation extends IrTransformationStep
 	
 	/* Cost evaluation methods */
 	
-	private def int evaluateCost(Function it)
+	private def int
+	evaluateCost(Function it)
 	{
 		switch it {
 			/* Compute the cost of an intern function, cache it in HashMap */
@@ -270,27 +295,22 @@ class ComputeCostTransformation extends IrTransformationStep
 				var cost = functionCostMap.getOrDefault(name, 0)
 				if (cost == 0) {
 					cost = evaluateCost(body)
-					// trace('        INTERN function ' + name + ', cost evaluated to: ' + cost)
 					functionCostMap.put(name, cost)
 				}
 				return cost
 			}
 
-			ExternFunction: {
-				// trace("        EXTERN function " + name + ", set default cost default (" + defaultUnknownCost + ")")
-				return defaultUnknownCost
-			}
-
-			default: throw new Exception("Unknown function type for " + it.toString + ", can't evaluate its cost")
+			ExternFunction: return defaultUnknownCost
+			default:        throw new Exception("Unknown function type for " + it.toString + ", can't evaluate its cost")
 		}
 	}
 
-	private def int evaluateCost(Job it)
+	private def int
+	evaluateCost(Job it)
 	{
-		if (it === null)
-			return 0;
-			
 		switch it {
+			case null: return 0
+
 			/* A job instruction, may be transformed by the OpenMPTask backend */
 			InstructionJob: {
 				var cost = jobCostMap.getOrDefault(name, 0)
@@ -309,7 +329,8 @@ class ComputeCostTransformation extends IrTransformationStep
 		}
 	}
 	
-	private def int evaluateCost(Instruction it)
+	private def int
+	evaluateCost(Instruction it)
 	{
 		switch it {
 			/* Simple things, constants, set them to correct things */
@@ -334,7 +355,8 @@ class ComputeCostTransformation extends IrTransformationStep
 		}
 	}
 	
-	private def int evaluateCost(Expression it)
+	private def int
+	evaluateCost(Expression it)
 	{
 		/* Special cases => stops cases */
 		if (constExpr)
@@ -365,7 +387,8 @@ class ComputeCostTransformation extends IrTransformationStep
 		}
 	}
 	
-	private def int evaluateOperatorCost(String op)
+	private def int
+	evaluateOperatorCost(String op)
 	{
 		/* Evaluate cost of an operator. Those are arbitrary values, change them for real cost for the targeted CPU/GPU */
 		if (op == "+") return operationCostADDITION;
@@ -381,12 +404,12 @@ class ComputeCostTransformation extends IrTransformationStep
 	
 	/* Repetition evaluation methods */
 	
-	private def double evaluateRep(Container it)
+	private def double
+	evaluateRep(Container it)
 	{
-		if (it === null)
-			return 0;
-
 		switch it {
+			case null: return 0
+
 			/* Get the repetition of a connectivity */
 			ConnectivityCall: {
 				if      (connectivity.name == "bottomNodes") { return geometry.bottomNodesNumber }
@@ -429,7 +452,8 @@ class ComputeCostTransformation extends IrTransformationStep
 		}
 	}
 	
-	private def double evaluateRep(Instruction it)
+	private def double
+	evaluateRep(Instruction it)
 	{
 		switch it {
 			/* Iterable instructions */
