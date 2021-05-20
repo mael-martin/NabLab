@@ -31,6 +31,22 @@ class JobCallerContentProvider
 	'''
 }
 
+class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
+{
+	override
+	getCallsHeader(JobCaller it)
+	''''''
+
+	override
+	getCallsContent(JobCaller it)
+	'''
+		«FOR j : calls»
+		«j.callName.replace('.', '->')»(); // @«j.at»
+		«ENDFOR»
+
+	'''
+}
+
 class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 {
 	

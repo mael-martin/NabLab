@@ -191,3 +191,35 @@ class OpenMpTaskCMakeContentProvider extends CMakeContentProvider
 		super.targetLinkLibraries + #["OpenMP::OpenMP_CXX"]
 	}
 }
+
+class OpenMpTargetCMakeContentProvider extends CMakeContentProvider
+{
+	/* Only works for V100, because of sm_70 */
+	override CharSequence
+	getFindPackageContent()
+	'''
+		# add_compile_options("-stdlib=libc++ -fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target -march=sm_70 -gline-tables-only")
+		# link_libraries("-fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target -march=sm_70 -gline-tables-only")
+		find_package(OpenMP REQUIRED)
+	'''
+
+	override Iterable<String>
+	getCompilationOptions()
+	{
+		super.compilationOptions + #[
+			'-fopenmp', '-fopenmp-targets=nvptx64-nvidia-cuda', // OpenMP targets
+			'-stdlib=libc++',									// Clang stuff, note that targets only work with clang/llvm
+			'-Xopenmp-target',									// TARGETS!!!
+			'-march=sm_70', '-gline-tables-only'				// V100 Tesla + some basic informations
+		]
+	}
+
+	override Iterable<String>
+	getTargetLinkLibraries()
+	{
+		super.targetLinkLibraries + #[
+			"OpenMP::OpenMP_CXX",					// Should be -fopenmp...
+			'-fopenmp-targets=nvptx64-nvidia-cuda'	// TARGETS!!
+		]
+	}
+}

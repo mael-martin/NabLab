@@ -159,3 +159,28 @@ class OpenMpTaskBackend extends Backend
 		registerTypeContentProvider(typeContentProvider)
 	}
 }
+
+/** Expected variables: N_CXX_COMPILER, N_C_COMPILER */
+class OpenMpTargetBackend extends Backend
+{
+	new()
+	{
+		OpenMpTaskMainContentProvider::num_threads = JobMergeFromCost::num_threads; // FIXME: Must be set by the user
+		OpenMpTaskMainContentProvider::max_active_levels = 1; 
+		OMPTaskMaxNumber = JobMergeFromCost::num_tasks
+		OMPTraces        = false
+		name             = 'OpenMPTarget'
+		cmakeContentProvider       = new OpenMpTargetCMakeContentProvider
+		typeContentProvider        = new StlThreadTypeContentProvider
+		expressionContentProvider  = new ExpressionContentProvider(typeContentProvider)
+		instructionContentProvider = new OpenMpTargetInstructionContentProvider(typeContentProvider, expressionContentProvider, new OpenMPTaskMPCProvider)
+		functionContentProvider    = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
+		traceContentProvider       = new TraceContentProvider
+		includesContentProvider    = new OpenMpIncludesContentProvider
+		jsonContentProvider        = new JsonContentProvider(expressionContentProvider)
+		jobCallerContentProvider   = new OpenMpTargetJobCallerContentProvider
+		jobContentProvider         = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
+		mainContentProvider        = new OpenMpTaskMainContentProvider(jsonContentProvider)
+		registerTypeContentProvider(typeContentProvider)
+	}
+}
