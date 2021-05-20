@@ -15,15 +15,18 @@
 namespace nablalib::types
 {
 
-#ifdef TEST
 
+#ifdef TEST
 int
 main(void)
+#else
+void
+dummy_bounded_arrays(void)
+#endif
 {
-    BoundedArray<int, 4> arr1 = { 1, 2, 3, 4 };
-    return arr1.boundary_size;
+    BoundedArray<int, 4> arr1 = BoundedArray<int, 4>::fromVector({ 1, 2, 3, 4 });
+    static_assert(((sizeof(arr1) - sizeof(size_t)) / sizeof(int)) == 4);
 }
 
-#endif
 
 }
