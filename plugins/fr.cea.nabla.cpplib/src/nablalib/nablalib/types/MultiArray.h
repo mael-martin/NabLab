@@ -46,21 +46,26 @@ struct MultiArray : public std::array<MultiArray<T, DIM_N...>, DIM_1>
     // Generic method wich recursively calls relevant operation for every dimensions
     // Scalar operations
     template <typename ScalarT, typename BinaryOp>
-    MultiArray<RES_TYPE(T, ScalarT), DIM_1, DIM_N...>
+    inline MultiArray<RES_TYPE(T, ScalarT), DIM_1, DIM_N...>
     scalarOp(ScalarT x, BinaryOp op) const
     {
         MultiArray<RES_TYPE(T, ScalarT), DIM_1, DIM_N...> result;
-        std::transform(this->begin(), this->end(), result.begin(), [&](auto i){return i.scalarOp(x, op);});
+        std::transform(this->begin(), this->end(), result.begin(),
+        [&](auto i) {
+            return i.scalarOp(x, op);
+        });
         return result;
     }
     // Array operations
     template <typename ArrayT, typename BinaryOp>
-    MultiArray
+    inline MultiArray
     arrayOp(ArrayT a, BinaryOp op) const
     {
         MultiArray result;
         std::transform(this->begin(), this->end(), a.begin(), result.begin(),
-                [&](auto& i, auto& j){return i.arrayOp(j, op);});
+        [&](auto& i, auto& j) {
+            return i.arrayOp(j, op);
+        });
         return result;
     }
 
@@ -216,7 +221,7 @@ struct MultiArray<T, DIM> : public std::array<T, DIM>
     // ********** Generic method wich calls relevant operation, return by value semantic **********
     // Scalar operations
     template <typename ScalarT, typename BinaryOp>
-    MultiArray<RES_TYPE(T, ScalarT), DIM>
+    inline MultiArray<RES_TYPE(T, ScalarT), DIM>
     scalarOp(ScalarT x, BinaryOp op) const
     {
         MultiArray<RES_TYPE(T, ScalarT), DIM> result;
@@ -228,7 +233,7 @@ struct MultiArray<T, DIM> : public std::array<T, DIM>
     }
     // Array operations
     template <typename ArrayT, typename BinaryOp>
-    MultiArray
+    inline MultiArray
     arrayOp(ArrayT a, BinaryOp op) const
     {
         MultiArray result;
@@ -396,26 +401,28 @@ using IntArray = MultiArray<int, DIM_1, DIM_N...>;
 /******************************************************************************/
 // Pretty printer helper function for std::array array
 template<typename T, size_t N>
-std::ostream&
-operator<<(std::ostream& os, const std::array<T, N>& array) {
-  os << "[";
-  for (typename std::array<T, N>::size_type i(0); i < N; ++i)
-    os << array[i] << (i!=N-1?", ":"]\n");
-  return os;
+static inline std::ostream&
+operator<<(std::ostream& os, const std::array<T, N>& array)
+{
+    os << "[";
+    for (typename std::array<T, N>::size_type i(0); i < N; ++i)
+        os << array[i] << (i!=N-1?", ":"]\n");
+    return os;
 }
 
 // Pretty printer helper function for N dimension MultiArray
 template <typename T, size_t DIM_1, size_t... DIM_N, typename std::enable_if_t<(sizeof...(DIM_N)>0)>* = nullptr>
-std::ostream&
-operator<<(std::ostream& os, const MultiArray<T, DIM_1, DIM_N...>& array) {
-  for (auto i : array)
-    os << i << std::endl;
-  return os;
+static inline std::ostream&
+operator<<(std::ostream& os, const MultiArray<T, DIM_1, DIM_N...>& array)
+{
+    for (auto i : array)
+        os << i << std::endl;
+    return os;
 }
 
 // Pretty printer helper function for 1 dimension MultiArray
 template<typename T, size_t DIM>
-std::ostream&
+static inline std::ostream&
 operator<<(std::ostream& os, const MultiArray<T, DIM>& array) {
   for (typename MultiArray<T, DIM>::size_type i(0); i < array.size(); ++i)
     std::cout << (i==0?"| ":"") << array[i] << (i==array.size()-1?" |":" ");
@@ -425,14 +432,12 @@ operator<<(std::ostream& os, const MultiArray<T, DIM>& array) {
 /******************************************************************************/
 // Commutative helpers
 template <typename T, size_t DIM_1, size_t... DIM_N, typename std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr>
-auto operator+(T lhs, MultiArray<T, DIM_1, DIM_N...> rhs) {
-  return rhs.operator+(lhs);
-}
+static inline auto operator+(T lhs, MultiArray<T, DIM_1, DIM_N...> rhs)
+{ return rhs.operator+(lhs); }
 
 template <typename T, size_t DIM_1, size_t... DIM_N, typename std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr>
-auto operator*(T lhs, MultiArray<T, DIM_1, DIM_N...> rhs) {
-  return rhs.operator*(lhs);
-}
+static inline auto operator*(T lhs, MultiArray<T, DIM_1, DIM_N...> rhs)
+{ return rhs.operator*(lhs); }
 
 }
 
