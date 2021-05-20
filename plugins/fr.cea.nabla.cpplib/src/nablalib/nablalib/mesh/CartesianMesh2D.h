@@ -12,6 +12,7 @@
 
 #include <utility>
 #include "nablalib/types/Types.h"
+#include "nablalib/types/BoundedArray.h"
 #include "nablalib/mesh/MeshGeometry.h"
 
 using namespace std;
@@ -97,11 +98,11 @@ public:
 	Id getFirstNodeOfFace(const Id& faceId) const noexcept;
 	Id getSecondNodeOfFace(const Id& faceId) const noexcept;
 
-	vector<Id> getCellsOfNode(const Id& nodeId) const noexcept;
-	vector<Id> getCellsOfFace(const Id& faceId) const;
+	BoundedArray<Id, MaxNbCellsOfNode> getCellsOfNode(const Id& nodeId) const noexcept;
+	BoundedArray<Id, MaxNbCellsOfFace> getCellsOfFace(const Id& faceId) const;
 
-	vector<Id> getNeighbourCells(const Id& cellId) const;
-	vector<Id> getFacesOfCell(const Id& cellId) const;
+	BoundedArray<Id, MaxNbNeighbourCells> getNeighbourCells(const Id& cellId) const;
+	BoundedArray<Id, MaxNbFacesOfCell>    getFacesOfCell(const Id& cellId) const;
 
 	Id getCommonFace(const Id& cellId1, const Id& cellId2) const;
 

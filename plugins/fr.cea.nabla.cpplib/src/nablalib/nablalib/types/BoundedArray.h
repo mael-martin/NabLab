@@ -28,34 +28,43 @@ struct BoundedArray : public std::array<T, DIM>
 {
     static constexpr size_t boundary_size = DIM;
 
+    /* Resize the thing */
+
     inline void
-    setUsedSize(size_t new_size) noexcept
+    resize(size_t new_size) noexcept
     {
         assert(new_size <= boundary_size);
         used_size = new_size;
     }
 
+    /* Get the current size */
+
     inline size_t
-    getUsedSize(void) const noexcept
-    {
-        return used_size;
-    }
+    size(void) noexcept
+    { return used_size; }
+
+    inline size_t
+    size(void) const noexcept
+    { return used_size; }
+
+    /* Get the maximal size, hide the non used space from the user */
+
+    inline size_t
+    max_size(void) noexcept
+    { return used_size; }
+
+    inline size_t
+    max_size(void) const noexcept
+    { return used_size; }
+
+    /* Construct from vector */
 
     static inline BoundedArray<T, DIM>
     fromVector(const std::vector<T> &from)
     {
         BoundedArray<T, DIM> ret;
-        ret.setUsedSize(from.size);
-        std::copy(from.begin(), from.end(), ret->begin());
-        return ret;
-    }
-
-    static inline BoundedArray<T, DIM>
-    fromVector(const size_t new_size, const std::vector<T> &from)
-    {
-        BoundedArray<T, DIM> ret;
-        ret.setUsedSize(new_size);
-        for (size_t i = 0; i < new_size; ++i) {
+        ret.resize(from.size());
+        for (size_t i = 0; i < DIM && i < ret.used_size; ++i) {
             ret[i] = from[i];
         }
         return ret;
