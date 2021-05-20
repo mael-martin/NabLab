@@ -12,9 +12,11 @@
 
 #include <array>
 #include "nablalib/types/MultiArray.h"
+#include "nablalib/types/BoundedArray.h"
 
 namespace nablalib::types
 {
+
 // Type alias
 using Id = size_t;
 
@@ -29,6 +31,18 @@ using  RealArray1D = MultiArray<double, N>;
 
 template<size_t M, size_t N>
 using RealArray2D = MultiArray<double, M, N>;
+
+/* FIXME: Values are hardcoded for CartesianMesh2D */
+namespace CM2D
+{
+
+template<typename T>
+using NodesOfCellArray = BoundedArray<T, 4>;
+
+template<typename T>
+using CellsOfNodeArray = BoundedArray<T, 4>;
+
+}
 
 }
 

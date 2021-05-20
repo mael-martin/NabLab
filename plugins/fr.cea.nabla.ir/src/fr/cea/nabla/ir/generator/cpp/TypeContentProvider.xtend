@@ -171,7 +171,9 @@ abstract class TypeContentProvider
 	private def CharSequence initCppType(String name, ConnectivityType t, List<String> accessors, Iterable<Connectivity> connectivities)
 	{
 		if (connectivities.empty)
-			'''«name»«formatIterators(t, accessors)».initSize(«t.base.sizes.map[x | expressionContentProvider.getContent(x)].join(', ')»);'''
+			throw new Exception("The dynamically allocated MultiArray was deleted")
+			// '''«name»«formatIterators(t, accessors)».initSize(«t.base.sizes.map[x | expressionContentProvider.getContent(x)].join(', ')»);'''
+
 		else
 		{
 			val indexName = "i" + connectivities.size
@@ -188,8 +190,18 @@ class StlThreadTypeContentProvider extends TypeContentProvider
 {
 	override getCppType(BaseType baseType, Iterable<Connectivity> connectivities) 
 	{
-		if (connectivities.empty) baseType.cppType
-		else 'std::vector<' + getCppType(baseType, connectivities.tail) + '>'
+		if (connectivities.empty)
+			baseType.cppType
+
+		else {
+			val current = connectivities.head
+			/* FIXME: Here sizes are hardcoded for a CartesianMesh2D -> CM2D */
+			switch current.name {
+				case 'cellsOfNode': 'CM2D::CellsOfNodeArray<' + getCppType(baseType, connectivities.tail) + '>'
+				case 'nodesOfCell': 'CM2D::NodesOfCellArray<' + getCppType(baseType, connectivities.tail) + '>'
+				default:            'std::vector<' + getCppType(baseType, connectivities.tail) + '>'
+			}
+		}
 	}
 
 	override CharSequence getCstrResize(String name, BaseType baseType, CharSequence limit, Iterable<Connectivity> connectivities)
@@ -198,7 +210,15 @@ class StlThreadTypeContentProvider extends TypeContentProvider
 		{
 			case 0: throw new RuntimeException("Ooops. Can not be there, normally...")
 			case 1: limit
-			default: '''«limit», «getCppType(baseType, connectivities.tail)»(«getCstrInit(name, baseType, connectivities.tail)»)''' 
+			default: {
+				var ret = '''«limit», «getCppType(baseType, connectivities.tail)»(«getCstrInit(name, baseType, connectivities.tail)»)''' 
+				if (! connectivities.tail.empty) {
+					val head = connectivities.tail.head.name
+					if (head == "cellsOfNode" || head == "nodesOfCell")
+						ret = '''«limit», «getCppType(baseType, connectivities.tail)»::fromSize(«getCstrInit(name, baseType, connectivities.tail)»)''' 
+				}
+				return ret
+			}
 		}
 	}
 

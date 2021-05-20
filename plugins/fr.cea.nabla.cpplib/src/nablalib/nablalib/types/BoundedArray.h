@@ -70,6 +70,16 @@ struct BoundedArray : public std::array<T, DIM>
         return ret;
     }
 
+    /* Construct with the correct size */
+
+    static inline BoundedArray<T, DIM>
+    fromSize(const size_t size)
+    {
+        BoundedArray<T, DIM> ret;
+        ret.resize(size);
+        return ret;
+    }
+
 private:
     size_t used_size { 0 };
 };
