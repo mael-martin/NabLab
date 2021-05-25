@@ -9,14 +9,20 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
+import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
+import fr.cea.nabla.ir.ir.InstructionJob
+import fr.cea.nabla.ir.ir.Job
+import fr.cea.nabla.ir.ir.JobCaller
+import fr.cea.nabla.ir.ir.TimeLoopCopy
+import fr.cea.nabla.ir.ir.TimeLoopJob
+import fr.cea.nabla.ir.ir.Variable
+import java.util.Set
+
 import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
-import fr.cea.nabla.ir.ir.JobCaller
-import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
-import fr.cea.nabla.ir.ir.TimeLoopJob
 
 class JobCallerContentProvider
 {
@@ -33,29 +39,68 @@ class JobCallerContentProvider
 
 class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 {
-	override
+	var boolean OMPRegion = false
+
+	override CharSequence
 	getCallsHeader(JobCaller it)
 	''''''
 
-	override
+	override CharSequence
 	getCallsContent(JobCaller it)
 	'''
 		«FOR j : calls»
-		«j.callName.replace('.', '->')»(); // @«j.at»
+			«j.OMPRegionLimit»
+			«j.callName.replace('.', '->')»(); // @«j.at»
 		«ENDFOR»
-
+		«IF OMPRegion»
+			}}
+		«ENDIF»
 	'''
+
+	/* Create or end a parallel region task single to create all the other tasks */
+	private def CharSequence
+	OMPRegionLimit(Job it)
+	{
+		switch it {
+			case null: throw new Exception("Can't do anything with a null job")
+
+			/* TimeLoopJob == ExecuteTimeLoopJob | TearDownTimeLoopJob | SetUpTimeLoopJob */
+			TimeLoopCopy | TimeLoopJob: {
+				if (OMPRegion) {
+					OMPRegion = false
+					'''}}'''
+				} else ''''''
+			}
+
+			InstructionJob: {
+				if (!OMPRegion) {
+					OMPRegion = true
+					'''
+						#pragma omp parallel
+						{
+						#pragma omp single nowait
+						{
+					'''
+				} else ''''''
+			}
+
+			default: throw new Exception("Unknown Job type for " + name + "@" + at)
+		}
+	}
 }
 
 class OpenMpTaskJobCallerContentProvider extends JobCallerContentProvider
 {
 	
-	override getCallsHeader(JobCaller it) ''''''
+	override CharSequence
+	getCallsHeader(JobCaller it)
+	''''''
 
-	override getCallsContent(JobCaller it)
+	override CharSequence
+	getCallsContent(JobCaller it)
 	{
 		var boolean execTimeLoopPresent = false;
-		val duplicates = findDuplicates
+		val Set<Variable> duplicates    = findDuplicates
 		if (duplicates.size > 0) {
 			val dup_str = duplicates.map[name].reduce[ p1, p2 | p1 + ', ' + p2 ]
 			throw new Exception(duplicates.size + " job(s) generate the same variable, duplicated variable(s) are/is " + dup_str)
