@@ -192,7 +192,7 @@ abstract class TypeContentProvider
 			switch current.name {
 				case 'cellsOfNode': 'CM2D::CellsOfNodeArray<' + getCppType(baseType, connectivities.tail) + '>'
 				case 'nodesOfCell': 'CM2D::NodesOfCellArray<' + getCppType(baseType, connectivities.tail) + '>'
-				default:            getCppType(baseType, connectivities.tail) + '*'
+				default:            getCppType(baseType, connectivities.tail) + ' *'
 			}
 		}
 	}

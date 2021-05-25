@@ -120,6 +120,13 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	
 	/******************** GPU variable declarations ********************/
 	«GPUDeclaration»
+	
+	/******************** GPU job declarations ********************/
+	«target.declare_gpu_jobs(jobs
+		.filter[ j | ! isJobGPUBlacklisted(j) ]
+		.map[ j | '''void gpu_«j.name»() noexcept''' ]
+		.toList
+	)»
 	«ENDIF»
 
 	/******************** Module declaration ********************/
