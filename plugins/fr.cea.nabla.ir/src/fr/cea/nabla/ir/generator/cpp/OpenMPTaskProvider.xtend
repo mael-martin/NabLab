@@ -11,9 +11,11 @@ package fr.cea.nabla.ir.generator.cpp
 
 import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.Variable
+import java.util.List
 import java.util.Set
 
 import static fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+import java.util.Map
 
 abstract class OpenMPTaskProvider
 {
@@ -283,4 +285,74 @@ class OpenMPTaskMPCProvider extends OpenMPTaskClangProvider
 
 	/* Close an unclosed task */
 	override CharSequence closeUnclosedTaskWithPriority() '''}}'''
+}
+
+abstract class OpenMPTargetProvider
+{
+	enum BASIC_TYPE { FLOATING, INTEGER }
+	
+	def private String
+	basicTypeToString(BASIC_TYPE t)
+	{
+		switch t {
+		case FLOATING: 'double'
+		case INTEGER:  'int'
+		}
+	}
+	
+	new() { }
+	 
+	def CharSequence
+	allocate(String name, int len)
+	'''
+		#pragma omp target enter data map(alloc: «name»[0:«len»])
+	'''
+
+	def CharSequence
+	free(String name, int len)
+	'''
+		#pragma omp target exit data map(delete: «name»[0:«len»])
+	'''
+
+	def CharSequence
+	offload_task(
+		List<String> fp,
+		List<String> IN, List<String> OUT,
+		List<String> READ, List<String> WRITE, Map<String, String> RW_VAR_SIZES,
+		CharSequence body
+	) '''
+		#pragma omp target«
+		FOR v   : fp    BEFORE '\\\nfirstprivate(' SEPARATOR ', ' AFTER ')'»«v»«ENDFOR»«
+		FOR in  : IN    BEFORE '\\\ndepend(in: '   SEPARATOR ', ' AFTER ')'»«in»«ENDFOR»«
+		FOR out : OUT   BEFORE '\\\ndepend(out: '  SEPARATOR ', ' AFTER ')'»«out»«ENDFOR»«
+		FOR r   : READ  BEFORE '\\\nmap(to: '      SEPARATOR ', ' AFTER ')'»«r»[0:«RW_VAR_SIZES.get(r)»]«ENDFOR»«
+		FOR w   : WRITE BEFORE '\\\nmap(to: '      SEPARATOR ', ' AFTER ')'»«w»[0:«RW_VAR_SIZES.get(w)»]«ENDFOR»
+		{
+			«body»
+		}
+	'''
+
+	def CharSequence
+	loop_reduction(String result, CharSequence body)
+	'''
+		#pragma omp teams distribute parallel for reduction(min: «result») map(tofrom: «result»)
+		«body»
+	'''
+
+	def CharSequence
+	loop_for(CharSequence body)
+	'''
+		#pragma omp teams distribute parallel for
+		«body»
+	'''
+
+	def CharSequence
+	declare_gpu_functions(List<CharSequence> funcs)
+	'''
+	#pragma omp declare target
+	«FOR f : funcs»
+		«f»;
+	«ENDFOR»
+	#pragma omp end declare target
+	 '''
 }
