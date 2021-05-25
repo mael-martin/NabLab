@@ -97,6 +97,17 @@ class Utils
 		 */
 	'''
 
+	static def getGPUComment(Job it)
+	'''
+		/**
+		 * GPU JOB!
+		 * Job gpu_«getCodeName» for «getCodeName» called @«at» in «caller.codeName» method.
+		 * In [«FOR v : minimalInVars BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
+		 * Out [«FOR v : outVars.sortBy[name] BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
+		 * Cost: «val jc = jobContribution»«IF jc != 0»«jc»«ELSE»N/A«ENDIF»
+		 */
+	'''
+
 	static def boolean isParallelLoop(Loop it)
 	{
 		isTopLevelLoop && multithreadable

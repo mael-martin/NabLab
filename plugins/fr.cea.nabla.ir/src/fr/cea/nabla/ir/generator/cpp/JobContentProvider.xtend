@@ -50,6 +50,15 @@ abstract class JobContentProvider
 		}
 	'''
 
+	def getGPUDefinitionContent(Job it)
+	'''
+		«GPUComment»
+		void gpu_«codeName»() noexcept
+		{
+			«innerContent»
+		}
+	'''
+
 	protected def dispatch CharSequence getInnerContent(InstructionJob it)
 	'''
 		«instruction.innerContent»

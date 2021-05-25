@@ -12,10 +12,10 @@ package fr.cea.nabla.ir.generator.cpp
 import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.Variable
 import java.util.List
+import java.util.Map
 import java.util.Set
 
 import static fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
-import java.util.Map
 
 abstract class OpenMPTaskProvider
 {
@@ -290,7 +290,24 @@ class OpenMPTaskMPCProvider extends OpenMPTaskClangProvider
 class OpenMPTargetProvider
 {
 	enum BASIC_TYPE { FLOATING, INTEGER }
-	
+	enum TASK_MODE { NONE, GPU, CPU }
+
+	var current_task_mode = TASK_MODE::NONE
+
+	def TASK_MODE
+	getCurrentTaskMode()
+	{
+		if (current_task_mode == TASK_MODE::NONE)
+			throw new Exception("The current mode is 'NONE', this getter was called where it should not be called")
+		return current_task_mode;
+	}
+
+	private def void
+	flipTaskMode(TASK_MODE mode)
+	{
+		current_task_mode = mode;
+	}
+
 	def private String
 	basicTypeToString(BASIC_TYPE t)
 	{
@@ -299,9 +316,9 @@ class OpenMPTargetProvider
 		case INTEGER:  'int'
 		}
 	}
-	
+
 	new() { }
-	 
+	
 	def CharSequence
 	allocate(String name, int len)
 	'''
@@ -313,8 +330,57 @@ class OpenMPTargetProvider
 	'''
 		#pragma omp target exit data map(delete: «name»[0:«len»])
 	'''
-
+	
+	def void
+	select_target(TASK_MODE mode)
+	{
+		if (mode == TASK_MODE::NONE)
+			throw new Exception("You can't set the tasking mode to 'NONE'")
+		current_task_mode = mode
+	}
+	
 	def CharSequence
+	task(
+		List<String> fp,
+		List<String> IN, List<String> OUT,
+		List<String> READ, List<String> WRITE, Map<String, String> RW_VAR_SIZES,
+		CharSequence body
+	) {
+		if (current_task_mode == TASK_MODE::CPU) {
+			/* Task will run on the host CPU */
+			return simple_task(fp, IN, OUT, READ, WRITE, RW_VAR_SIZES, body)
+		}
+
+		else if (current_task_mode == TASK_MODE::GPU) {
+			/* Task will be offloaded to the GPU */
+			return offload_task(fp, IN, OUT, READ, WRITE, RW_VAR_SIZES, body)
+		}
+
+		else {
+			/* (╯°□°)╯ ┻━┻ */
+			throw new Exception("Oupsi, you must specify a tasking mode")
+		}
+	}
+	
+	private def CharSequence
+	simple_task(
+		List<String> fp,
+		List<String> IN, List<String> OUT,
+		List<String> READ, List<String> WRITE, Map<String, String> RW_VAR_SIZES /* Unused */,
+		CharSequence body
+	) '''
+		«val Set<String> SHARED = #[ READ.clone.toSet, WRITE.clone.toSet ].flatten.toSet»
+		#pragma omp task «
+		FOR v   : fp     BEFORE '\\\nfirstprivate(' SEPARATOR ', ' AFTER ')'»«v»«ENDFOR»«
+		FOR in  : IN     BEFORE '\\\ndepend(in: '   SEPARATOR ', ' AFTER ')'»«in»«ENDFOR»«
+		FOR out : OUT    BEFORE '\\\ndepend(out: '  SEPARATOR ', ' AFTER ')'»«out»«ENDFOR»«
+		FOR s   : SHARED BEFORE '\\\nshared('       SEPARATOR ', ' AFTER ')'»«s»«ENDFOR»
+		{
+			«body»
+		}
+	'''
+
+	private def CharSequence
 	offload_task(
 		List<String> fp,
 		List<String> IN, List<String> OUT,
@@ -334,17 +400,35 @@ class OpenMPTargetProvider
 
 	def CharSequence
 	loop_reduction(String result, CharSequence body)
-	'''
-		#pragma omp teams distribute parallel for reduction(min: «result») map(tofrom: «result»)
-		«body»
-	'''
+	{
+		if (current_task_mode == TASK_MODE::GPU)
+		'''
+			#pragma omp teams distribute parallel for reduction(min: «result») map(tofrom: «result»)
+			«body»
+		'''
+		
+		else if (current_task_mode == TASK_MODE::CPU)
+		'''
+			#pragma omp parallel for reduction(min: «result»)
+			«body»
+		'''
+	}
 
 	def CharSequence
 	loop_for(CharSequence body)
-	'''
-		#pragma omp teams distribute parallel for
-		«body»
-	'''
+	{
+		if (current_task_mode == TASK_MODE::GPU)
+		'''
+			#pragma omp teams distribute parallel for
+			«body»
+		'''
+
+		else if (current_task_mode == TASK_MODE::CPU)
+		'''
+			#pragma omp parallel for
+			«body»
+		'''
+	}
 
 	def CharSequence
 	declare_gpu_jobs(List<String> funcs)
