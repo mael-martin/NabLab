@@ -320,31 +320,34 @@ class OpenMpInstructionContentProvider extends InstructionContentProvider
 @Data
 class OpenMpTargetInstructionContentProvider extends InstructionContentProvider
 {
-	OpenMPTaskProvider taskProvider
+	OpenMPTargetProvider target
 
-	override getReductionContent(ReductionInstruction it)
+	/* TODO:
+	   Get ride of the 'result.name' declaration and transform things to have
+	   'pure reductions' (i.e. reductions without trailing instructions, doing
+	   that will enforce the 'result.name' to be the name of a global variable)
+	*/
+	override CharSequence
+	getReductionContent(ReductionInstruction it)
 	'''
-		«result.type.cppType» «result.name»(«result.defaultValue.content»);
-		#pragma omp parallel for reduction(min:«result.name»)
-		«iterationBlock.defineInterval('''
-		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
-		{
-			«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
-		}''')»
+		«result.type.cppType» «result.name» = «result.defaultValue.content»;
+		«target.loop_reduction(result.name, '''
+			«iterationBlock.defineInterval('''
+				for (size_t «iterationBlock.indexName» = 0;
+				     «iterationBlock.indexName» < «iterationBlock.nbElems»;
+				     «iterationBlock.indexName»++)
+				{
+					«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
+				}
+			''')»
+		''')»
 	'''
 
-	override getParallelLoopContent(Loop it)
+	override CharSequence
+	getParallelLoopContent(Loop it)
 	'''
-		«val vars = modifiedVariables»
-		#pragma omp parallel«IF !vars.empty» for shared(«vars.map[codeName].join(', ')»«ENDIF»)
-		«sequentialLoopContent»
+		«target.loop_for(sequentialLoopContent)»
 	'''
-
-	private def getModifiedVariables(Loop l)
-	{
-		val modifiedVars = l.eAllContents.filter(Affectation).map[left.target].toSet
-		modifiedVars.filter[global]
-	}
 }
 
 @Data
