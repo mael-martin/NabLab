@@ -19,12 +19,14 @@ import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.InternFunction
 import fr.cea.nabla.ir.ir.IrModule
 import fr.cea.nabla.ir.ir.IrRoot
+import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.Variable
-import fr.cea.nabla.ir.ir.Job
-import fr.cea.nabla.ir.ir.JobCaller
+import fr.cea.nabla.ir.transformers.JobMergeFromCost
 import java.util.ArrayList
 import java.util.LinkedHashSet
+
+import static fr.cea.nabla.ir.transformers.ComputeCostTransformation.*
 
 import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.ExtensionProviderExtensions.*
@@ -33,12 +35,12 @@ import static extension fr.cea.nabla.ir.IrRootExtensions.*
 import static extension fr.cea.nabla.ir.IrTypeExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
-import fr.cea.nabla.ir.transformers.JobMergeFromCost
 
 class CppApplicationGenerator extends CppGenerator implements ApplicationGenerator
 {
 	val String levelDBPath
 	val cMakeVars = new LinkedHashSet<Pair<String, String>>
+	val target = new OpenMPTargetProvider
 
 	new(Backend backend, String wsPath, String levelDBPath, Iterable<Pair<String, String>> cMakeVars)
 	{
@@ -92,17 +94,28 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«ENDFOR»
 	«ENDIF»
 	«val internFunctions = functions.filter(InternFunction)»
-	«IF !internFunctions.empty»
 
 	/******************** Free functions declarations ********************/
 
+	// CPU functions
 	namespace «freeFunctionNs»
 	{
 	«FOR f : internFunctions»
-		«functionContentProvider.getDeclarationContent(f)»;
+	«functionContentProvider.getDeclarationContent(f)»;
 	«ENDFOR»
 	}
+
+	«IF isOpenMpTask»
+	// GPU functions
+	namespace gpu
+	{
+	«target.declare_gpu_functions(internFunctions
+		.filter[ f | ! isFunctionGPUBlacklisted(f) ]
+		.map[ f | functionContentProvider.getDeclarationContent(f) ]
+		.toList
+	)»
 	«ENDIF»
+	}
 
 	/******************** Module declaration ********************/
 
@@ -248,13 +261,26 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 	/******************** Free functions definitions ********************/
 
+	// CPU functions
 	namespace «freeFunctionNs»
 	{
 	«FOR f : internFunctions SEPARATOR '\n'»
-		«functionContentProvider.getDefinitionContent(f)»
+	«functionContentProvider.getDefinitionContent(f)»
 	«ENDFOR»
 	}
 	«ENDIF»
+
+	«IF isOpenMpTask»
+	// GPU functions
+	namespace gpu
+	{
+	«target.implement_gpu_functions(internFunctions
+		.filter[ f | ! isFunctionGPUBlacklisted(f) ]
+		.map[ f | functionContentProvider.getDefinitionContent(f) ]
+		.toList
+	)»
+	«ENDIF»
+	}
 
 	/******************** Options definition ********************/
 

@@ -221,7 +221,7 @@ class ComputeCostTransformation extends IrTransformationStep
 	}
 
 	static def boolean
-	isFunctionGPUBlacklisted(Job it)
+	isFunctionGPUBlacklisted(Function it)
 	{
 		switch it {
 			case null:      throw new Exception("Invalid parameter, passing 'null' as a Function")
