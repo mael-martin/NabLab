@@ -39,12 +39,12 @@ abstract class TypeContentProvider
 	{
 		switch it
 		{
-			case null: CPP_TYPE::NULL
-			BaseType case sizes.empty: CPP_TYPE::BASE
-			BaseType: CPP_TYPE::ARRAY
-			ConnectivityType: CPP_TYPE::CONNECTIVITY
-			LinearAlgebraType: CPP_TYPE::LINEARALGEBRA
-			default: CPP_TYPE::NULL
+			case null: 					CPP_TYPE::NULL
+			BaseType case sizes.empty: 	CPP_TYPE::BASE
+			BaseType: 					CPP_TYPE::ARRAY
+			ConnectivityType: 			CPP_TYPE::CONNECTIVITY
+			LinearAlgebraType: 			CPP_TYPE::LINEARALGEBRA
+			default: 					CPP_TYPE::NULL
 		}
 	}
 	
@@ -52,24 +52,41 @@ abstract class TypeContentProvider
 	{
 		switch it
 		{
-			case null: false
-			BaseType case sizes.empty: false
-			BaseType: true
-			ConnectivityType: true
-			LinearAlgebraType: false
+			case null: 					false
+			BaseType case sizes.empty:	false
+			LinearAlgebraType: 			false
+			BaseType: 					true
+			ConnectivityType: 			true
 			default: throw new RuntimeException("Unexpected type: " + class.name)
 		}
 	}
+
+	def CharSequence
+	getGpuFriendlyType(IrType it, String name)
+	{
+		switch it
+		{
+			case null: throw new Exception("Can't send the null type to GPU")
+
+			BaseType case sizes.empty: 	'''«primitive.cppType» «name»;'''
+			BaseType: 					'''«getCppGpuFriendlyArrayType(name, primitive, sizes)» «name»;'''
+			ConnectivityType: 			'''«getCppGpuFriendlyConnectivityType(base, connectivities)» «name»;'''
+
+			LinearAlgebraType: throw new Exception("Can't send a LinearAlgebra type to GPU")
+			default: 		   throw new RuntimeException("Unexpected type: " + class.name)
+		}
+	}
+
 
 	def getCppType(IrType it)
 	{
 		switch it
 		{
-			case null: null
-			BaseType case sizes.empty: primitive.cppType
-			BaseType: getCppArrayType(primitive, sizes)
-			ConnectivityType: getCppType(base, connectivities)
-			LinearAlgebraType: IrTypeExtensions.getLinearAlgebraClass(it)
+			case null: 					null
+			BaseType case sizes.empty: 	primitive.cppType
+			BaseType: 					getCppArrayType(primitive, sizes)
+			ConnectivityType: 			getCppType(base, connectivities)
+			LinearAlgebraType: 			IrTypeExtensions.getLinearAlgebraClass(it)
 			default: throw new RuntimeException("Unexpected type: " + class.name)
 		}
 	}
@@ -92,9 +109,9 @@ abstract class TypeContentProvider
 		switch it
 		{
 			case null : 'void'
-			case BOOL: 'bool'
-			case INT: 'int'
-			case REAL: 'double'
+			case BOOL:  'bool'
+			case INT:   'int'
+			case REAL:  'double'
 		}
 	}
 
@@ -153,7 +170,35 @@ abstract class TypeContentProvider
 		}
 	}
 
-	private def getCppArrayType(PrimitiveType t, Iterable<Expression> sizes)
+	private def
+	getCppGpuFriendlyArrayType(String name, PrimitiveType t, Iterable<Expression> sizes)
+	{
+		switch t
+		{
+			case null, case BOOL : throw new RuntimeException('Not implemented')
+			default: t.cppType + ' ' + name + '[' + sizes.map[arraySizeContent].join('][') + ']'
+		}
+	}
+
+	def CharSequence
+	getCppGpuFriendlyConnectivityType(BaseType baseType, Iterable<Connectivity> connectivities) 
+	{
+		if (connectivities.empty)
+			baseType.cppType
+
+		else {
+			val current = connectivities.head
+			/* FIXME: Here sizes are hardcoded for a CartesianMesh2D -> CM2D */
+			switch current.name {
+				case 'cellsOfNode': 'CM2D::CellsOfNodeArray<' + getCppType(baseType, connectivities.tail) + '>'
+				case 'nodesOfCell': 'CM2D::NodesOfCellArray<' + getCppType(baseType, connectivities.tail) + '>'
+				default:            getCppType(baseType, connectivities.tail) + '*'
+			}
+		}
+	}
+
+	private def
+	getCppArrayType(PrimitiveType t, Iterable<Expression> sizes)
 	{
 		switch t
 		{
@@ -188,7 +233,8 @@ abstract class TypeContentProvider
 
 class StlThreadTypeContentProvider extends TypeContentProvider
 {
-	override getCppType(BaseType baseType, Iterable<Connectivity> connectivities) 
+	override CharSequence
+	getCppType(BaseType baseType, Iterable<Connectivity> connectivities) 
 	{
 		if (connectivities.empty)
 			baseType.cppType
@@ -204,7 +250,8 @@ class StlThreadTypeContentProvider extends TypeContentProvider
 		}
 	}
 
-	override CharSequence getCstrResize(String name, BaseType baseType, CharSequence limit, Iterable<Connectivity> connectivities)
+	override CharSequence
+	getCstrResize(String name, BaseType baseType, CharSequence limit, Iterable<Connectivity> connectivities)
 	{
 		switch connectivities.size
 		{
@@ -222,7 +269,8 @@ class StlThreadTypeContentProvider extends TypeContentProvider
 		}
 	}
 
-	override getCstrInit(String name, BaseType baseType, Iterable<Connectivity> connectivities)
+	override CharSequence
+	getCstrInit(String name, BaseType baseType, Iterable<Connectivity> connectivities)
 	{
 		switch connectivities.size
 		{
@@ -232,7 +280,8 @@ class StlThreadTypeContentProvider extends TypeContentProvider
 		}
 	}
 
-	override formatIterators(ConnectivityType type, Iterable<String> iterators)
+	override CharSequence
+	formatIterators(ConnectivityType type, Iterable<String> iterators)
 	'''«FOR i : iterators»[«i»]«ENDFOR»'''
 }
 

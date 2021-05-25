@@ -114,8 +114,13 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		.map[ f | functionContentProvider.getDeclarationContent(f) ]
 		.toList
 	)»
-	«ENDIF»
 	}
+	«ENDIF»
+	«IF isOpenMpTask»
+	
+	/******************** GPU variable declarations ********************/
+	«GPUDeclaration»
+	«ENDIF»
 
 	/******************** Module declaration ********************/
 
@@ -216,7 +221,8 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	'''
 	
 	/* Get the global variables that will be used in the compute methods */
-	private def getGlobalVariableDeclarations(IrModule it)
+	private def CharSequence
+	getGlobalVariableDeclarations(IrModule it)
 	'''
 		// Global variables
 		«FOR v : variables.filter[!option].filter[constExpr || const]»
@@ -225,6 +231,17 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«FOR v : variables.filter[!option].filter[!constExpr && !const]»
 			«v.variableDeclaration»
 		«ENDFOR»
+	'''
+
+	private def CharSequence
+	getGPUDeclaration(IrModule it)
+	'''
+		// Global GPU variables
+		#pragma omp declare target
+		«FOR v : variables.filter[!option]»
+		«typeContentProvider.getGpuFriendlyType(v.type, v.name)»
+		«ENDFOR»
+		#pragma omp end declare target
 	'''
 
 	private def getSourceFileContent(IrModule it)
@@ -279,8 +296,8 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		.map[ f | functionContentProvider.getDefinitionContent(f) ]
 		.toList
 	)»
-	«ENDIF»
 	}
+	«ENDIF»
 
 	/******************** Options definition ********************/
 
@@ -602,7 +619,8 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		main && !levelDBPath.nullOrEmpty
 	}
 
-	private def CharSequence getVariableDeclaration(Variable v)
+	private def CharSequence
+	getVariableDeclaration(Variable v)
 	{
 		switch v
 		{
