@@ -173,7 +173,7 @@ class OpenMpTargetBackend extends Backend
 		cmakeContentProvider       = new OpenMpTargetCMakeContentProvider
 		typeContentProvider        = new StlThreadTypeContentProvider
 		expressionContentProvider  = new ExpressionContentProvider(typeContentProvider)
-		instructionContentProvider = new OpenMpTargetInstructionContentProvider(typeContentProvider, expressionContentProvider, new OpenMPTaskMPCProvider)
+		instructionContentProvider = new OpenMpTargetInstructionContentProvider(typeContentProvider, expressionContentProvider, new OpenMPTargetProvider)
 		functionContentProvider    = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
 		traceContentProvider       = new TraceContentProvider
 		includesContentProvider    = new OpenMpIncludesContentProvider

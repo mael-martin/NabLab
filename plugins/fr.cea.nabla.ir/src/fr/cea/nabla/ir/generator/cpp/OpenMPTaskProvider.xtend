@@ -287,7 +287,7 @@ class OpenMPTaskMPCProvider extends OpenMPTaskClangProvider
 	override CharSequence closeUnclosedTaskWithPriority() '''}}'''
 }
 
-abstract class OpenMPTargetProvider
+class OpenMPTargetProvider
 {
 	enum BASIC_TYPE { FLOATING, INTEGER }
 	
