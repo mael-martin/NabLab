@@ -14,6 +14,8 @@ import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
+import static extension fr.cea.nabla.ir.generator.cpp.OpenMPTargetProvider.*
+import fr.cea.nabla.ir.generator.cpp.OpenMPTargetProvider.TASK_MODE
 
 import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.ConnectivityType
@@ -44,6 +46,7 @@ abstract class JobContentProvider
 	def getDefinitionContent(Job it)
 	'''
 		«comment»
+		«select_target(TASK_MODE::CPU)»
 		void «irModule.className»::«codeName»() noexcept
 		{
 			«innerContent»
@@ -53,7 +56,8 @@ abstract class JobContentProvider
 	def getGPUDefinitionContent(Job it)
 	'''
 		«GPUComment»
-		void gpu_«codeName»() noexcept
+		«select_target(TASK_MODE::GPU)»
+		void «irModule.className»::«codeName»() noexcept
 		{
 			«innerContent»
 		}

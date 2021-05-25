@@ -292,9 +292,9 @@ class OpenMPTargetProvider
 	enum BASIC_TYPE { FLOATING, INTEGER }
 	enum TASK_MODE { NONE, GPU, CPU }
 
-	var current_task_mode = TASK_MODE::NONE
+	static var current_task_mode = TASK_MODE::NONE
 
-	def TASK_MODE
+	static def TASK_MODE
 	getCurrentTaskMode()
 	{
 		if (current_task_mode == TASK_MODE::NONE)
@@ -308,17 +308,8 @@ class OpenMPTargetProvider
 		current_task_mode = mode;
 	}
 
-	def private String
-	basicTypeToString(BASIC_TYPE t)
-	{
-		switch t {
-		case FLOATING: 'double'
-		case INTEGER:  'int'
-		}
-	}
-
 	new() { }
-	
+
 	def CharSequence
 	allocate(String name, int len)
 	'''
@@ -331,7 +322,7 @@ class OpenMPTargetProvider
 		#pragma omp target exit data map(delete: «name»[0:«len»])
 	'''
 	
-	def void
+	static def void
 	select_target(TASK_MODE mode)
 	{
 		if (mode == TASK_MODE::NONE)
@@ -348,11 +339,13 @@ class OpenMPTargetProvider
 	) {
 		if (current_task_mode == TASK_MODE::CPU) {
 			/* Task will run on the host CPU */
+			flipTaskMode(TASK_MODE::NONE)
 			return simple_task(fp, IN, OUT, READ, WRITE, RW_VAR_SIZES, body)
 		}
 
 		else if (current_task_mode == TASK_MODE::GPU) {
 			/* Task will be offloaded to the GPU */
+			flipTaskMode(TASK_MODE::NONE)
 			return offload_task(fp, IN, OUT, READ, WRITE, RW_VAR_SIZES, body)
 		}
 
@@ -401,33 +394,35 @@ class OpenMPTargetProvider
 	def CharSequence
 	loop_reduction(String result, CharSequence body)
 	{
-		if (current_task_mode == TASK_MODE::GPU)
-		'''
+		if (current_task_mode == TASK_MODE::GPU) '''
 			#pragma omp teams distribute parallel for reduction(min: «result») map(tofrom: «result»)
 			«body»
 		'''
 		
-		else if (current_task_mode == TASK_MODE::CPU)
-		'''
+		else if (current_task_mode == TASK_MODE::CPU) '''
 			#pragma omp parallel for reduction(min: «result»)
 			«body»
 		'''
+		
+		else
+			throw new Exception("(╯°□°)╯ ┻━┻")
 	}
 
 	def CharSequence
 	loop_for(CharSequence body)
 	{
-		if (current_task_mode == TASK_MODE::GPU)
-		'''
+		if (current_task_mode == TASK_MODE::GPU) '''
 			#pragma omp teams distribute parallel for
 			«body»
 		'''
 
-		else if (current_task_mode == TASK_MODE::CPU)
-		'''
+		else if (current_task_mode == TASK_MODE::CPU) '''
 			#pragma omp parallel for
 			«body»
 		'''
+		
+		else
+			throw new Exception("(╯°□°)╯ ┻━┻")
 	}
 
 	def CharSequence
