@@ -40,6 +40,7 @@ import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.transformers.ComputeCostTransformation.*
 import java.util.List
 import java.util.Map
+import fr.cea.nabla.ir.transformers.EnsuredDependency.TARGET_TAG
 
 /* Job -> EnsuredDependency<Variable> := which one needs CPU or GPU
  * Variable -> EnsuredDependency<Job> := which one needs CPU or GPU */
@@ -215,6 +216,11 @@ class JobMergeFromCost extends IrTransformationStep
 		return DAG_TAGS
 	}
 	
+	/*************************************************************************
+	 * Compute the AccumulatedIn but with variable localization, i.e. on CPU *
+	 * or on GPU.                                                            *
+	 *************************************************************************/
+
 	static def Map<String, EnsuredDependency>
 	computeEnsuredDependency(Map<String, EnsuredDependency.TARGET_TAG> DAG_TAG)
 	{
@@ -232,7 +238,7 @@ class JobMergeFromCost extends IrTransformationStep
 				VariableTags.CPU.addAll(In.map[ name ])
 			}
 		]
-		
+
 		for (jname : DAG_TAG.keySet.toList) {
 			val jtag       = DAG_TAG.get(jname)
 			val AccIn      = AccumulatedInVariablesPerJobs.get(jname)
@@ -262,13 +268,69 @@ class JobMergeFromCost extends IrTransformationStep
 		 * ] */
 		return JobEnsuredDependencies
 	}
+	
+	/*************************************************************************
+	 * Generate a list of all possible DAG with jobs assigned to CPU or GPU. *
+	 * Please note that this is a recursive function that will enumerate ALL *
+	 * possible graphs, nothing intelligent done here...                     *
+	 *************************************************************************/
+	 
+	static def Set<Map<String, EnsuredDependency.TARGET_TAG>>
+	computePossibleTaggedDAG(JobCaller it)
+	{
+		val jobs   = parallelJobs
+		val map    = new HashMap<String, TARGET_TAG>()
+		jobs.filter[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency::TARGET_TAG::CPU)  ] // Forced
+		jobs.reject[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency::TARGET_TAG::BOTH) ] // Will vary
+		return computePossibleTaggedDAG_REC(map)
+	}
+
+	static def Set<Map<String, EnsuredDependency.TARGET_TAG>>
+	computePossibleTaggedDAG_REC(Map<String, TARGET_TAG> all_jobs)
+	{
+		val Map<String, TARGET_TAG> local_GPU = new HashMap<String, TARGET_TAG>()
+		val Map<String, TARGET_TAG> local_CPU = new HashMap<String, TARGET_TAG>()
+		var boolean one_already_assigned      = false
+		
+		for (jname : all_jobs.keySet) {
+			val jtag = all_jobs.get(jname)
+			switch jtag {
+				/* Assign if needed */
+				case TARGET_TAG::BOTH: {
+					if (!one_already_assigned) {
+						one_already_assigned = true
+						local_GPU.put(jname, TARGET_TAG::GPU)
+						local_CPU.put(jname, TARGET_TAG::CPU)
+					}
+				}
+				
+				/* Copy */
+				default: {
+					local_GPU.put(jname, jtag)
+					local_CPU.put(jname, jtag)
+				}
+			}
+		}
+		
+		/* All jobs have been assigned to a target (CPU or GPU) */
+		if (!one_already_assigned) {
+			return #[ local_GPU, local_CPU ].toSet
+		}
+		
+		/* At least one job have not been assigned to the GPU or CPU */
+		val Set<Map<String, TARGET_TAG>> ret = new HashSet<Map<String, TARGET_TAG>>();
+		ret.addAll(computePossibleTaggedDAG_REC(local_GPU))
+		ret.addAll(computePossibleTaggedDAG_REC(local_CPU))
+		return ret;
+	}
 
 	/**************************************************************************
 	 * Synchronization coefficients => like a barrier, take also into account *
 	 * the 'sequenciality' of a job                                           *
 	 **************************************************************************/
 
-	static private def boolean isRangeVariable(Variable it)
+	static private def boolean
+	isRangeVariable(Variable it)
 	{
 		return (!isOption)
 		|| (GlobalVariableIndexTypes.getOrDefault(name, INDEX_TYPE::NULL) != INDEX_TYPE::NULL)
