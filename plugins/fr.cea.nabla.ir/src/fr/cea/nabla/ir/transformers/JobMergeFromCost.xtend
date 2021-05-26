@@ -133,12 +133,19 @@ class JobMergeFromCost extends IrTransformationStep
 		reportHashMap('SynchroCoeffs', reverseHashMap(JobSynchroCoeffs),   'Synchro Coeff:',   ': ')
 		reportHashMap('Priority',      reverseHashMap(JobPriorities),      'Priority',         ': ')
 		
+		ir.eAllContents.filter(JobCaller).forEach[
+			calls.forEach[ j |
+				JobCostByName.put(j.name, j.jobCost)
+			]
+		]
+
 		/* Try to offload parts of the computation to the GPU */
 		ir.eAllContents.filter(JobCaller).forEach[ jc |
 			val DAGs = jc.computePossibleTaggedDAG_TREESEARCH
+			msg("Got " + DAGs.size + " DAGs to test")
 			DAGs.forEach[ DAG |
 				val taggedAccIn = computeEnsuredDependency(DAG, false)
-				val int crit    = rankGPUPartition(DAG, taggedAccIn)
+				val double crit = rankGPUPartition(DAG, taggedAccIn, 1.0)
 				msg('Got crit rank for DAG: ' + crit.toString)
 			]
 		]
@@ -152,6 +159,7 @@ class JobMergeFromCost extends IrTransformationStep
 	static HashMap<String, Integer> JobSynchroCoeffs                      = new HashMap();
 	static HashMap<String, INDEX_TYPE> GlobalVariableIndexTypes           = new HashMap();
 	static HashMap<String, Integer> JobPriorities                         = new HashMap();
+	static HashMap<String, Integer> JobCostByName                         = new HashMap();
 	
 	static public final int num_threads = 4; // FIXME: Must be set by the user
 	static int num_tasks;
@@ -221,10 +229,63 @@ class JobMergeFromCost extends IrTransformationStep
 	 * Rank a bipartition of the DAG *
 	 *********************************/
 	 
-	private static def int
-	rankGPUPartition(Map<String, TARGET_TAG> DAG_VERTICIES, Map<String, EnsuredDependency> DAG_EDGES)
+	private def double
+	rankGPUPartition(Map<String, TARGET_TAG> DAG_VERTICIES, Map<String, EnsuredDependency> DAG_EDGES, double lambda)
 	{
-		return 0
+		var critere = 0.0
+		val P_GPU   = DAG_VERTICIES.filter[ jname, jtag | jtag == TARGET_TAG::GPU ].keySet.toList
+		val P_CPU   = DAG_VERTICIES.filter[ jname, jtag | jtag == TARGET_TAG::CPU ].keySet.toList
+		
+		/* C(lambda, P) = Sum_{i in P, j in Pred(i)}(e_{j,i} * x_i * x_j) /// (1)
+		 *              + Sum_{i in P, j in Succ(i)}(e_{i,j} * x_i * x_j) /// (2)
+		 *              - lambda Sum_{i in P}(u_i)                        /// (3)
+		 */
+
+		/* (1) */
+		val all1 = new HashSet<Double>().toList
+		all1 += #[0.0]
+		all1 += P_GPU.map[ i |
+			val all2 = new HashSet<Double>().toList
+			all2 += #[0.0]
+			all2 += DAG_EDGES.getOrDefault(i, new EnsuredDependency).CPU.toList.map[ e_ji |
+				switch GlobalVariableIndexTypes.getOrDefault(e_ji, INDEX_TYPE::NULL) {
+					case INDEX_TYPE::CELLS: return 1.0
+					case INDEX_TYPE::NODES: return 4.0
+					case INDEX_TYPE::FACES: return 2.0
+					case INDEX_TYPE::NULL:  return 0.0
+				}
+			].toList
+			return all2.reduce[ p1, p2 | p1 + p2 ]
+		].toList
+		critere += all1.reduce[ p1, p2 | p1 + p2 ] * getGeometry_domain_size
+
+		/* (2) */
+		val all3 = new HashSet<Double>().toList
+		all3 += #[0.0]
+		all3 += P_CPU.map[ i |
+			val all2 = new HashSet<Double>().toList
+			all2 += #[0.0]
+			all2 += DAG_EDGES.getOrDefault(i, new EnsuredDependency).GPU.toList.map[ e_ji |
+				switch GlobalVariableIndexTypes.getOrDefault(e_ji, INDEX_TYPE::NULL) {
+					case INDEX_TYPE::CELLS: return 1.0
+					case INDEX_TYPE::NODES: return 4.0
+					case INDEX_TYPE::FACES: return 2.0
+					case INDEX_TYPE::NULL:  return 0.0
+				}
+			].toList
+			return all2.reduce[ p1, p2 | p1 + p2 ]
+		].toList
+		critere += all3.reduce[ p1, p2 | p1 + p2 ] * getGeometry_domain_size
+
+		/* (3) */
+		val all4 = new HashSet<Double>().toList
+		all4 += #[0.0]
+		all4 += P_GPU.map[ i |
+			JobCostByName.getOrDefault(i, 0).doubleValue
+		]
+		critere -= lambda * all4.reduce[ p1, p2 | p1 + p2 ]
+		
+		return critere
 	}
 	
 	/*************************************************************************
@@ -238,16 +299,13 @@ class JobMergeFromCost extends IrTransformationStep
 		val JobEnsuredDependencies = new HashMap<String, EnsuredDependency>();
 		val VariableTags           = new EnsuredDependency;
 		
-		msg("Compute ensured tagged in for jobs: " + DAG_TAG.keySet.reduce[ s1, s2 | s1 + ', ' + s2 ])
-
 		DAG_TAG.forEach[ jname, TAG |
 			val In = MinimalInVariablesPerJobs.get(jname)
 			if (In !== null) {
-				if (TAG == EnsuredDependency.TARGET_TAG::CPU) {
-					VariableTags.CPU.addAll(In.map[ name ])
-				} else if (TAG == EnsuredDependency.TARGET_TAG::GPU) {
-					VariableTags.GPU.addAll(In.map[ name ])
-				} else {
+				if      (TAG == EnsuredDependency.TARGET_TAG::CPU) { VariableTags.CPU.addAll(In.map[ name ]) }
+				else if (TAG == EnsuredDependency.TARGET_TAG::GPU) { VariableTags.GPU.addAll(In.map[ name ]) }
+				else if (BOTH_is_CPU)                              { VariableTags.CPU.addAll(In.map[ name ]) }
+				else {
 					VariableTags.GPU.addAll(In.map[ name ])
 					VariableTags.CPU.addAll(In.map[ name ])
 				}
@@ -289,7 +347,7 @@ class JobMergeFromCost extends IrTransformationStep
 	 * computed cost decrease.                                           *
 	 *********************************************************************/
 	
-	private def Set<Map<String, TARGET_TAG>>
+	private def List<Map<String, TARGET_TAG>>
 	computePossibleTaggedDAG_TREESEARCH(JobCaller it)
 	{
 		calls.map[ job |
@@ -298,7 +356,7 @@ class JobMergeFromCost extends IrTransformationStep
 			calls.reject[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency.TARGET_TAG::BOTH) ] // Will vary
 			map.put(job.name, EnsuredDependency::TARGET_TAG::GPU)
 			return computePossibleTaggedDAG_TREESEARCH_REC(map)
-		].toSet
+		]
 	}
 
 	private def Map<String, TARGET_TAG>
@@ -322,17 +380,17 @@ class JobMergeFromCost extends IrTransformationStep
 			else {
 				var boolean continue_find_pivot = false
 				do {
-					val int current_rank      = rankGPUPartition(all_jobs, computeEnsuredDependency(all_jobs, true))
+					val int current_rank      = rankGPUPartition(all_jobs, computeEnsuredDependency(all_jobs, true), 1.0).intValue
 					val String pivot_job      = CPU_jobs.head
 					val TARGET_TAG old_target = all_jobs.get(pivot_job)
+					CPU_jobs                  = CPU_jobs.reject[ j | j == pivot_job ].toSet
 
 					/* Flip the job */
 					all_jobs.put(pivot_job, TARGET_TAG::GPU)
-					val int new_rank = rankGPUPartition(all_jobs, computeEnsuredDependency(all_jobs, true))
+					val int new_rank = rankGPUPartition(all_jobs, computeEnsuredDependency(all_jobs, true), 1.0).intValue
 
 					/* Found the pivot for that iteration, go to next one */
 					if (new_rank <= current_rank) {
-						msg("Found pivot: " + pivot_job)
 						continue_find_pivot = false
 						continue_rec_calls  = true
 					}
@@ -340,13 +398,13 @@ class JobMergeFromCost extends IrTransformationStep
 					/* Restore and continue to search pivot */
 					else {
 						all_jobs.put(pivot_job, old_target)
-						CPU_jobs = CPU_jobs.reject[ j | j == pivot_job ].toSet
+						continue_find_pivot = true
+						continue_rec_calls  = true
 					}
 
 					/* We didn't found the pivot but we have no more jobs to
-					* flip around, we exit. */
+					 * flip around, we exit. */
 					if (CPU_jobs.size == 0) {
-						msg("Failed to found pivot")
 						continue_find_pivot = false
 						continue_rec_calls  = false
 					}
