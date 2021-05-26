@@ -104,7 +104,8 @@ class JobMergeFromCost extends IrTransformationStep
 	static val SourceNodeLabel = 'SourceJob'
 	static val SinkNodeLabel   = 'SinkJob'
 
-	override transform(IrRoot ir) 
+	override boolean
+	transform(IrRoot ir) 
 	{
 		/* Minimal IN variables */
 		trace('    IR -> IR: ' + description + ':ComputeMinimalInVars')
@@ -336,15 +337,17 @@ class JobMergeFromCost extends IrTransformationStep
 		|| (GlobalVariableIndexTypes.getOrDefault(name, INDEX_TYPE::NULL) != INDEX_TYPE::NULL)
 	}
 	 
-	 static def getSynchroCoeff(Job it)
-	 {
-	 	if (it === null) return 0
-	 	return JobSynchroCoeffs.getOrDefault(name, 0)
-	 }
+	static def
+	getSynchroCoeff(Job it)
+	{
+		if (it === null) return 0
+		return JobSynchroCoeffs.getOrDefault(name, 0)
+	}
 	 
-	 private def computeSynchroCoeff(Job it)
-	 {
-	 	/* Job will need all the produced part of a range variable => massively synchronizing job */
+	private def
+	computeSynchroCoeff(Job it)
+	{
+		/* Job will need all the produced part of a range variable => massively synchronizing job */
 		val jobNeedMoreSynchro =
 			(( eAllContents.filter(Loop).filter[multithreadable].size
 			+  eAllContents.filter(ReductionInstruction).size ) > 3 // Magic! Need to be stored at Nabla2IR transformation time
@@ -359,15 +362,16 @@ class JobMergeFromCost extends IrTransformationStep
 
 		/* The number of produced variables, each one of these variable will contribute to another task */
 	 	JobSynchroCoeffs.put(name, mapped.apply(outVars))
-	 }
+	}
 	
 	/***********************************************************************
 	 * Compute the DAG with the minimal IN and to cost to pass by a vertex *
 	 * is its cost                                                         *
 	 ***********************************************************************/
 	 
-	 static private def computeDAG(JobCaller it)
-	 {
+	static private def DirectedWeightedPseudograph<Job, DefaultWeightedEdge>
+	computeDAG(JobCaller it)
+	{
 	 	/* Create nodes */
 	 	val jobs = parallelJobs
 	 	val g    = new DirectedWeightedPseudograph<Job, DefaultWeightedEdge>(DefaultWeightedEdge)
@@ -403,13 +407,14 @@ class JobMergeFromCost extends IrTransformationStep
 	 	}
 
 	 	return g
-	 }
+	}
 	
 	/************************************
 	 * In/Out/MinIn variables from Jobs *
 	 ************************************/
 
-	static def Set<Variable> getInVars(Job it)
+	static def Set<Variable>
+	getInVars(Job it)
 	{
 		return (it === null) ? #[].toSet
 		: eAllContents.filter(ArgOrVarRef).filter[ x |
@@ -417,7 +422,8 @@ class JobMergeFromCost extends IrTransformationStep
 		].map[target].filter(Variable).filter[global].toSet
 	}
 
-	static def Set<Variable> getOutVars(Job it)
+	static def Set<Variable>
+	getOutVars(Job it)
 	{
 		return (it === null) ? #[].toSet
 		: eAllContents.filter(Affectation).map[left.target]
@@ -425,7 +431,8 @@ class JobMergeFromCost extends IrTransformationStep
 					  .filter[global].toSet
 	}
 	
-	static def int getOutReusedVarsNumber(Job it)
+	static def int
+	getOutReusedVarsNumber(Job it)
 	{
 		caller.parallelJobs.filter[ j | j.name != name ]
 		      .map[ inVars.toList ].flatten
@@ -433,17 +440,19 @@ class JobMergeFromCost extends IrTransformationStep
 		      .size
 	}
 
-	static def Set<Variable> getMinimalInVars(Job it)
+	static def Set<Variable>
+	getMinimalInVars(Job it)
 	{
 		if (it === null) return new HashSet();
 		return MinimalInVariablesPerJobs.getOrDefault(name, new HashSet())
 	}
 
-	def computeMinimalInVariables(JobCaller jc)
+	private def void
+	computeMinimalInVariables(JobCaller jc)
 	{
 		/* Null check safety */
 		if (jc === null)
-			return null;
+			return;
 			
 		/* Only the things that will be // */
 		val jobs    = jc.parallelJobs
@@ -502,7 +511,8 @@ class JobMergeFromCost extends IrTransformationStep
 	 * Global variable => index type *
 	 *********************************/
 
-	static private def void registerGlobalVariable(IrModule it)
+	static private def void
+	registerGlobalVariable(IrModule it)
 	{
 		for (v : variables.filter[!option].filter[ t |
 			t.type.typeCanBePartitionized &&
@@ -524,7 +534,8 @@ class JobMergeFromCost extends IrTransformationStep
 	 * Get a Job priority *
 	 **********************/
 
-	 static private def void computeTaskPriorities(Job it, int max_at)
+	 static private def void
+	 computeTaskPriorities(Job it, int max_at)
 	 {
 	 	/* ORDER_IN_DAG: Class of quality
 	 	 * Other terms (what in formula): modulate inside the current class of quality
@@ -548,7 +559,8 @@ class JobMergeFromCost extends IrTransformationStep
 	 	JobPriorities.put(name, priority.intValue)
 	 }
 
-	 static def int getPriority(Job it)
+	 static def int
+	 getPriority(Job it)
 	 {
 	 	if (it === null) throw new Exception("Asking a priority for a 'null' job")
 	 	return JobPriorities.getOrDefault(name, 1)
