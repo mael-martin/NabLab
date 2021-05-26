@@ -29,6 +29,8 @@ import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.Variable
 import java.util.HashMap
 import java.util.HashSet
+import java.util.List
+import java.util.Map
 import java.util.Set
 import org.eclipse.xtend.lib.annotations.Data
 import org.jgrapht.graph.DefaultWeightedEdge
@@ -38,30 +40,22 @@ import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.transformers.ComputeCostTransformation.*
-import java.util.List
-import java.util.Map
 import fr.cea.nabla.ir.transformers.EnsuredDependency.TARGET_TAG
+import java.lang.annotation.Target
 
 /* Job -> EnsuredDependency<Variable> := which one needs CPU or GPU
  * Variable -> EnsuredDependency<Job> := which one needs CPU or GPU */
-@Data
 class EnsuredDependency
 {
-	Set<String> GPU;
-	Set<String> CPU;
+	public Set<String> GPU = new HashSet<String>();
+	public Set<String> CPU = new HashSet<String>();
 	
 	enum TARGET_TAG { CPU, GPU, BOTH } // CPU = (1 << 1), GPU = (1 << 2), BOTH = (CPU | GPU) <- Not possible in Xtext...
 	
 	static def EnsuredDependency
-	newEmpty()
-	{
-		new EnsuredDependency(#[].toSet, #[].toSet)
-	}
-	
-	static def EnsuredDependency
 	newMerge(EnsuredDependency first, EnsuredDependency second)
 	{
-		val ret = newEmpty
+		val ret = new EnsuredDependency
 
 		ret.GPU.addAll(first.GPU)
 		ret.CPU.addAll(first.CPU)
@@ -75,7 +69,7 @@ class EnsuredDependency
 	static def EnsuredDependency
 	newMerge(Set<EnsuredDependency> first, Set<EnsuredDependency> second)
 	{
-		val ret = newEmpty
+		val ret = new EnsuredDependency
 
 		ret.GPU.addAll(first.map[GPU].flatten)
 		ret.CPU.addAll(first.map[CPU].flatten)
@@ -111,7 +105,9 @@ class JobMergeFromCost extends IrTransformationStep
 		trace('    IR -> IR: ' + description + ':ComputeMinimalInVars')
 		MinimalInVariablesPerJobs.clear
 		AccumulatedInVariablesPerJobs.clear
-		ir.eAllContents.filter(JobCaller).forEach[computeMinimalInVariables]
+		ir.eAllContents.filter(JobCaller).forEach[
+	    	computeMinimalInVariables
+		]
 
 		/* Set MAX_TASK_NUMBER = ncpu * max(concurrentJobs + 1) */
 		val max_concurrent_jobs = ir.eAllContents.filter(JobCaller).map[ jc |
@@ -138,9 +134,14 @@ class JobMergeFromCost extends IrTransformationStep
 		reportHashMap('SynchroCoeffs', reverseHashMap(JobSynchroCoeffs),   'Synchro Coeff:',   ': ')
 		reportHashMap('Priority',      reverseHashMap(JobPriorities),      'Priority',         ': ')
 		
-		/* Get the DAG */
-		ir.eAllContents.filter(JobCaller).forEach[
-			val g = computeDAG
+		/* Try to offload parts of the computation to the GPU */
+		ir.eAllContents.filter(JobCaller).forEach[ jc |
+			val DAGs = jc.computePossibleTaggedDAG
+			DAGs.forEach[ DAG |
+				val taggedAccIn = computeEnsuredDependency(DAG)
+				val int crit    = rankGPUPartition(DAG, taggedAccIn)
+				msg('Got crit rank for DAG: ' + crit.toString)
+			]
 		]
 
 		/* Return OK */
@@ -200,21 +201,31 @@ class JobMergeFromCost extends IrTransformationStep
 
 		/* Things that are CPU only */
 
-		DAG_TAGS.put(SourceNodeLabel, EnsuredDependency::TARGET_TAG::CPU)
-		DAG_TAGS.put(SinkNodeLabel,   EnsuredDependency::TARGET_TAG::CPU)
+		DAG_TAGS.put(SourceNodeLabel, EnsuredDependency.TARGET_TAG::CPU)
+		DAG_TAGS.put(SinkNodeLabel,   EnsuredDependency.TARGET_TAG::CPU)
 
-		calls.filter(TimeLoopJob).forEach[ it | DAG_TAGS.put(name, EnsuredDependency::TARGET_TAG::CPU)]
-		calls.filter(ExecuteTimeLoopJob).forEach[ it | DAG_TAGS.put(name, EnsuredDependency::TARGET_TAG::CPU)]
+		calls.filter(TimeLoopJob).forEach[ it | DAG_TAGS.put(name, EnsuredDependency.TARGET_TAG::CPU)]
+		calls.filter(ExecuteTimeLoopJob).forEach[ it | DAG_TAGS.put(name, EnsuredDependency.TARGET_TAG::CPU)]
 
 		parallelJobs.forEach[ it |
 			if (isJobGPUBlacklisted) {
-				DAG_TAGS.put(name, EnsuredDependency::TARGET_TAG::CPU)
+				DAG_TAGS.put(name, EnsuredDependency.TARGET_TAG::CPU)
 			} else {
-				DAG_TAGS.put(name, EnsuredDependency::TARGET_TAG::GPU)
+				DAG_TAGS.put(name, EnsuredDependency.TARGET_TAG::GPU)
 			}
 		]
 
 		return DAG_TAGS
+	}
+	
+	/*********************************
+	 * Rank a bipartition of the DAG *
+	 *********************************/
+	 
+	private static def int
+	rankGPUPartition(Map<String, TARGET_TAG> DAG_VERTICIES, Map<String, EnsuredDependency> DAG_EDGES)
+	{
+		return 0
 	}
 	
 	/*************************************************************************
@@ -222,42 +233,47 @@ class JobMergeFromCost extends IrTransformationStep
 	 * or on GPU.                                                            *
 	 *************************************************************************/
 
-	static def Map<String, EnsuredDependency>
+	private def Map<String, EnsuredDependency>
 	computeEnsuredDependency(Map<String, EnsuredDependency.TARGET_TAG> DAG_TAG)
 	{
 		val JobEnsuredDependencies = new HashMap<String, EnsuredDependency>();
-		val VariableTags           = EnsuredDependency::newEmpty;
+		val VariableTags           = new EnsuredDependency;
+		
+		msg("Compute ensured tagged in for jobs: " + DAG_TAG.keySet.reduce[ s1, s2 | s1 + ', ' + s2 ])
 
 		DAG_TAG.forEach[ jname, TAG |
 			val In = MinimalInVariablesPerJobs.get(jname)
-			if (TAG == EnsuredDependency::TARGET_TAG::CPU) {
-				VariableTags.CPU.addAll(In.map[ name ])
-			} else if (TAG == EnsuredDependency::TARGET_TAG::GPU) {
-				VariableTags.GPU.addAll(In.map[ name ])
+			if (In === null) {
+				msg("(╯°□°)╯__┻━┻ NULL MinimalInVariablesPerJobs for job " + jname)
 			} else {
-				VariableTags.GPU.addAll(In.map[ name ])
-				VariableTags.CPU.addAll(In.map[ name ])
+				if (TAG == EnsuredDependency.TARGET_TAG::CPU) {
+					VariableTags.CPU.addAll(In.map[ name ])
+				} else if (TAG == EnsuredDependency.TARGET_TAG::GPU) {
+					VariableTags.GPU.addAll(In.map[ name ])
+				} else {
+					VariableTags.GPU.addAll(In.map[ name ])
+					VariableTags.CPU.addAll(In.map[ name ])
+				}
 			}
 		]
 
 		for (jname : DAG_TAG.keySet.toList) {
-			val jtag       = DAG_TAG.get(jname)
-			val AccIn      = AccumulatedInVariablesPerJobs.get(jname)
-			val AccTagedIn = EnsuredDependency::newEmpty
-			AccTagedIn.CPU += AccIn.filter[ v | VariableTags.CPU.contains(v) ]
-			AccTagedIn.GPU += AccIn.filter[ v | VariableTags.GPU.contains(v) ]
+			val jtag  = DAG_TAG.get(jname)
+			val AccIn = AccumulatedInVariablesPerJobs.get(jname)
+			if (AccIn !== null) {
+				val AccTagedIn = new EnsuredDependency
+				AccTagedIn.CPU += AccIn.filter[ v | VariableTags.CPU.contains(v) ]
+				AccTagedIn.GPU += AccIn.filter[ v | VariableTags.GPU.contains(v) ]
 
-			/* Variables present on both CPU and GPU */
-			val PresentBoth = AccTagedIn.CPU.clone
-			PresentBoth.retainAll(AccTagedIn.GPU)
+				/* If a variable is present on both CPU and GPU, it doesn't need to
+				 * be moved to the job location. */
+				if      (jtag == EnsuredDependency.TARGET_TAG::CPU) { AccTagedIn.GPU.removeAll(AccTagedIn.CPU) }
+				else if (jtag == EnsuredDependency.TARGET_TAG::GPU) { AccTagedIn.CPU.removeAll(AccTagedIn.GPU) }
+				else { throw new Exception("A job should not be present on both CPU and GPU") }
 
-			/* If a variable is present on both CPU and GPU, it doesn't need to
-			 * be moved to the job location. */
-			if      (jtag == EnsuredDependency::TARGET_TAG::CPU) { AccTagedIn.GPU.removeAll(PresentBoth) }
-			else if (jtag == EnsuredDependency::TARGET_TAG::GPU) { AccTagedIn.CPU.removeAll(PresentBoth) }
-			else { throw new Exception("A job should not be present on both CPU and GPU") }
-
-			JobEnsuredDependencies.put(jname, AccTagedIn)
+				JobEnsuredDependencies.put(jname, AccTagedIn)
+			}
+			else { msg("(╯°□°)╯__┻━┻ NULL MinimalInVariablesPerJobs for job " + jname) }
 		}
 
 		/* JobEnsuredDependencies := [
@@ -269,30 +285,32 @@ class JobMergeFromCost extends IrTransformationStep
 		 * ] */
 		return JobEnsuredDependencies
 	}
-	
+
 	/*************************************************************************
 	 * Generate a list of all possible DAG with jobs assigned to CPU or GPU. *
 	 * Please note that this is a recursive function that will enumerate ALL *
 	 * possible graphs, nothing intelligent done here...                     *
 	 *************************************************************************/
 	 
-	static def Set<Map<String, EnsuredDependency.TARGET_TAG>>
+	private def Set<Map<String, EnsuredDependency.TARGET_TAG>>
 	computePossibleTaggedDAG(JobCaller it)
 	{
-		val jobs   = parallelJobs
-		val map    = new HashMap<String, TARGET_TAG>()
-		jobs.filter[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency::TARGET_TAG::CPU)  ] // Forced
-		jobs.reject[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency::TARGET_TAG::BOTH) ] // Will vary
+		val jobs = calls
+		val map  = new HashMap<String, TARGET_TAG>()
+		jobs.filter[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency.TARGET_TAG::CPU)  ] // Forced
+		jobs.reject[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency.TARGET_TAG::BOTH) ] // Will vary
+		msg("Base graph: " + map.keySet.reduce[ s1, s2 | s1 + ', ' + s2 ])
 		return computePossibleTaggedDAG_REC(map)
 	}
 
-	static def Set<Map<String, EnsuredDependency.TARGET_TAG>>
+	private def Set<Map<String, EnsuredDependency.TARGET_TAG>>
 	computePossibleTaggedDAG_REC(Map<String, TARGET_TAG> all_jobs)
 	{
 		val Map<String, TARGET_TAG> local_GPU = new HashMap<String, TARGET_TAG>()
 		val Map<String, TARGET_TAG> local_CPU = new HashMap<String, TARGET_TAG>()
 		var boolean one_already_assigned      = false
-		
+		var boolean remaining_jobs            = false
+
 		for (jname : all_jobs.keySet) {
 			val jtag = all_jobs.get(jname)
 			switch jtag {
@@ -302,9 +320,13 @@ class JobMergeFromCost extends IrTransformationStep
 						one_already_assigned = true
 						local_GPU.put(jname, TARGET_TAG::GPU)
 						local_CPU.put(jname, TARGET_TAG::CPU)
+					} else {
+						remaining_jobs = true
+						local_CPU.put(jname, TARGET_TAG::BOTH)
+						local_GPU.put(jname, TARGET_TAG::BOTH)
 					}
 				}
-				
+
 				/* Copy */
 				default: {
 					local_GPU.put(jname, jtag)
@@ -312,12 +334,26 @@ class JobMergeFromCost extends IrTransformationStep
 				}
 			}
 		}
-		
+
 		/* All jobs have been assigned to a target (CPU or GPU) */
-		if (!one_already_assigned) {
+		if (!remaining_jobs) {
+			msgItem("Got DAG: { CPU: " + local_CPU.filter[ p1, p2 |
+				p2 == EnsuredDependency::TARGET_TAG::CPU
+			].keySet.reduce[ p1, p2 | p1 + ", " + p2 ] +
+			", GPU: " + local_CPU.filter[ p1, p2 |
+				p2 == EnsuredDependency::TARGET_TAG::GPU
+			].keySet.reduce[ p1, p2 | p1 + ", " + p2 ] + " }")
+
+			msgItem("Got DAG: { CPU: " + local_GPU.filter[ p1, p2 |
+				p2 == EnsuredDependency::TARGET_TAG::CPU
+			].keySet.reduce[ p1, p2 | p1 + ", " + p2 ] +
+			", GPU: " + local_GPU.filter[ p1, p2 |
+				p2 == EnsuredDependency::TARGET_TAG::GPU
+			].keySet.reduce[ p1, p2 | p1 + ", " + p2 ] + " }")
+
 			return #[ local_GPU, local_CPU ].toSet
 		}
-		
+
 		/* At least one job have not been assigned to the GPU or CPU */
 		val Set<Map<String, TARGET_TAG>> ret = new HashSet<Map<String, TARGET_TAG>>();
 		ret.addAll(computePossibleTaggedDAG_REC(local_GPU))

@@ -22,25 +22,40 @@ abstract class IrTransformationStep
 	@Accessors val traceListeners = new ArrayList<(String) => void>
 	val String description
 
-	def void trace(String msg)
+	def void
+	trace(String msg)
 	{
 		traceListeners.forEach[apply(msg)]
+	}
+	
+	def void
+	msg(String the_msg)
+	{
+		trace('    ' + the_msg)
+	}
+
+	def void
+	msgItem(String the_msg)
+	{
+		trace('        ' + the_msg)
 	}
 
 	protected def <KEY extends Comparable<KEY>>
 	reportHashMap(String name, Map<KEY, Set<String>> hashmap, String first, String sep)
 	{
-		trace('    IR -> IR: ' + description + ':' + name + 'Report')
+		msg('IR -> IR: ' + description + ':' + name + 'Report')
 		for (key : hashmap.keySet.sort)
-			trace('        - ' + first + ' ' + key + sep + hashmap.get(key).reduce[ s1, s2 | s1 + ', ' + s2 ])
+			msgItem('- ' + first + ' ' + key + sep + hashmap.get(key).reduce[ s1, s2 | s1 + ', ' + s2 ])
 	}
 
-	def void transformIr(IrRoot ir) throws RuntimeException
+	def void
+	transformIr(IrRoot ir) throws RuntimeException
 	{
 		transformIr(ir, null)
 	}
 
-	def void transformIr(IrRoot ir, (String)=>void traceNotifier) throws RuntimeException
+	def void
+	transformIr(IrRoot ir, (String)=>void traceNotifier) throws RuntimeException
 	{
 		if (traceNotifier !== null) traceListeners += traceNotifier
 		val ok = transform(ir)
@@ -48,5 +63,6 @@ abstract class IrTransformationStep
 		if (!ok) throw new RuntimeException('Exception in IR transformation step: ' + description)
 	}
 
-	protected abstract def boolean transform(IrRoot ir)
+	protected abstract def boolean
+	transform(IrRoot ir)
 }
