@@ -147,6 +147,7 @@ class Mesh2DGeometryInformations extends GeometryInformations
 	override int getFacesOfCellsNumber() { 4 }
 }
 
+/* Needed for JobMergeFromCost */
 @Data
 class ComputeCostTransformation extends IrTransformationStep
 {
@@ -246,7 +247,7 @@ class ComputeCostTransformation extends IrTransformationStep
 		jobCostMap.clear
 		
 		/* Default for the moment */
-		geometry = new Mesh2DGeometryInformations(HACK_X, HACK_Y)
+		geometry 			 = new Mesh2DGeometryInformations(HACK_X, HACK_Y)
 		geometry_domain_size = geometry.cellsNumber
 	}
 

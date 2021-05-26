@@ -38,14 +38,59 @@ import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.transformers.ComputeCostTransformation.*
+import java.util.List
+import java.util.Map
 
+/* Job -> EnsuredDependency<Variable> := which one needs CPU or GPU
+ * Variable -> EnsuredDependency<Job> := which one needs CPU or GPU */
+@Data
+class EnsuredDependency
+{
+	Set<String> GPU;
+	Set<String> CPU;
+	
+	enum TARGET_TAG { CPU, GPU, BOTH } // CPU = (1 << 1), GPU = (1 << 2), BOTH = (CPU | GPU) <- Not possible in Xtext...
+	
+	static def EnsuredDependency
+	newEmpty()
+	{
+		new EnsuredDependency(#[].toSet, #[].toSet)
+	}
+	
+	static def EnsuredDependency
+	newMerge(EnsuredDependency first, EnsuredDependency second)
+	{
+		val ret = newEmpty
+
+		ret.GPU.addAll(first.GPU)
+		ret.CPU.addAll(first.CPU)
+
+		ret.GPU.addAll(second.GPU)
+		ret.CPU.addAll(second.CPU)
+
+		return ret
+	}
+
+	static def EnsuredDependency
+	newMerge(Set<EnsuredDependency> first, Set<EnsuredDependency> second)
+	{
+		val ret = newEmpty
+
+		ret.GPU.addAll(first.map[GPU].flatten)
+		ret.CPU.addAll(first.map[CPU].flatten)
+
+		ret.GPU.addAll(second.map[GPU].flatten)
+		ret.CPU.addAll(second.map[CPU].flatten)
+
+		return ret
+	}
+}
+
+/* Needs the ComputeCostTransformation to be done before */
 @Data
 class JobMergeFromCost extends IrTransformationStep
 {
-	new()
-	{
-		super('JobDataflowComputations')
-	}
+	new() { super('JobDataflowComputations') }
 
 	private enum INDEX_TYPE { NODES, CELLS, FACES, NULL } // Nabla first dimension index type
 	private enum IMPL_TYPE  { BASE, ARRAY, CONNECTIVITY, LINEARALGEBRA, NULL } // Implementation type
@@ -56,6 +101,7 @@ class JobMergeFromCost extends IrTransformationStep
 	static final double priority_coefficient_task_at              = 40.0   // The @ influence the scheduling
 	
 	static val SourceNodeLabel = 'SourceJob'
+	static val SinkNodeLabel   = 'SinkJob'
 
 	override transform(IrRoot ir) 
 	{
@@ -113,7 +159,8 @@ class JobMergeFromCost extends IrTransformationStep
 	 * helpers *
 	 ***********/
 
-	static private def getTypeCanBePartitionized(IrType it)
+	static private def boolean
+	getTypeCanBePartitionized(IrType it)
 	{
 		switch it {
 			case null:                   false
@@ -124,7 +171,8 @@ class JobMergeFromCost extends IrTransformationStep
 		}
 	}
 
-	static private def getImplTypeEnum(IrType it)
+	static private def IMPL_TYPE
+	getImplTypeEnum(IrType it)
 	{
 		switch it {
 			case null:                 IMPL_TYPE::NULL
@@ -136,12 +184,85 @@ class JobMergeFromCost extends IrTransformationStep
 		}
 	}
 
-	private static def getParallelJobs(JobCaller it)
+	private static def List<Job>
+	getParallelJobs(JobCaller it)
 	{
 		if (it === null) return #[]
 		return calls.reject[ j | j instanceof TimeLoopJob || j instanceof ExecuteTimeLoopJob ].toList
 	}
 	
+	static def Map<String, EnsuredDependency.TARGET_TAG>
+	initDAGTags(JobCaller it)
+	{
+		val DAG_TAGS = new HashMap<String, EnsuredDependency.TARGET_TAG>();
+
+		/* Things that are CPU only */
+
+		DAG_TAGS.put(SourceNodeLabel, EnsuredDependency::TARGET_TAG::CPU)
+		DAG_TAGS.put(SinkNodeLabel,   EnsuredDependency::TARGET_TAG::CPU)
+
+		calls.filter(TimeLoopJob).forEach[ it | DAG_TAGS.put(name, EnsuredDependency::TARGET_TAG::CPU)]
+		calls.filter(ExecuteTimeLoopJob).forEach[ it | DAG_TAGS.put(name, EnsuredDependency::TARGET_TAG::CPU)]
+
+		parallelJobs.forEach[ it |
+			if (isJobGPUBlacklisted) {
+				DAG_TAGS.put(name, EnsuredDependency::TARGET_TAG::CPU)
+			} else {
+				DAG_TAGS.put(name, EnsuredDependency::TARGET_TAG::GPU)
+			}
+		]
+
+		return DAG_TAGS
+	}
+	
+	static def Map<String, EnsuredDependency>
+	computeEnsuredDependency(Map<String, EnsuredDependency.TARGET_TAG> DAG_TAG)
+	{
+		val JobEnsuredDependencies = new HashMap<String, EnsuredDependency>();
+		val VariableTags           = EnsuredDependency::newEmpty;
+
+		DAG_TAG.forEach[ jname, TAG |
+			val In = MinimalInVariablesPerJobs.get(jname)
+			if (TAG == EnsuredDependency::TARGET_TAG::CPU) {
+				VariableTags.CPU.addAll(In.map[ name ])
+			} else if (TAG == EnsuredDependency::TARGET_TAG::GPU) {
+				VariableTags.GPU.addAll(In.map[ name ])
+			} else {
+				VariableTags.GPU.addAll(In.map[ name ])
+				VariableTags.CPU.addAll(In.map[ name ])
+			}
+		]
+		
+		for (jname : DAG_TAG.keySet.toList) {
+			val jtag       = DAG_TAG.get(jname)
+			val AccIn      = AccumulatedInVariablesPerJobs.get(jname)
+			val AccTagedIn = EnsuredDependency::newEmpty
+			AccTagedIn.CPU += AccIn.filter[ v | VariableTags.CPU.contains(v) ]
+			AccTagedIn.GPU += AccIn.filter[ v | VariableTags.GPU.contains(v) ]
+
+			/* Variables present on both CPU and GPU */
+			val PresentBoth = AccTagedIn.CPU.clone
+			PresentBoth.retainAll(AccTagedIn.GPU)
+
+			/* If a variable is present on both CPU and GPU, it doesn't need to
+			 * be moved to the job location. */
+			if      (jtag == EnsuredDependency::TARGET_TAG::CPU) { AccTagedIn.GPU.removeAll(PresentBoth) }
+			else if (jtag == EnsuredDependency::TARGET_TAG::GPU) { AccTagedIn.CPU.removeAll(PresentBoth) }
+			else { throw new Exception("A job should not be present on both CPU and GPU") }
+
+			JobEnsuredDependencies.put(jname, AccTagedIn)
+		}
+
+		/* JobEnsuredDependencies := [
+		 * ... ... ...
+		 * { CPU: Needed variables on CPU, if this job is on GPU, need data move
+		 * , GPU: Needed variables on GPU, if this job is on CPU, need data move
+		 * }
+		 * ... ... ...
+		 * ] */
+		return JobEnsuredDependencies
+	}
+
 	/**************************************************************************
 	 * Synchronization coefficients => like a barrier, take also into account *
 	 * the 'sequenciality' of a job                                           *
@@ -206,11 +327,19 @@ class JobMergeFromCost extends IrTransformationStep
 	 	/* Add source */
 	 	val source = IrFactory::eINSTANCE.createInstructionJob => [ name = SourceNodeLabel ]
 	 	g.addVertex(source)
-	 	for (old_source : g.vertexSet.filter[ v | v !== source && g.incomingEdgesOf(v).empty]) {
+	 	for (old_source : g.vertexSet.filter[ v | v !== source && g.incomingEdgesOf(v).empty ]) {
 	 		g.addEdge(source, old_source)
 	 		g.setEdgeWeight(source, old_source, 0)
 	 	}
 	 	
+	 	/* Add sink */
+	 	val sink = IrFactory::eINSTANCE.createInstructionJob => [ name = SinkNodeLabel ]
+	 	g.addVertex(sink)
+	 	for (old_sink : g.vertexSet.filter[ v | v !== sink && g.outgoingEdgesOf(v).empty ]) {
+	 		g.addEdge(old_sink, sink)
+	 		g.setEdgeWeight(old_sink, sink, 0)
+	 	}
+
 	 	return g
 	 }
 	

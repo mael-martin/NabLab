@@ -420,7 +420,7 @@ class OpenMPTargetProvider
 			#pragma omp parallel for
 			«body»
 		'''
-		
+
 		else
 			throw new Exception("(╯°□°)╯ ┻━┻")
 	}
