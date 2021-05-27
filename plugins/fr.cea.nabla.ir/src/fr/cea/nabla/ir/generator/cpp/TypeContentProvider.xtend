@@ -66,17 +66,14 @@ abstract class TypeContentProvider
 	{
 		switch it
 		{
-			case null: throw new Exception("Can't send the null type to GPU")
-
-			BaseType case sizes.empty: 	'''«primitive.cppType» «name»;'''
-			BaseType: 					'''«getCppGpuFriendlyArrayType(name, primitive, sizes)» «name»;'''
-			ConnectivityType: 			'''«getCppGpuFriendlyConnectivityType(base, connectivities)» «name»;'''
-
-			LinearAlgebraType: throw new Exception("Can't send a LinearAlgebra type to GPU")
-			default: 		   throw new RuntimeException("Unexpected type: " + class.name)
+			case null:                  throw new Exception("Can't send the null type to GPU")
+			BaseType case sizes.empty: 	'''«primitive.cppType» «name»_glb;'''
+			BaseType: 					'''«getCppGpuFriendlyArrayType(name, primitive, sizes)» «name»_ptr;'''
+			ConnectivityType: 			'''«getCppGpuFriendlyConnectivityType(base, connectivities)» «name»_ptr;'''
+			LinearAlgebraType:          '''«IrTypeExtensions.getLinearAlgebraClass(it)»_glb'''
+			default: 		            throw new RuntimeException("Unexpected type: " + class.name)
 		}
 	}
-
 
 	def getCppType(IrType it)
 	{

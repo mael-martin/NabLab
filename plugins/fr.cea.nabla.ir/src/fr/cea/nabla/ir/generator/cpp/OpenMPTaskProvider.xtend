@@ -363,7 +363,7 @@ class OpenMPTargetProvider
 			throw new Exception("Oupsi, you must specify a tasking mode")
 		}
 	}
-	
+
 	private def CharSequence
 	simple_task(
 		List<String> fp,
@@ -387,9 +387,9 @@ class OpenMPTargetProvider
 	{
 		val size = sizes.get(name)
 		if (size === null)
-			''''''
+			'''_glb'''
 		else
-			'''[0:«size»]'''
+			'''_ptr[0:«size»]'''
 	}
 
 	private def CharSequence
