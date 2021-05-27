@@ -243,9 +243,9 @@ class JobMergeFromCost extends IrTransformationStep
 		 *              - lambda Sum_{i in P}(u_i)                        /// (3)
 		 */
 		
-		/****************************************
-		 * XXX: (╯°□°)╯__┻━┻ C'EST TOUT CASSÉ ! *
-		 ****************************************/
+		/****************************************\
+		|  XXX: (╯°□°)╯__┻━┻ C'EST TOUT CASSÉ !  |
+		\****************************************/
 
 		/* (1) */
 		val all1 = new HashSet<Double>().toList
@@ -253,9 +253,6 @@ class JobMergeFromCost extends IrTransformationStep
 		all1 += P_GPU.map[ i |
 			val all2   = new HashSet<Double>().toList
 			val i_deps = DAG_EDGES.getOrDefault(i, new EnsuredDependency).CPU.toList
-			if (i_deps.size == 0) {
-				msg("(╯°□°)╯__┻━┻ No dependencies for " + i + "!")
-			}
 			all2 += #[0.0]
 			all2 += i_deps.map[ e_ji |
 				switch GlobalVariableIndexTypes.getOrDefault(e_ji, INDEX_TYPE::NULL) {
@@ -337,9 +334,9 @@ class JobMergeFromCost extends IrTransformationStep
 				else if (BOTH_is_CPU)                               { AccTagedIn.GPU.removeAll(AccTagedIn.CPU) }
 				else { throw new Exception("A job should not be present on both CPU and GPU") }
 
-				msg("Job " + jname)
-				msgItem("CPU: " + AccTagedIn.CPU.size)
-				msgItem("GPU: " + AccTagedIn.GPU.size)
+				// msg("Job " + jname)
+				// msgItem("CPU: " + AccTagedIn.CPU.size)
+				// msgItem("GPU: " + AccTagedIn.GPU.size)
 				JobEnsuredDependencies.put(jname, AccTagedIn)
 			}
 		}
@@ -382,7 +379,7 @@ class JobMergeFromCost extends IrTransformationStep
 		/* While including a job into the GPU partition is a good thing,
 		 * we continue. */
 		do {
-			var CPU_jobs = all_jobs.filter[ p1, p2 | p2 == TARGET_TAG::BOTH ].keySet
+			var CPU_jobs = all_jobs.filter[ p1, p2 | p2 == TARGET_TAG::BOTH ].keySet.toList
 
 			/* Can't find any new job to place on the GPU */
 			if (CPU_jobs.size == 0) {
@@ -393,10 +390,11 @@ class JobMergeFromCost extends IrTransformationStep
 			else {
 				var boolean continue_find_pivot = false
 				do {
+					// msg("(╯°□°)╯__┻━┻")
 					val double current_rank   = rankGPUPartition(all_jobs, computeEnsuredDependency(all_jobs, true), lambda)
-					val String pivot_job      = CPU_jobs.head
+					val String pivot_job      = CPU_jobs.get(0)
 					val TARGET_TAG old_target = all_jobs.get(pivot_job)
-					CPU_jobs                  = CPU_jobs.reject[ j | j == pivot_job ].toSet
+					CPU_jobs.remove(0)
 
 					/* Flip the job */
 					all_jobs.put(pivot_job, TARGET_TAG::GPU)
