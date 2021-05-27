@@ -97,7 +97,7 @@ class JobMergeFromCost extends IrTransformationStep
 	static val SourceNodeLabel = 'SourceJob'
 	static val SinkNodeLabel   = 'SinkJob'
 	
-	static val double lambda = 0.5
+	static val double lambda = 10
 
 	override boolean
 	transform(IrRoot ir) 
@@ -146,9 +146,17 @@ class JobMergeFromCost extends IrTransformationStep
 			val DAGs = jc.computePossibleTaggedDAG_TREESEARCH
 			msg("Got " + DAGs.size + " DAGs to test")
 			DAGs.forEach[ DAG |
-				val taggedAccIn = computeEnsuredDependency(DAG, false)
-				val double crit = rankGPUPartition(DAG, taggedAccIn, lambda)
-				msg('Got crit rank for DAG: ' + crit.toString)
+				val taggedAccIn  = computeEnsuredDependency(DAG, false)
+				val double crit  = rankGPUPartition(DAG, taggedAccIn, lambda)
+				val int crit_int = crit.intValue
+				msg('Got crit rank for DAG: ' + crit_int.toString)
+				if (crit_int != 0) {
+					msgItem("CPU:  " + DAG.filter[ p1, p2 | p2 == TARGET_TAG::CPU  ].keySet.reduce[ p1, p2 | p1 + ', ' + p2 ])
+					msgItem("GPU:  " + DAG.filter[ p1, p2 | p2 == TARGET_TAG::GPU  ].keySet.reduce[ p1, p2 | p1 + ', ' + p2 ])
+					msgItem("BOTH: " + DAG.filter[ p1, p2 | p2 == TARGET_TAG::BOTH ].keySet.reduce[ p1, p2 | p1 + ', ' + p2 ])
+				} else {
+					msg("(╯°□°)╯  ┻━┻")
+				}
 			]
 		]
 
@@ -156,12 +164,12 @@ class JobMergeFromCost extends IrTransformationStep
 		return true
 	}
 	
-	static HashMap<String, HashSet<String>> AccumulatedInVariablesPerJobs = new HashMap();
-	static HashMap<String, HashSet<Variable>> MinimalInVariablesPerJobs   = new HashMap();
-	static HashMap<String, Integer> JobSynchroCoeffs                      = new HashMap();
-	static HashMap<String, INDEX_TYPE> GlobalVariableIndexTypes           = new HashMap();
-	static HashMap<String, Integer> JobPriorities                         = new HashMap();
-	static HashMap<String, Integer> JobCostByName                         = new HashMap();
+	static HashMap<String, HashSet<String>>   AccumulatedInVariablesPerJobs = new HashMap();
+	static HashMap<String, HashSet<Variable>> MinimalInVariablesPerJobs     = new HashMap();
+	static HashMap<String, Integer>           JobSynchroCoeffs              = new HashMap();
+	static HashMap<String, INDEX_TYPE>        GlobalVariableIndexTypes      = new HashMap();
+	static HashMap<String, Integer>           JobPriorities                 = new HashMap();
+	static HashMap<String, Integer>           JobCostByName                 = new HashMap();
 	
 	static public final int num_threads = 4; // FIXME: Must be set by the user
 	static int num_tasks;
@@ -360,7 +368,7 @@ class JobMergeFromCost extends IrTransformationStep
 	private def List<Map<String, TARGET_TAG>>
 	computePossibleTaggedDAG_TREESEARCH(JobCaller it)
 	{
-		calls.map[ job |
+		return calls.map[ job |
 			val map = new HashMap<String, TARGET_TAG>()
 			calls.filter[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency.TARGET_TAG::CPU)  ] // Forced
 			calls.reject[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency.TARGET_TAG::BOTH) ] // Will vary
@@ -372,9 +380,8 @@ class JobMergeFromCost extends IrTransformationStep
 	private def Map<String, TARGET_TAG>
 	computePossibleTaggedDAG_TREESEARCH_REC(Map<String, TARGET_TAG> all_jobs)
 	{
-		val Map<String, TARGET_TAG> local = new HashMap<String, TARGET_TAG>()
-		var boolean continue_rec_calls    = false
-		var int rec_calls_counter         = 0
+		var boolean continue_rec_calls = false
+		var int rec_calls_counter      = 0
 
 		/* While including a job into the GPU partition is a good thing,
 		 * we continue. */
@@ -431,7 +438,7 @@ class JobMergeFromCost extends IrTransformationStep
 		val remaining_jobs = all_jobs.filter[ p1, p2 | p2 == TARGET_TAG::BOTH ].keySet
 		remaining_jobs.forEach[ jname | all_jobs.put(jname, TARGET_TAG::CPU) ]
 		msg("Ended recursion with " + rec_calls_counter + " calls")
-		return local
+		return all_jobs
 	}
 
 	/*************************************************************************
