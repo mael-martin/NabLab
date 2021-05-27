@@ -400,11 +400,11 @@ class OpenMPTargetProvider
 		CharSequence body
 	) '''
 		#pragma omp target«
-		FOR v   : fp    BEFORE '\\\nfirstprivate(' SEPARATOR ', ' AFTER ')'»«v»«ENDFOR»«
-		FOR in  : IN    BEFORE '\\\ndepend(in: '   SEPARATOR ', ' AFTER ')'»«in»«ENDFOR»«
+		FOR v   : fp    BEFORE '\\\nfirstprivate(' SEPARATOR ', ' AFTER ')'»«v  »«ENDFOR»«
+		FOR in  : IN    BEFORE '\\\ndepend(in: '   SEPARATOR ', ' AFTER ')'»«in »«ENDFOR»«
 		FOR out : OUT   BEFORE '\\\ndepend(out: '  SEPARATOR ', ' AFTER ')'»«out»«ENDFOR»«
 		FOR r   : READ  BEFORE '\\\nmap(to: '      SEPARATOR ', ' AFTER ')'»«r»«getSizeIndicationForVariable(r, RW_VAR_SIZES)»«ENDFOR»«
-		FOR w   : WRITE BEFORE '\\\nmap(to: '      SEPARATOR ', ' AFTER ')'»«w»«getSizeIndicationForVariable(w, RW_VAR_SIZES)»«ENDFOR»
+		FOR w   : WRITE BEFORE '\\\nmap(from: '    SEPARATOR ', ' AFTER ')'»«w»«getSizeIndicationForVariable(w, RW_VAR_SIZES)»«ENDFOR»
 		{
 			«body»
 		}
