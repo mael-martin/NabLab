@@ -96,6 +96,8 @@ class JobMergeFromCost extends IrTransformationStep
 	
 	static val SourceNodeLabel = 'SourceJob'
 	static val SinkNodeLabel   = 'SinkJob'
+	
+	static val double lambda = 0.5
 
 	override boolean
 	transform(IrRoot ir) 
@@ -145,7 +147,7 @@ class JobMergeFromCost extends IrTransformationStep
 			msg("Got " + DAGs.size + " DAGs to test")
 			DAGs.forEach[ DAG |
 				val taggedAccIn = computeEnsuredDependency(DAG, false)
-				val double crit = rankGPUPartition(DAG, taggedAccIn, 1.0)
+				val double crit = rankGPUPartition(DAG, taggedAccIn, lambda)
 				msg('Got crit rank for DAG: ' + crit.toString)
 			]
 		]
@@ -201,7 +203,7 @@ class JobMergeFromCost extends IrTransformationStep
 		return calls.reject[ j | j instanceof TimeLoopJob || j instanceof ExecuteTimeLoopJob ].toList
 	}
 	
-	static def Map<String, EnsuredDependency.TARGET_TAG>
+	private def Map<String, EnsuredDependency.TARGET_TAG>
 	initDAGTags(JobCaller it)
 	{
 		val DAG_TAGS = new HashMap<String, EnsuredDependency.TARGET_TAG>();
@@ -235,19 +237,27 @@ class JobMergeFromCost extends IrTransformationStep
 		var critere = 0.0
 		val P_GPU   = DAG_VERTICIES.filter[ jname, jtag | jtag == TARGET_TAG::GPU ].keySet.toList
 		val P_CPU   = DAG_VERTICIES.filter[ jname, jtag | jtag == TARGET_TAG::CPU ].keySet.toList
-		
+
 		/* C(lambda, P) = Sum_{i in P, j in Pred(i)}(e_{j,i} * x_i * x_j) /// (1)
 		 *              + Sum_{i in P, j in Succ(i)}(e_{i,j} * x_i * x_j) /// (2)
 		 *              - lambda Sum_{i in P}(u_i)                        /// (3)
 		 */
+		
+		/****************************************
+		 * XXX: (╯°□°)╯__┻━┻ C'EST TOUT CASSÉ ! *
+		 ****************************************/
 
 		/* (1) */
 		val all1 = new HashSet<Double>().toList
 		all1 += #[0.0]
 		all1 += P_GPU.map[ i |
-			val all2 = new HashSet<Double>().toList
+			val all2   = new HashSet<Double>().toList
+			val i_deps = DAG_EDGES.getOrDefault(i, new EnsuredDependency).CPU.toList
+			if (i_deps.size == 0) {
+				msg("(╯°□°)╯__┻━┻ No dependencies for " + i + "!")
+			}
 			all2 += #[0.0]
-			all2 += DAG_EDGES.getOrDefault(i, new EnsuredDependency).CPU.toList.map[ e_ji |
+			all2 += i_deps.map[ e_ji |
 				switch GlobalVariableIndexTypes.getOrDefault(e_ji, INDEX_TYPE::NULL) {
 					case INDEX_TYPE::CELLS: return 1.0
 					case INDEX_TYPE::NODES: return 4.0
@@ -283,9 +293,9 @@ class JobMergeFromCost extends IrTransformationStep
 		all4 += P_GPU.map[ i |
 			JobCostByName.getOrDefault(i, 0).doubleValue
 		]
-		critere -= lambda * all4.reduce[ p1, p2 | p1 + p2 ]
-		
-		return critere
+
+		/* The sum */
+		return critere - lambda * all4.reduce[ p1, p2 | p1 + p2 ]
 	}
 	
 	/*************************************************************************
@@ -327,6 +337,9 @@ class JobMergeFromCost extends IrTransformationStep
 				else if (BOTH_is_CPU)                               { AccTagedIn.GPU.removeAll(AccTagedIn.CPU) }
 				else { throw new Exception("A job should not be present on both CPU and GPU") }
 
+				msg("Job " + jname)
+				msgItem("CPU: " + AccTagedIn.CPU.size)
+				msgItem("GPU: " + AccTagedIn.GPU.size)
 				JobEnsuredDependencies.put(jname, AccTagedIn)
 			}
 		}
@@ -380,14 +393,14 @@ class JobMergeFromCost extends IrTransformationStep
 			else {
 				var boolean continue_find_pivot = false
 				do {
-					val int current_rank      = rankGPUPartition(all_jobs, computeEnsuredDependency(all_jobs, true), 1.0).intValue
+					val double current_rank   = rankGPUPartition(all_jobs, computeEnsuredDependency(all_jobs, true), lambda)
 					val String pivot_job      = CPU_jobs.head
 					val TARGET_TAG old_target = all_jobs.get(pivot_job)
 					CPU_jobs                  = CPU_jobs.reject[ j | j == pivot_job ].toSet
 
 					/* Flip the job */
 					all_jobs.put(pivot_job, TARGET_TAG::GPU)
-					val int new_rank = rankGPUPartition(all_jobs, computeEnsuredDependency(all_jobs, true), 1.0).intValue
+					val double new_rank = rankGPUPartition(all_jobs, computeEnsuredDependency(all_jobs, true), lambda)
 
 					/* Found the pivot for that iteration, go to next one */
 					if (new_rank <= current_rank) {
