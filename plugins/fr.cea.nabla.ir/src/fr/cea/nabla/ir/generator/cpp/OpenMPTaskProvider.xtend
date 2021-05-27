@@ -345,7 +345,7 @@ class OpenMPTargetProvider
 		CharSequence body
 	) {
 		flipTaskModeFromJob
-		
+
 		if (current_task_mode == TASK_MODE::CPU) {
 			/* Task will run on the host CPU */
 			flipTaskMode(TASK_MODE::NONE)
@@ -382,6 +382,16 @@ class OpenMPTargetProvider
 		}
 	'''
 
+	private static def CharSequence
+	getSizeIndicationForVariable(String name, Map<String, String> sizes)
+	{
+		val size = sizes.get(name)
+		if (size === null)
+			''''''
+		else
+			'''[0:«size»]'''
+	}
+
 	private def CharSequence
 	offload_task(
 		List<String> fp,
@@ -393,8 +403,8 @@ class OpenMPTargetProvider
 		FOR v   : fp    BEFORE '\\\nfirstprivate(' SEPARATOR ', ' AFTER ')'»«v»«ENDFOR»«
 		FOR in  : IN    BEFORE '\\\ndepend(in: '   SEPARATOR ', ' AFTER ')'»«in»«ENDFOR»«
 		FOR out : OUT   BEFORE '\\\ndepend(out: '  SEPARATOR ', ' AFTER ')'»«out»«ENDFOR»«
-		FOR r   : READ  BEFORE '\\\nmap(to: '      SEPARATOR ', ' AFTER ')'»«r»[0:«RW_VAR_SIZES.get(r)»]«ENDFOR»«
-		FOR w   : WRITE BEFORE '\\\nmap(to: '      SEPARATOR ', ' AFTER ')'»«w»[0:«RW_VAR_SIZES.get(w)»]«ENDFOR»
+		FOR r   : READ  BEFORE '\\\nmap(to: '      SEPARATOR ', ' AFTER ')'»«r»«getSizeIndicationForVariable(r, RW_VAR_SIZES)»«ENDFOR»«
+		FOR w   : WRITE BEFORE '\\\nmap(to: '      SEPARATOR ', ' AFTER ')'»«w»«getSizeIndicationForVariable(w, RW_VAR_SIZES)»«ENDFOR»
 		{
 			«body»
 		}

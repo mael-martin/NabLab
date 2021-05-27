@@ -165,11 +165,13 @@ class OpenMpTargetBackend extends Backend
 {
 	new()
 	{
-		OpenMpTaskMainContentProvider::num_threads = JobMergeFromCost::num_threads; // FIXME: Must be set by the user
-		OpenMpTaskMainContentProvider::max_active_levels = 1; 
-		OMPTaskMaxNumber = JobMergeFromCost::num_tasks
-		OMPTraces        = false
-		name             = 'OpenMPTarget'
+		OpenMpTaskMainContentProvider::num_threads       = JobMergeFromCost::num_threads
+		OpenMpTaskMainContentProvider::max_active_levels = 1
+		OMPTaskMaxNumber                                 = JobMergeFromCost::num_tasks
+		OMPTraces                                        = false
+		JobContentProvider::task_mode                    = true
+		name                                             = 'OpenMPTarget'
+
 		cmakeContentProvider       = new OpenMpTargetCMakeContentProvider
 		typeContentProvider        = new StlThreadTypeContentProvider
 		expressionContentProvider  = new ExpressionContentProvider(typeContentProvider)

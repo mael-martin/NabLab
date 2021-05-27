@@ -571,6 +571,23 @@ class JobMergeFromCost extends IrTransformationStep
 	 * the 'sequenciality' of a job                                           *
 	 **************************************************************************/
 
+	static def String
+	getGlobalVariableSize(String name)
+	{
+		switch GlobalVariableIndexTypes.getOrDefault(name, INDEX_TYPE::NULL) {
+			case INDEX_TYPE::CELLS: return 'nbCells'
+			case INDEX_TYPE::NODES: return 'nbNodes'
+			case INDEX_TYPE::FACES: return 'nbFaces'
+			case INDEX_TYPE::NULL:  return null
+		}
+	}
+
+	static def String
+	getGlobalVariableSize(Variable it)
+	{
+		return name.globalVariableSize
+	}
+
 	static private def boolean
 	isRangeVariable(Variable it)
 	{

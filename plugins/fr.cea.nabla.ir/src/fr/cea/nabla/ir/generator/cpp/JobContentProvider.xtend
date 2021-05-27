@@ -9,15 +9,6 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
-import static extension fr.cea.nabla.ir.IrModuleExtensions.*
-import static extension fr.cea.nabla.ir.JobCallerExtensions.*
-import static extension fr.cea.nabla.ir.JobExtensions.*
-import static extension fr.cea.nabla.ir.Utils.*
-import static extension fr.cea.nabla.ir.generator.Utils.*
-import static extension fr.cea.nabla.ir.generator.cpp.OpenMPTargetProvider.*
-import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
-import fr.cea.nabla.ir.generator.cpp.OpenMPTargetProvider.TASK_MODE
-
 import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
@@ -26,9 +17,19 @@ import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.TimeLoopCopy
 import fr.cea.nabla.ir.ir.TimeLoopJob
-import org.eclipse.xtend.lib.annotations.Data
 import java.util.ArrayList
+import java.util.HashMap
 import java.util.List
+import org.eclipse.xtend.lib.annotations.Data
+
+import static fr.cea.nabla.ir.generator.cpp.OpenMpTargetJobCallerContentProvider.*
+
+import static extension fr.cea.nabla.ir.IrModuleExtensions.*
+import static extension fr.cea.nabla.ir.JobCallerExtensions.*
+import static extension fr.cea.nabla.ir.JobExtensions.*
+import static extension fr.cea.nabla.ir.Utils.*
+import static extension fr.cea.nabla.ir.generator.Utils.*
+import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 
 @Data
 abstract class JobContentProvider
@@ -38,7 +39,11 @@ abstract class JobContentProvider
 	protected val extension InstructionContentProvider
 	protected val extension JobCallerContentProvider
 
-	protected def abstract CharSequence copyConnectivityType(String leftName, String rightName, int dimension, List<CharSequence> indexNames)
+	protected def abstract CharSequence
+	copyConnectivityType(String leftName, String rightName, int dimension, List<CharSequence> indexNames)
+	
+	val OpenMPTargetProvider target = new OpenMPTargetProvider()
+	static public var task_mode     = false
 
 	def getDeclarationContent(Job it)
 	'''
@@ -47,18 +52,71 @@ abstract class JobContentProvider
 	def CharSequence
 	getDefinitionContent(Job it)
 	{
-		if (GPUJob)
-			IsInsideGPUJob = true
-		val ret = '''
-			«comment»
-			«select_target(TASK_MODE::CPU)»
-			void «irModule.className»::«codeName»() noexcept
-			{
-				«innerContent»
-			}
-		'''
-		if (GPUJob)
-			IsInsideGPUJob = false
+		IsInsideGPUJob       = GPUJob
+		var CharSequence ret = null
+
+		/* GPU Job! */
+		if (IsInsideGPUJob) {
+			println("Define content of GPU job " + name + ": Retrieve dataflow things...")
+
+			/* Get the MININ, OUT, READ, WRITE and take into account the ALREADY_ON_GPU */
+			val OnGPU  = alreadyOnGPU
+			val MinIns = minimalInVars.map[ name ]
+			val Outs   = outVars.map[ name ]
+			val WRITE  = outVars.map[ name ]
+			val READ   = inVars.reject[ v | OnGPU.contains(v.name) ].map[ name ]
+			val SIZES  = new HashMap<String, String>()
+			READ.forEach[  name | SIZES.put(name, name.globalVariableSize) ]
+			WRITE.forEach[ name | SIZES.put(name, name.globalVariableSize) ]
+
+			println("Define content of GPU job " + name + ": Get method content")
+			ret = '''
+				«comment»
+				void «irModule.className»::«codeName»() noexcept
+				{
+					«target.task(#[], /* Should not need first-private for jobs,   *
+										* shared is implied for all tasks in OpenMP */
+						MinIns.toList, Outs.toList,
+						READ.toList, WRITE.toList, SIZES,
+						'''«innerContent»'''
+					)»
+				}
+			'''
+		}
+
+		/* Regular CPU Job */
+		else if (task_mode) {
+			println("Define content of CPU job " + name)
+
+			val MinIns = minimalInVars.map[ name ]
+			val Outs   = outVars.map[ name ]
+
+			ret = '''
+				«comment»
+				void «irModule.className»::«codeName»() noexcept
+				{
+					«target.task(#[], /* Should not need first-private for jobs,   *
+									   * shared is implied for all tasks in OpenMP */
+						MinIns.toList, Outs.toList,
+						#[], #[], null, /* Don't need data movement, always on CPU */
+						'''«innerContent»'''
+					)»
+				}
+			'''
+		}
+
+		/* A job without tasks */
+		else {
+			ret = '''
+				«comment»
+				void «irModule.className»::«codeName»() noexcept
+				{
+					«innerContent»
+				}
+			'''
+		}
+
+		IsInsideGPUJob = false
 		return ret
 	}
 
