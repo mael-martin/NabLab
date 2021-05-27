@@ -131,10 +131,10 @@ class JobMergeFromCost extends IrTransformationStep
 			computeTaskPriorities(max_at)
 			reusedOutVarsByJob.put(name, outReusedVarsNumber)
 		]
-		
+
 		reportHashMap('SynchroCoeffs', reverseHashMap(JobSynchroCoeffs),   'Synchro Coeff:',   ': ')
 		reportHashMap('Priority',      reverseHashMap(JobPriorities),      'Priority',         ': ')
-		
+
 		ir.eAllContents.filter(JobCaller).forEach[
 			calls.forEach[ j |
 				JobCostByName.put(j.name, j.jobCost)

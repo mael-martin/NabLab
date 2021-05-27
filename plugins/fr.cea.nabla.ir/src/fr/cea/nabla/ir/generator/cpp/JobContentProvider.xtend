@@ -15,6 +15,7 @@ import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.OpenMPTargetProvider.*
+import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 import fr.cea.nabla.ir.generator.cpp.OpenMPTargetProvider.TASK_MODE
 
 import fr.cea.nabla.ir.ir.BaseType
@@ -43,25 +44,23 @@ abstract class JobContentProvider
 	'''
 		void «codeName»() noexcept;'''
 
-	def getDefinitionContent(Job it)
-	'''
-		«comment»
-		«select_target(TASK_MODE::CPU)»
-		void «irModule.className»::«codeName»() noexcept
-		{
-			«innerContent»
-		}
-	'''
-
-	def getGPUDefinitionContent(Job it)
-	'''
-		«GPUComment»
-		«select_target(TASK_MODE::GPU)»
-		void «irModule.className»::«codeName»() noexcept
-		{
-			«innerContent»
-		}
-	'''
+	def CharSequence
+	getDefinitionContent(Job it)
+	{
+		if (GPUJob)
+			IsInsideGPUJob = true
+		val ret = '''
+			«comment»
+			«select_target(TASK_MODE::CPU)»
+			void «irModule.className»::«codeName»() noexcept
+			{
+				«innerContent»
+			}
+		'''
+		if (GPUJob)
+			IsInsideGPUJob = false
+		return ret
+	}
 
 	protected def dispatch CharSequence getInnerContent(InstructionJob it)
 	'''

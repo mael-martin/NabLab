@@ -16,6 +16,7 @@ import java.util.Map
 import java.util.Set
 
 import static fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
+import static extension fr.cea.nabla.ir.generator.Utils.*
 
 abstract class OpenMPTaskProvider
 {
@@ -307,6 +308,12 @@ class OpenMPTargetProvider
 	{
 		current_task_mode = mode;
 	}
+	
+	private def void
+	flipTaskModeFromJob()
+	{
+		current_task_mode = IsInsideGPUJob ? TASK_MODE::GPU : TASK_MODE::CPU;
+	}
 
 	new() { }
 
@@ -337,6 +344,8 @@ class OpenMPTargetProvider
 		List<String> READ, List<String> WRITE, Map<String, String> RW_VAR_SIZES,
 		CharSequence body
 	) {
+		flipTaskModeFromJob
+		
 		if (current_task_mode == TASK_MODE::CPU) {
 			/* Task will run on the host CPU */
 			flipTaskMode(TASK_MODE::NONE)
@@ -394,6 +403,8 @@ class OpenMPTargetProvider
 	def CharSequence
 	loop_reduction(String result, CharSequence body)
 	{
+		flipTaskModeFromJob
+
 		if (current_task_mode == TASK_MODE::GPU) '''
 			#pragma omp teams distribute parallel for reduction(min: «result») map(tofrom: «result»)
 			«body»
@@ -411,6 +422,8 @@ class OpenMPTargetProvider
 	def CharSequence
 	loop_for(CharSequence body)
 	{
+		flipTaskModeFromJob
+
 		if (current_task_mode == TASK_MODE::GPU) '''
 			#pragma omp teams distribute parallel for
 			«body»

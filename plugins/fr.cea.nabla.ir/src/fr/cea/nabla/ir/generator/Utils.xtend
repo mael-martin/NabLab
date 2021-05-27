@@ -31,6 +31,8 @@ import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 class Utils
 {
 	static val extension DefaultVarDependencies = new DefaultVarDependencies
+	
+	static public var boolean IsInsideGPUJob = false
 
 	static def getFileHeader()
 	'''

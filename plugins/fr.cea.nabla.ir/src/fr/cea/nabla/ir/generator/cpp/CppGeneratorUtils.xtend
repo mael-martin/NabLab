@@ -38,6 +38,7 @@ import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.ExtensionProviderExtensions.getInstanceName
 import static extension fr.cea.nabla.ir.IrModuleExtensions.getClassName
 import static extension fr.cea.nabla.ir.Utils.getIrModule
+import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 
 enum INDEX_TYPE { NODES, CELLS, FACES, NULL }
@@ -47,7 +48,7 @@ class CppGeneratorUtils
 	def static <T>Iterable<T> iteratorToIterable(Iterator<T> iterator) { [iterator] }
 
 	static def getFreeFunctionNs(IrModule it) { className.toLowerCase + "freefuncs" }
-	static def dispatch getCodeName(InternFunction it) { irModule.freeFunctionNs + '::' + name }
+	static def dispatch getCodeName(InternFunction it) { (IsInsideGPUJob ? "gpu" : irModule.freeFunctionNs) + '::' + name }
 	static def getHDefineName(String name) { '__' + name.toUpperCase + '_H_' }
 
 	static TypeContentProvider typeContentProvider = new StlThreadTypeContentProvider();
