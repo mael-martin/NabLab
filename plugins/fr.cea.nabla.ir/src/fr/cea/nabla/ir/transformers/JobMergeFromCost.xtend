@@ -145,7 +145,7 @@ class JobMergeFromCost extends IrTransformationStep
 		ir.eAllContents.filter(JobCaller).forEach[ jc |
 			val DAGs = jc.computePossibleTaggedDAG_TREESEARCH
 			msg("Got " + DAGs.size + " DAGs to test")
-			DAGs.forEach[ DAG |
+			val List<Pair<Integer, Map<String, TARGET_TAG>>> ALL_DAGS = DAGs.map[ DAG |
 				val taggedAccIn  = computeEnsuredDependency(DAG, false)
 				val double crit  = rankGPUPartition(DAG, taggedAccIn, lambda)
 				val int crit_int = crit.intValue
@@ -154,10 +154,29 @@ class JobMergeFromCost extends IrTransformationStep
 					msgItem("CPU:  " + DAG.filter[ p1, p2 | p2 == TARGET_TAG::CPU  ].keySet.reduce[ p1, p2 | p1 + ', ' + p2 ])
 					msgItem("GPU:  " + DAG.filter[ p1, p2 | p2 == TARGET_TAG::GPU  ].keySet.reduce[ p1, p2 | p1 + ', ' + p2 ])
 					msgItem("BOTH: " + DAG.filter[ p1, p2 | p2 == TARGET_TAG::BOTH ].keySet.reduce[ p1, p2 | p1 + ', ' + p2 ])
+					return new Pair<Integer, Map<String, TARGET_TAG>>(crit_int, DAG)
 				} else {
 					msg("(╯°□°)╯  ┻━┻")
+					return new Pair<Integer, Map<String, TARGET_TAG>>(0, null)
 				}
-			]
+			].toList
+			var Map<String, TARGET_TAG> min = null
+			var int min_rank                = 0
+			for (var int i = 0; i < ALL_DAGS.size; i += 1) {
+				val Pair<Integer, Map<String, TARGET_TAG>> pair = ALL_DAGS.get(i)
+				if (pair.key <= min_rank) {
+					min = pair.value
+				}
+			}
+			if (min !== null) {
+				min.filter[ p1, p2 | p2 == TARGET_TAG::GPU ].keySet.forEach[ job | JobPlacedOnGPU.put(job, true)  ]
+				min.filter[ p1, p2 | p2 == TARGET_TAG::CPU ].keySet.forEach[ job | JobPlacedOnGPU.put(job, false) ]
+				jc.calls.filter(ExecuteTimeLoopJob).forEach[ JobPlacedOnGPU.put(name, false) ]
+				jc.calls.filter(TimeLoopJob).forEach[ JobPlacedOnGPU.put(name, false) ]
+			} else {
+				msg("(╯°□°)╯ Run everything on CPU")
+				jc.calls.forEach[ JobPlacedOnGPU.put(name, false) ]
+			}
 		]
 
 		/* Return OK */
@@ -170,10 +189,39 @@ class JobMergeFromCost extends IrTransformationStep
 	static HashMap<String, INDEX_TYPE>        GlobalVariableIndexTypes      = new HashMap();
 	static HashMap<String, Integer>           JobPriorities                 = new HashMap();
 	static HashMap<String, Integer>           JobCostByName                 = new HashMap();
+	static HashMap<String, Boolean>           JobPlacedOnGPU                = new HashMap();
 	
 	static public final int num_threads = 4; // FIXME: Must be set by the user
 	static int num_tasks;
 	static def int getNum_tasks() { return num_tasks; }
+	
+	/******************************************
+	 * Get Jobs that must be run on CPU / GPU *
+	 ******************************************/
+	
+	static def boolean
+	isCPUJob(String name)
+	{
+		return ! isGPUJob(name)
+	}
+
+	static def boolean
+	isCPUJob(Job it)
+	{
+		return isCPUJob(name)
+	}
+
+	static def boolean
+	isGPUJob(String name)
+	{
+		return JobPlacedOnGPU.getOrDefault(name, false)
+	}
+
+	static def boolean
+	isGPUJob(Job it)
+	{
+		return isGPUJob(name)
+	}
 	
 	/***********
 	 * helpers *
