@@ -382,20 +382,33 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 						#pragma omp task firstprivate(i) shared(current_task) depend(out: current_task) // In order
 						{
 							«FOR idxtype : presentGlobalVariableTypes»
-								«val idxlimit = idxtype.variableIndexTypeLimit»
-								size_t limit_«idxtype» = (i != «OMPTaskMaxNumber - 1») ? ((«idxlimit» / «OMPTaskMaxNumber») * (i + 1)) : «idxlimit»;
+							«val idxlimit = idxtype.variableIndexTypeLimit»
+							size_t limit_«idxtype» = (i != «OMPTaskMaxNumber - 1») ? ((«idxlimit» / «OMPTaskMaxNumber») * (i + 1)) : «idxlimit»;
 							«ENDFOR»
+
 							«FOR v : variables.filter[needStaticAllocation]»
-								«val conn_type = v.type as ConnectivityType»
-								 «v.name».resize(«typeContentProvider.getCstrResize(v.name, conn_type.base, '''limit_«v.name.globalVariableType»''', conn_type.connectivities)»);
+							«val conn_type = v.type as ConnectivityType»
+							 «v.name».resize(«typeContentProvider.getCstrResize(
+							 	v.name, conn_type.base,
+							 	'''limit_«v.name.globalVariableType»''',
+							 	conn_type.connectivities
+							 )»);
 							«ENDFOR»
-							
+
 							++current_task;
 						}
 					}
 				}
 			}
 			/* END: First touch for data vectors */
+
+			/* BEGIN: Alias the .data() to _ptr and other to _glb */
+			{
+				«FOR v : variables.filter[ needStaticAllocation ]»
+				«v.name»_ptr = «v.name».data();
+				«ENDFOR»
+			}
+			/* END: Alias the .data() to _ptr and other to _glb */
 		«ENDIF»
 		
 		«val dynamicArrayVariables = variables.filter[needDynamicAllocation]»

@@ -68,7 +68,7 @@ abstract class TypeContentProvider
 		{
 			case null:                  throw new Exception("Can't send the null type to GPU")
 			BaseType case sizes.empty: 	'''«primitive.cppType» «name»_glb;'''
-			BaseType: 					'''«getCppGpuFriendlyArrayType(name, primitive, sizes)» «name»_ptr;'''
+			BaseType: 					'''«getCppGpuFriendlyArrayType(name, primitive, sizes)» «name»_glb;'''
 			ConnectivityType: 			'''«getCppGpuFriendlyConnectivityType(base, connectivities)» «name»_ptr;'''
 			LinearAlgebraType:          '''«IrTypeExtensions.getLinearAlgebraClass(it)»_glb'''
 			default: 		            throw new RuntimeException("Unexpected type: " + class.name)
