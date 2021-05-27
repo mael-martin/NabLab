@@ -145,21 +145,19 @@ class JobMergeFromCost extends IrTransformationStep
 		ir.eAllContents.filter(JobCaller).forEach[ jc |
 			val DAGs = jc.computePossibleTaggedDAG_TREESEARCH
 			msg("Got " + DAGs.size + " DAGs to test")
+			/* Map */
 			val List<Pair<Integer, Map<String, TARGET_TAG>>> ALL_DAGS = DAGs.map[ DAG |
 				val taggedAccIn  = computeEnsuredDependency(DAG, false)
 				val double crit  = rankGPUPartition(DAG, taggedAccIn, lambda)
 				val int crit_int = crit.intValue
-				msg('Got crit rank for DAG: ' + crit_int.toString)
 				if (crit_int != 0) {
-					msgItem("CPU:  " + DAG.filter[ p1, p2 | p2 == TARGET_TAG::CPU  ].keySet.reduce[ p1, p2 | p1 + ', ' + p2 ])
-					msgItem("GPU:  " + DAG.filter[ p1, p2 | p2 == TARGET_TAG::GPU  ].keySet.reduce[ p1, p2 | p1 + ', ' + p2 ])
-					msgItem("BOTH: " + DAG.filter[ p1, p2 | p2 == TARGET_TAG::BOTH ].keySet.reduce[ p1, p2 | p1 + ', ' + p2 ])
 					return new Pair<Integer, Map<String, TARGET_TAG>>(crit_int, DAG)
 				} else {
 					msg("(╯°□°)╯  ┻━┻")
 					return new Pair<Integer, Map<String, TARGET_TAG>>(0, null)
 				}
 			].toList
+			/* Reduce */
 			var Map<String, TARGET_TAG> min = null
 			var int min_rank                = 0
 			for (var int i = 0; i < ALL_DAGS.size; i += 1) {
@@ -168,11 +166,15 @@ class JobMergeFromCost extends IrTransformationStep
 					min = pair.value
 				}
 			}
+			/* Register */
 			if (min !== null) {
 				min.filter[ p1, p2 | p2 == TARGET_TAG::GPU ].keySet.forEach[ job | JobPlacedOnGPU.put(job, true)  ]
 				min.filter[ p1, p2 | p2 == TARGET_TAG::CPU ].keySet.forEach[ job | JobPlacedOnGPU.put(job, false) ]
 				jc.calls.filter(ExecuteTimeLoopJob).forEach[ JobPlacedOnGPU.put(name, false) ]
 				jc.calls.filter(TimeLoopJob).forEach[ JobPlacedOnGPU.put(name, false) ]
+				JobPlacedOnGPU.forEach[ jname, isGPU |
+					msg("Run " + jname + (isGPU ? " on GPU!" : " on CPU"))
+				]
 			} else {
 				msg("(╯°□°)╯ Run everything on CPU")
 				jc.calls.forEach[ JobPlacedOnGPU.put(name, false) ]

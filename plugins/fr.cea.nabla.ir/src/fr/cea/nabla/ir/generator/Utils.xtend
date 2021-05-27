@@ -26,7 +26,7 @@ import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.IrRootExtensions.*
 import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.Utils.*
-import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.getMinimalInVars
+import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 
 class Utils
 {
@@ -90,18 +90,7 @@ class Utils
 	static def getComment(Job it)
 	'''
 		/**
-		 * Job «getCodeName» called @«at» in «caller.codeName» method.
-		 * In [«FOR v : minimalInVars BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
-		 * Out [«FOR v : outVars.sortBy[name] BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
-		 * Cost: «val jc = jobContribution»«IF jc != 0»«jc»«ELSE»N/A«ENDIF»
-		 */
-	'''
-
-	static def getGPUComment(Job it)
-	'''
-		/**
-		 * GPU JOB!
-		 * Job gpu_«getCodeName» for «getCodeName» called @«at» in «caller.codeName» method.
+		 * [«IF GPUJob»GPU«ELSE»CPU«ENDIF»] Job «getCodeName» called @«at» in «caller.codeName» method.
 		 * In [«FOR v : minimalInVars BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
 		 * Out [«FOR v : outVars.sortBy[name] BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
 		 * Cost: «val jc = jobContribution»«IF jc != 0»«jc»«ELSE»N/A«ENDIF»
