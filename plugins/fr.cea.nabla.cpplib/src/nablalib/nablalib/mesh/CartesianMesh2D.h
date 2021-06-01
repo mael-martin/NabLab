@@ -192,6 +192,15 @@ public: // Hacky boi
 /* Need some GPU things */
 #ifdef NABLALIB_GPU
 
+/* Usage:
+ *
+ * CartesianMesh2D *mesh = ...;
+ * GPU_CartesianMesh2D mesh_glb;
+ * GPU_CartesianMesh2D_alloc(&mesh_glb, mesh); // Now all the data is on GPU
+ * ... ... ...
+ * GPU_CartesianMesh2D_free(&mesh_glb); // Now things are deleted from the GPU
+ */
+
 struct GPU_CartesianMesh2D {
 	static constexpr int MaxNbNodesOfCell    = 4;
 	static constexpr int MaxNbNodesOfFace    = 2;
@@ -416,6 +425,7 @@ template<size_t N> static inline void
 GPU_CartesianMesh2D_free(GPU_CartesianMesh2D *gpu)
 {
     GPU_MeshGeometry_free<2>(gpu->geometry);
+    free(gpu->geometry);
 
     #pragma omp target exit data map(delete: gpu->inner_nodes [:gpu->inner_nodes_count ])
     #pragma omp target exit data map(delete: gpu->top_nodes   [:gpu->top_nodes_count   ])

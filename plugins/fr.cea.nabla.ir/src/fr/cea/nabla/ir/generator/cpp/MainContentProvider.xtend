@@ -23,6 +23,12 @@ import fr.cea.nabla.ir.transformers.JobMergeFromCost
 class MainContentProvider
 {
 	val extension JsonContentProvider jsonContentProvider
+	
+	protected def boolean
+	isGPU()
+	{
+		return false
+	}
 
 	def getContentFor(IrModule it, String levelDBPath)
 	'''
@@ -56,6 +62,9 @@ class MainContentProvider
 			meshFactory.jsonInit(strbuf.GetString());
 		}
 		«meshClassName»* mesh = meshFactory.create();
+		«IF isGPU»
+		GPU_«meshClassName»_alloc(&mesh_glb, mesh);
+		«ENDIF»
 
 		// Module instanciation(s)
 		«FOR m : irRoot.modules»
@@ -80,6 +89,9 @@ class MainContentProvider
 		«FOR m : irRoot.modules.reverseView»
 			delete «m.name»;
 		«ENDFOR»
+		«IF isGPU»
+		GPU_«meshClassName»_free(&mesh_glb);
+		«ENDIF»
 		delete mesh;
 	'''
 
@@ -110,6 +122,12 @@ class OpenMpTaskMainContentProvider extends MainContentProvider
 {
 	public static int num_threads       = JobMergeFromCost.num_threads;
 	public static int max_active_levels = 1;
+
+	protected override boolean
+	isGPU()
+	{
+		return true
+	}
 	
 	protected override getSimulationCall(IrModule it)
 	'''

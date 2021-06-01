@@ -309,6 +309,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	}
 	«ENDIF»
 
+	«IF isGPU»
+	/******************** GPU Mesh definition & declaration ********************/
+	GPU_CartesianMesh2D mesh_glb;
+	«ENDIF»
+
 	/******************** Options definition ********************/
 
 	void
