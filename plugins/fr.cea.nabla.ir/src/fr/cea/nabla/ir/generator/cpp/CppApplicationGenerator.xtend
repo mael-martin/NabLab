@@ -402,16 +402,68 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			}
 			/* END: First touch for data vectors */
 
+			«IF isGPU»
 			/* BEGIN: Alias the .data() to _ptr and other to _glb */
 			{
+				/* Connectivities: std::vector<T> -> T* */
 				«FOR v : variables.filter[ needStaticAllocation ]»
 				«v.name»_ptr = «v.name».data();
 				«ENDFOR»
+
+				/* Arrays: T [][]... -> T[][]... */
+				«FOR v : variables
+					.filter[ !option ]
+					.filter[ !needStaticAllocation ]
+					.filter[ v | typeContentProvider.isArray(v.type) ]»
+				std::memcpy((void *) «v.name»_glb, (void *) «v.name», sizeof(«v.name»));
+				«ENDFOR»
+
+				/* Base: T -> T */
+				«FOR v : variables
+					.filter[ !option ]
+					.filter[ !needStaticAllocation ]
+					.filter[ v | !typeContentProvider.isArray(v.type) ]»
+				«v.name»_glb = «v.name»;
+				«ENDFOR»
 			}
 			/* END: Alias the .data() to _ptr and other to _glb */
+
+			/* BEGIN: Copy to GPU constant things */
+			#pragma omp parallel
+			{
+				#pragma omp single nowait
+				{
+					«val copy_gpu_simple_var = variables
+						.filter[ !option ]
+						.filter[ constExpr || const ]
+						.filter[ !needStaticAllocation]
+						.filter[ v | !typeContentProvider.isArray(v.type) ]»
+					«IF copy_gpu_simple_var.size != 0»
+					/* Simple vars: «copy_gpu_simple_var.size» */
+					#pragma omp target \
+					map(to: «FOR v : copy_gpu_simple_var SEPARATOR ', '»«v.name»_glb«ENDFOR»)
+					{ /* ... */ }
+					«ENDIF»
+					«val copy_gpu_array_var = variables
+						.filter[ !option ]
+						.filter[ constExpr || const ]
+						.filter[ !needStaticAllocation]
+						.filter[ v | typeContentProvider.isArray(v.type) ]»
+					«IF copy_gpu_array_var.size != 0»
+					/* Array vars: «copy_gpu_array_var.size» */
+					#pragma omp target \
+					map(to: «FOR v : copy_gpu_array_var SEPARATOR ', '»«
+						v.name»_glb:[0:«typeContentProvider.getArrayTotalSize(v.type)»]«
+					ENDFOR»)
+					{ /* ... */ }
+					«ENDIF»
+				}
+			}
+			/* END: Copy to GPU constant things */
+			«ENDIF»
 		«ENDIF»
 		
-		«val dynamicArrayVariables = variables.filter[needDynamicAllocation]»
+		«val dynamicArrayVariables = variables.filter[ needDynamicAllocation ]»
 		«IF !dynamicArrayVariables.empty»
 			// Allocate dynamic arrays (RealArrays with at least a dynamic dimension)
 			#error "Not handled for the moment (OMP Task Backend)"
@@ -666,6 +718,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	private def isOpenMpTask()
 	{
 		backend instanceof OpenMpTaskBackend || backend instanceof OpenMpTargetBackend
+	}
+
+	private def isGPU()
+	{
+		backend instanceof OpenMpTargetBackend
 	}
 
 	private def getWriteCallContent(Variable v)

@@ -20,9 +20,11 @@ import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.PrimitiveType
 import java.util.ArrayList
 import java.util.List
+import org.eclipse.emf.common.util.EList
 import org.eclipse.xtend.lib.annotations.Accessors
 
 import static extension fr.cea.nabla.ir.ContainerExtensions.*
+import fr.cea.nabla.ir.ir.IntConstant
 
 enum CPP_TYPE { BASE, ARRAY, CONNECTIVITY, LINEARALGEBRA, NULL }
 
@@ -37,8 +39,7 @@ abstract class TypeContentProvider
 	
 	def getCppTypeEnum(IrType it)
 	{
-		switch it
-		{
+		switch it {
 			case null: 					CPP_TYPE::NULL
 			BaseType case sizes.empty: 	CPP_TYPE::BASE
 			BaseType: 					CPP_TYPE::ARRAY
@@ -50,8 +51,7 @@ abstract class TypeContentProvider
 	
 	def getCppTypeCanBePartitionized(IrType it)
 	{
-		switch it
-		{
+		switch it {
 			case null: 					false
 			BaseType case sizes.empty:	false
 			LinearAlgebraType: 			false
@@ -60,12 +60,51 @@ abstract class TypeContentProvider
 			default: throw new RuntimeException("Unexpected type: " + class.name)
 		}
 	}
+	
+	def boolean
+	isArray(IrType it)
+	{
+		switch it {
+			case null:                 false
+			BaseType case sizes.empty: false
+			BaseType:                  true
+			default:                   false
+		}
+	}
+
+	def int
+	getArrayTotalSize(IrType it)
+	{
+		switch it {
+			case null:                 0
+			BaseType case sizes.empty: 0
+			BaseType:                  sizes.arrayTotalSizeIntern
+			default:                   0
+		}
+	}
+	
+	private def int
+	getArrayTotalSizeIntern(List<Expression> sizes)
+	{
+		/* Terminal call */
+		if (sizes.empty)
+			return 0;
+
+		val head = sizes.head
+		val tail = sizes.tail.toList
+
+		/* Must be an integer! */
+		if (!(head instanceof IntConstant))
+			throw new Exception("One size of the array is not an integer")
+		
+		val size = head as IntConstant
+		return size.value + tail.arrayTotalSizeIntern;
+	}
 
 	def CharSequence
 	getGpuFriendlyType(IrType it, String name)
 	{
-		switch it
-		{
+		switch it {
 			case null:                  throw new Exception("Can't send the null type to GPU")
 			BaseType case sizes.empty: 	'''«primitive.cppType» «name»_glb;'''
 			BaseType: 					'''«getCppGpuFriendlyArrayType(name, primitive, sizes)» «name»_glb;'''
@@ -77,8 +116,7 @@ abstract class TypeContentProvider
 
 	def getCppType(IrType it)
 	{
-		switch it
-		{
+		switch it {
 			case null: 					null
 			BaseType case sizes.empty: 	primitive.cppType
 			BaseType: 					getCppArrayType(primitive, sizes)
@@ -90,8 +128,7 @@ abstract class TypeContentProvider
 
 	def getJniType(IrType it)
 	{
-		switch it
-		{
+		switch it {
 			case null: "null"
 			BaseType case sizes.empty: primitive.jniType
 			BaseType case sizes.size == 1: primitive.jniType + "Array"
@@ -103,8 +140,7 @@ abstract class TypeContentProvider
 
 	def getCppType(PrimitiveType it)
 	{
-		switch it
-		{
+		switch it {
 			case null : 'void'
 			case BOOL:  'bool'
 			case INT:   'int'
