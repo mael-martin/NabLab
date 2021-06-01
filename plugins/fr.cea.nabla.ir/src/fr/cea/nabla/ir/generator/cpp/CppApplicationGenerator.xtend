@@ -360,6 +360,28 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	
 	«className»::~«className»()
 	{
+		«IF typeContentProvider instanceof StlThreadTypeContentProvider»
+			«IF isGPU»
+				/* BEGIN: Free data on GPU */
+				«val copy_gpu_var = variables
+					.filter[ !option ]
+					.filter[ constExpr || const ]
+					.filter[ !needStaticAllocation ]»
+				/* Vars: «copy_gpu_var.size» */
+				«IF copy_gpu_var.size != 0»
+					«FOR v : copy_gpu_var»
+					#pragma omp target exit data map(delete: «v.name»_glb)
+					«ENDFOR»
+				«ENDIF»
+				/* Options: «options.size» */
+				«IF options.size != 0»
+					«FOR v : options»
+					#pragma omp target exit data map(delete: option_«v.name»_glb)
+					«ENDFOR»
+				«ENDIF»
+				/* END: Free data on GPU */
+			«ENDIF»
+		«ENDIF»
 	}
 
 	«className»::«className»(«meshClassName»* aMesh, Options& aOptions)
@@ -449,41 +471,28 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			/* END: Alias the .data() to _glb and other to _glb */
 
 			/* BEGIN: Copy to GPU constant things */
-			#pragma omp parallel
-			{
-				#pragma omp single nowait
-				{
-					«val copy_gpu_simple_var = variables
-						.filter[ !option ]
-						.filter[ constExpr || const ]
-						.filter[ !needStaticAllocation]
-						.filter[ v | !typeContentProvider.isArray(v.type) ]»
-					«IF copy_gpu_simple_var.size != 0»
-					/* Simple vars: «copy_gpu_simple_var.size» */
-					#pragma omp target \
-					map(to: «FOR v : copy_gpu_simple_var SEPARATOR ', '»«v.name»_glb«ENDFOR»)
-					{ /* ... */ }
-					«ENDIF»
-					«val copy_gpu_array_var = variables
-						.filter[ !option ]
-						.filter[ constExpr || const ]
-						.filter[ !needStaticAllocation]
-						.filter[ v | typeContentProvider.isArray(v.type) ]»
-					«IF copy_gpu_array_var.size != 0»
-					/* Array vars: «copy_gpu_array_var.size» */
-					#pragma omp target \
-					map(to: «FOR v : copy_gpu_array_var SEPARATOR ', '»«
-						v.name»_glb:[0:«typeContentProvider.getArrayTotalSize(v.type)»]«
-					ENDFOR»)
-					{ /* ... */ }
-					«ENDIF»
-					«IF options.size != 0»
-					#pragma omp target \
-					map(to: «FOR v : options SEPARATOR ', '»options_«v.name»_glb«ENDFOR»)
-					{ /* ... */ }
-					«ENDIF»
-				}
-			}
+			«val copy_gpu_var = variables
+				.filter[ !option ]
+				.filter[ constExpr || const ]
+				.filter[ !needStaticAllocation ]»
+			/* Vars: «copy_gpu_var.size» */
+			«IF copy_gpu_var.size != 0»
+				«FOR v : copy_gpu_var»
+				#pragma omp target enter data map(alloc: «v.name»_glb)
+				«ENDFOR»
+				«FOR v : copy_gpu_var»
+				#pragma omp target update to («v.name»_glb)
+				«ENDFOR»
+			«ENDIF»
+			/* Options: «options.size» */
+			«IF options.size != 0»
+				«FOR v : options»
+				#pragma omp target enter data map(alloc: option_«v.name»_glb)
+				«ENDFOR»
+				«FOR v : options»
+				#pragma omp target update to («v.name»_glb)
+				«ENDFOR»
+			«ENDIF»
 			/* END: Copy to GPU constant things */
 			«ENDIF»
 		«ENDIF»
