@@ -403,11 +403,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			/* END: First touch for data vectors */
 
 			«IF isGPU»
-			/* BEGIN: Alias the .data() to _ptr and other to _glb */
+			/* BEGIN: Alias the .data() to _glb and other to _glb */
 			{
 				/* Connectivities: std::vector<T> -> T* */
 				«FOR v : variables.filter[ needStaticAllocation ]»
-				«v.name»_ptr = «v.name».data();
+				«v.name»_glb = «v.name».data();
 				«ENDFOR»
 
 				/* Arrays: T [][]... -> T[][]... */
@@ -426,7 +426,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				«v.name»_glb = «v.name»;
 				«ENDFOR»
 			}
-			/* END: Alias the .data() to _ptr and other to _glb */
+			/* END: Alias the .data() to _glb and other to _glb */
 
 			/* BEGIN: Copy to GPU constant things */
 			#pragma omp parallel

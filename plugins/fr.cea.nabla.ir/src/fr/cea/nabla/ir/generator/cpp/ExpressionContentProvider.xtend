@@ -135,10 +135,11 @@ class ExpressionContentProvider
 
 	def dispatch CharSequence getContent(ArgOrVarRef it)
 	{
+		val code_name = IsInsideGPUJob ? '''«codeName»_glb''' : codeName
 		if (target.linearAlgebra && !(iterators.empty && indices.empty))
-			'''«codeName».getValue(«formatIteratorsAndIndices(target.type, iterators, indices)»)'''
+			'''«code_name».getValue(«formatIteratorsAndIndices(target.type, iterators, indices)»)'''
 		else
-			'''«codeName»«formatIteratorsAndIndices(target.type, iterators, indices)»'''
+			'''«code_name»«formatIteratorsAndIndices(target.type, iterators, indices)»'''
 	}
 
 	def CharSequence getCodeName(ArgOrVarRef it)
