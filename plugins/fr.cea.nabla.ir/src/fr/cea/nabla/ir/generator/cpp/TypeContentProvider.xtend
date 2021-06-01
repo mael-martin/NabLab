@@ -14,17 +14,16 @@ import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.Connectivity
 import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.Expression
+import fr.cea.nabla.ir.ir.IntConstant
 import fr.cea.nabla.ir.ir.IrType
 import fr.cea.nabla.ir.ir.ItemIndex
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.PrimitiveType
 import java.util.ArrayList
 import java.util.List
-import org.eclipse.emf.common.util.EList
 import org.eclipse.xtend.lib.annotations.Accessors
 
 import static extension fr.cea.nabla.ir.ContainerExtensions.*
-import fr.cea.nabla.ir.ir.IntConstant
 
 enum CPP_TYPE { BASE, ARRAY, CONNECTIVITY, LINEARALGEBRA, NULL }
 

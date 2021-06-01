@@ -120,10 +120,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	
 	/******************** GPU variable declarations ********************/
 	«GPUDeclaration»
-
-	«FOR v : options»
-	«typeContentProvider.getCppType(v.type)» options_«v.name»_glb;
-	«ENDFOR»
 	«ENDIF»
 
 	/******************** Module declaration ********************/
@@ -244,6 +240,10 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		#pragma omp declare target
 		«FOR v : variables.filter[!option]»
 		«typeContentProvider.getGpuFriendlyType(v.type, v.name)»
+		«ENDFOR»
+		// Options
+		«FOR v : options»
+		«typeContentProvider.getCppType(v.type)» options_«v.name»_glb;
 		«ENDFOR»
 		#pragma omp end declare target
 	'''
@@ -429,6 +429,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 					.filter[ v | !typeContentProvider.isArray(v.type) ]»
 				«v.name»_glb = «v.name»;
 				«ENDFOR»
+
+				/* Base Options Copy: T -> T */
+				«FOR v : options»
+				options_«v.name»_glb = options.«v.name»;
+				«ENDFOR»
 			}
 			/* END: Alias the .data() to _glb and other to _glb */
 
@@ -459,6 +464,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 					map(to: «FOR v : copy_gpu_array_var SEPARATOR ', '»«
 						v.name»_glb:[0:«typeContentProvider.getArrayTotalSize(v.type)»]«
 					ENDFOR»)
+					{ /* ... */ }
+					«ENDIF»
+					«IF options.size != 0»
+					#pragma omp target \
+					map(to: «FOR v : options SEPARATOR ', '»options_«v.name»_glb«ENDFOR»)
 					{ /* ... */ }
 					«ENDIF»
 				}
