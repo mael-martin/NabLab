@@ -387,8 +387,8 @@ GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)
 	gpu->outer_cells_count  = cpu->getNbOuterCells();
 
     /* problem sizes */
-	size_t gpu->nb_x_quads  = cpu->m_nb_x_quads;
-	size_t gpu->nb_y_quads  = cpu->m_nb_y_quads;
+	gpu->nb_x_quads         = cpu->m_nb_x_quads;
+	gpu->nb_y_quads         = cpu->m_nb_y_quads;
 
     /* Copy the big structure and all counters */
     #pragma omp target enter data map(alloc: gpu[:1])
