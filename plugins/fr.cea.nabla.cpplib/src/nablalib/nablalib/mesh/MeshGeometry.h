@@ -39,11 +39,11 @@ private:
 
 /* Usage:
  *
- * MeshGeometry *mesh = ...;
- * GPU_MeshGeometry mesh_glb;
- * GPU_MeshGeometry_alloc(&mesh_glb, mesh); // Now all the data is on GPU
+ * MeshGeometry<2> *mesh = ...;
+ * GPU_MeshGeometry<2> mesh_glb;
+ * GPU_MeshGeometry_alloc<2>(&mesh_glb, mesh); // Now all the data is on GPU
  * ... ... ...
- * GPU_MeshGeometry_free(&mesh_glb); // Now things are deleted from the GPU
+ * GPU_MeshGeometry_free<2>(&mesh_glb); // Now things are deleted from the GPU
  */
 
 template<size_t N>

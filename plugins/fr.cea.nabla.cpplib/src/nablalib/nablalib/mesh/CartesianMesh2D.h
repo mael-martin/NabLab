@@ -20,8 +20,7 @@ using namespace std;
 namespace nablalib::mesh
 {
 
-class CartesianMesh2D
-{
+class CartesianMesh2D {
 public:
 	static constexpr int MaxNbNodesOfCell = 4;
 	static constexpr int MaxNbNodesOfFace = 2;
@@ -185,9 +184,208 @@ private:
 	vector<Id> m_inner_cells;
 	vector<Id> m_outer_cells;
 
+public: // Hacky boi
 	size_t m_nb_x_quads;
 	size_t m_nb_y_quads;
 };
+
+/* Need some GPU things */
+#ifdef NABLALIB_GPU
+
+struct GPU_CartesianMesh2D {
+	static constexpr int MaxNbNodesOfCell    = 4;
+	static constexpr int MaxNbNodesOfFace    = 2;
+	static constexpr int MaxNbCellsOfNode    = 4;
+	static constexpr int MaxNbCellsOfFace    = 2;
+	static constexpr int MaxNbNeighbourCells = 4;
+
+	GPU_MeshGeometry<2>* m_geometry;
+
+    /* nodes */
+	Id *inner_nodes;
+	Id *top_nodes;
+	Id *bottom_nodes;
+	Id *left_nodes;
+	Id *right_nodes;
+
+	Id inner_nodes_count;
+	Id top_nodes_count;
+	Id bottom_nodes_count;
+	Id left_nodes_count;
+	Id right_nodes_count;
+
+	Id top_left_node;
+	Id top_right_node;
+	Id bottom_left_node;
+	Id bottom_right_node;
+
+    /* border cells */
+	Id *top_cells;
+	Id *bottom_cells;
+	Id *left_cells;
+	Id *right_cells;
+
+	Id top_cells_count;
+	Id bottom_cells_count;
+	Id left_cells_count;
+	Id right_cells_count;
+
+    /**********************************\
+    |  faces:                          |
+    |  /!\ Ignored for the moment /!\  |
+    \**********************************/
+
+    /* cells again */
+	Id *inner_cells;
+	Id *outer_cells;
+	Id inner_cells_count;
+	Id outer_cells_count;
+
+    /* problem sizes */
+	size_t nb_x_quads;
+	size_t nb_y_quads;
+
+    /* Methods */
+	size_t getNbNodes() const noexcept { return geometry->nodes_count; }
+	size_t getNbCells() const noexcept { return geometry->quads_count; }
+
+	size_t getNbInnerNodes()  const noexcept { return inner_nodes_count;  }
+	size_t getNbTopNodes()    const noexcept { return top_nodes_count;    }
+	size_t getNbBottomNodes() const noexcept { return bottom_nodes_count; }
+	size_t getNbLeftNodes()   const noexcept { return left_nodes_count;   }
+	size_t getNbRightNodes()  const noexcept { return right_nodes_count;  }
+
+	const Id *getInnerNodes()  const noexcept { return inner_nodes;  }
+	const Id *getTopNodes()    const noexcept { return top_nodes;    }
+	const Id *getBottomNodes() const noexcept { return bottom_nodes; }
+	const Id *getLeftNodes()   const noexcept { return left_nodes;   }
+	const Id *getRightNodes()  const noexcept { return right_nodes;  }
+
+	size_t getNbInnerCells()  const noexcept { return inner_cells_count;  }
+	size_t getNbOuterCells()  const noexcept { return outer_cells_count;  }
+	size_t getNbTopCells()    const noexcept { return top_cells_count;    }
+	size_t getNbBottomCells() const noexcept { return bottom_cells_count; }
+	size_t getNbLeftCells()   const noexcept { return left_cells_count;   }
+	size_t getNbRightCells()  const noexcept { return right_cells_count;  }
+
+	const Id *getInnerCells()  const noexcept { return m_inner_cells;  }
+	const Id *getOuterCells()  const noexcept { return m_outer_cells;  }
+	const Id *getTopCells()    const noexcept { return m_top_cells;    }
+	const Id *getBottomCells() const noexcept { return m_bottom_cells; }
+	const Id *getLeftCells()   const noexcept { return m_left_cells;   }
+	const Id *getRightCells()  const noexcept { return m_right_cells;  }
+
+	Id getTopLeftNode()     const noexcept { return m_top_left_node;     }
+	Id getTopRightNode()    const noexcept { return m_top_right_node;    }
+	Id getBottomLeftNode()  const noexcept { return m_bottom_left_node;  }
+	Id getBottomRightNode() const noexcept { return m_bottom_right_node; }
+
+	auto getNodesOfCell(const Id& cellId)    const noexcept -> const array<Id, 4>&;
+	auto getNodesOfFace(const Id& faceId)    const noexcept -> const array<Id, 2>&;
+	auto getCellsOfNode(const Id& nodeId)    const noexcept -> BoundedArray<Id, MaxNbCellsOfNode>;
+	auto getNeighbourCells(const Id& cellId) const noexcept -> BoundedArray<Id, MaxNbNeighbourCells>;
+};
+
+template<size_t N> static inline void
+GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)
+{
+    /* The geometry */
+    gpu->geometry = (GPU_MeshGeometry<2> *)malloc(sizeof(GPU_MeshGeometry<2>));
+    GPU_MeshGeometry_alloc<2>(gpu->geometry, cpu->getGeometry());
+
+    /* nodes */
+	gpu->inner_nodes        = cpu->getInnerNodes();
+	gpu->top_nodes          = cpu->getTopNodes();
+	gpu->bottom_nodes       = cpu->getBottomNodes();
+	gpu->left_nodes         = cpu->getLeftNodes();
+	gpu->right_nodes        = cpu->getRightNodes();
+
+	gpu->inner_nodes_count  = cpu->getNbInnerNodes();
+	gpu->top_nodes_count    = cpu->getNbTopNodes();
+	gpu->bottom_nodes_count = cpu->getNbBottomNodes();
+	gpu->left_nodes_count   = cpu->getNbLeftNodes();
+	gpu->right_nodes_count  = cpu->getNbRightNodes();
+
+	gpu->top_left_node      = cpu->getTopLeftNode();
+	gpu->top_right_node     = cpu->getTopRightNode();
+	gpu->bottom_left_node   = cpu->getBottomLeftNode();
+	gpu->bottom_right_node  = cpu->getBottomRightNode();
+
+    /* border cells */
+	gpu->top_cells          = cpu->getTopCells();
+	gpu->bottom_cells       = cpu->getBottomCells();
+	gpu->left_cells         = cpu->getLeftCells();
+	gpu->right_cells        = cpu->getRightCells();
+
+	gpu->top_cells_count    = cpu->getNbTopCells();
+	gpu->bottom_cells_count = cpu->getNbBottomCells();
+	gpu->left_cells_count   = cpu->getNbLeftCells();
+	gpu->right_cells_count  = cpu->getNbRightCells();
+
+    /* cells again */
+	gpu->inner_cells        = cpu->getInnerCells();
+	gpu->outer_cells        = cpu->getOuterCells();
+	gpu->inner_cells_count  = cpu->getNbInnerCells();
+	gpu->outer_cells_count  = cpu->getNbOuterCells();
+
+    /* problem sizes */
+	size_t gpu->nb_x_quads  = cpu->m_nb_x_quads;
+	size_t gpu->nb_y_quads  = cpu->m_nb_y_quads;
+
+    /* Copy the big structure and all counters */
+    #pragma omp target enter data map(alloc: gpu[:1])
+    #pragma omp target update to (gpu[:1])
+
+    /* The deep-copy part */
+    #pragma omp target enter data map(alloc: gpu->inner_nodes [:gpu->inner_nodes_count ])
+    #pragma omp target enter data map(alloc: gpu->top_nodes   [:gpu->top_nodes_count   ])
+    #pragma omp target enter data map(alloc: gpu->bottom_nodes[:gpu->bottom_nodes_count])
+    #pragma omp target enter data map(alloc: gpu->left_nodes  [:gpu->left_nodes_count  ])
+    #pragma omp target enter data map(alloc: gpu->right_nodes [:gpu->right_nodes_count ])
+    #pragma omp target update to (gpu->inner_nodes [:gpu->inner_nodes_count ])
+    #pragma omp target update to (gpu->top_nodes   [:gpu->top_nodes_count   ])
+    #pragma omp target update to (gpu->bottom_nodes[:gpu->bottom_nodes_count])
+    #pragma omp target update to (gpu->left_nodes  [:gpu->left_nodes_count  ])
+    #pragma omp target update to (gpu->right_nodes [:gpu->right_nodes_count ])
+
+    #pragma omp target enter data map(alloc: gpu->top_cells   [:gpu->top_cells_count   ])
+    #pragma omp target enter data map(alloc: gpu->bottom_cells[:gpu->bottom_cells_count])
+    #pragma omp target enter data map(alloc: gpu->left_cells  [:gpu->left_cells_count  ])
+    #pragma omp target enter data map(alloc: gpu->right_cells [:gpu->right_cells_count ])
+    #pragma omp target update to (gpu->top_cells   [:gpu->top_cells_count   ])
+    #pragma omp target update to (gpu->bottom_cells[:gpu->bottom_cells_count])
+    #pragma omp target update to (gpu->left_cells  [:gpu->left_cells_count  ])
+    #pragma omp target update to (gpu->right_cells [:gpu->right_cells_count ])
+
+    #pragma omp target enter data map(alloc: gpu->inner_cells[:gpu->inner_cells_count])
+    #pragma omp target enter data map(alloc: gpu->outer_cells[:gpu->outer_cells_count])
+    #pragma omp target update to (gpu->inner_cells[:gpu->inner_cells_count])
+    #pragma omp target update to (gpu->outer_cells[:gpu->outer_cells_count])
+}
+
+template<size_t N> static inline void
+GPU_CartesianMesh2D_free(GPU_CartesianMesh2D *gpu)
+{
+    GPU_MeshGeometry_free<2>(gpu->geometry);
+
+    #pragma omp target exit data map(delete: gpu->inner_nodes [:gpu->inner_nodes_count ])
+    #pragma omp target exit data map(delete: gpu->top_nodes   [:gpu->top_nodes_count   ])
+    #pragma omp target exit data map(delete: gpu->bottom_nodes[:gpu->bottom_nodes_count])
+    #pragma omp target exit data map(delete: gpu->left_nodes  [:gpu->left_nodes_count  ])
+    #pragma omp target exit data map(delete: gpu->right_nodes [:gpu->right_nodes_count ])
+
+    #pragma omp target exit data map(delete: gpu->top_cells   [:gpu->top_cells_count   ])
+    #pragma omp target exit data map(delete: gpu->bottom_cells[:gpu->bottom_cells_count])
+    #pragma omp target exit data map(delete: gpu->left_cells  [:gpu->left_cells_count  ])
+    #pragma omp target exit data map(delete: gpu->right_cells [:gpu->right_cells_count ])
+
+    #pragma omp target exit data map(delete: gpu->inner_cells[:gpu->inner_cells_count])
+    #pragma omp target exit data map(delete: gpu->outer_cells[:gpu->outer_cells_count])
+
+    #pragma omp target exit data map(delete: gpu[:1])
+}
+
+#endif /* NABLALIB_GPU */
 
 }
 #endif /* NABLALIB_MESH_CARTESIANMESH2D_H_ */
