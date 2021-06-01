@@ -216,8 +216,7 @@ struct GPU_CartesianMesh2D {
 
 	Id top_left_node;
 	Id top_right_node;
-	Id bottom_left_node;
-	Id bottom_right_node;
+	Id bottom_left_node; Id bottom_right_node;
 
     /* border cells */
 	Id *top_cells;
@@ -280,10 +279,60 @@ struct GPU_CartesianMesh2D {
 	Id getBottomLeftNode()  const noexcept { return m_bottom_left_node;  }
 	Id getBottomRightNode() const noexcept { return m_bottom_right_node; }
 
-	auto getNodesOfCell(const Id& cellId)    const noexcept -> const array<Id, 4>&;
-	auto getNodesOfFace(const Id& faceId)    const noexcept -> const array<Id, 2>&;
-	auto getCellsOfNode(const Id& nodeId)    const noexcept -> BoundedArray<Id, MaxNbCellsOfNode>;
-	auto getNeighbourCells(const Id& cellId) const noexcept -> BoundedArray<Id, MaxNbNeighbourCells>;
+    inline const std::array<Id, 4>&
+	getNodesOfCell(const Id& cellId) const noexcept
+    {
+        return geometry->quads[cellId].getNodeIds();
+    }
+
+    inline BoundedArray<Id, MaxNbCellsOfNode>
+	getCellsOfNode(const Id& nodeId) const noexcept
+    {
+        // TODO: Get ride of all the if/else
+        // ((x ^ y) < 0); // true if x and y have opposite signs
+
+        auto [i, j] = id2IndexNode(nodeId);
+        vector<Id> cells;
+
+        if (i < nb_y_quads && j < nb_x_quads) cells.emplace_back(index2IdCell(i,   j  ));
+        if (i < nb_y_quads && j > 0)          cells.emplace_back(index2IdCell(i,   j-1));
+        if (i > 0          && j < nb_x_quads) cells.emplace_back(index2IdCell(i-1, j  ));
+        if (i > 0          && j > 0)          cells.emplace_back(index2IdCell(i-1, j-1));
+
+        return BoundedArray<Id, MaxNbCellsOfNode>::fromVector(cells);
+    }
+
+    inline const std::array<Id, MaxNbNeighbourCells>
+	getNeighbourCells(const Id& cellId) const noexcept
+    {
+        // TODO: Get ride of all the if/else
+        // ((x ^ y) < 0); // true if x and y have opposite signs
+
+        auto [i, j] = id2IndexNode(nodeId);
+        vector<Id> neighbors;
+
+        if (i >= 1)             neighbors.emplace_back(index2IdCell(i-1, j  ));
+        if (i < nb_y_quads - 1) neighbors.emplace_back(index2IdCell(i+1, j  ));
+        if (j >= 1)             neighbors.emplace_back(index2IdCell(i,   j-1));
+        if (j < nb_x_quads - 1) neighbors.emplace_back(index2IdCell(i,   j+1));
+
+        return BoundedArray<Id, MaxNbNeighbourCells>::fromVector(neighbors);
+    }
+
+private:
+    inline std::pair<size_t, size_t>
+    id2IndexNode(const id& k) const noexcept
+    {
+        size_t i = (static_cast<size_t>(k) / (nb_x_quads + 1));
+        size_t j = static_cast<size_t>(k) - i * (nb_x_quads + 1);
+        return std::pair<size_t, size_t>{ i, j };
+    }
+
+    inline id
+    index2IdCell(const size_t i, const size_t j) const noexcept
+    {
+        return static_cast<Id>(i * nb_x_quads + j);
+    }
 };
 
 template<size_t N> static inline void

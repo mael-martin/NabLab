@@ -136,14 +136,14 @@ CartesianMesh2D::getSecondNodeOfFace(const Id& faceId) const noexcept
 BoundedArray<Id, CartesianMesh2D::MaxNbCellsOfNode>
 CartesianMesh2D::getCellsOfNode(const Id& nodeId) const noexcept
 {
-  vector<Id> cells;
-  size_t i,j;
-  tie(i, j) = id2IndexNode(nodeId);
-  if (i < m_nb_y_quads && j < m_nb_x_quads) cells.emplace_back(index2IdCell(i, j));
-  if (i < m_nb_y_quads && j > 0)            cells.emplace_back(index2IdCell(i, j-1));
-  if (i > 0            && j < m_nb_x_quads) cells.emplace_back(index2IdCell(i-1, j));
-  if (i > 0            && j > 0)            cells.emplace_back(index2IdCell(i-1, j-1));
-  return BoundedArray<Id, CartesianMesh2D::MaxNbCellsOfNode>::fromVector(cells);
+    vector<Id> cells;
+    size_t i,j;
+    tie(i, j) = id2IndexNode(nodeId);
+    if (i < m_nb_y_quads && j < m_nb_x_quads) cells.emplace_back(index2IdCell(i, j));
+    if (i < m_nb_y_quads && j > 0)            cells.emplace_back(index2IdCell(i, j-1));
+    if (i > 0            && j < m_nb_x_quads) cells.emplace_back(index2IdCell(i-1, j));
+    if (i > 0            && j > 0)            cells.emplace_back(index2IdCell(i-1, j-1));
+    return BoundedArray<Id, CartesianMesh2D::MaxNbCellsOfNode>::fromVector(cells);
 }
 
 BoundedArray<Id, CartesianMesh2D::MaxNbCellsOfFace>
