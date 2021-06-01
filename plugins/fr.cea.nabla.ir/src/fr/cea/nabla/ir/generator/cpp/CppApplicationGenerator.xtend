@@ -73,6 +73,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 	private def getHeaderFileContent(IrModule it)
 	'''
+	«IF isGPU»
+	#define NABLALIB_GPU 1
+	«ENDIF»
 	«fileHeader»
 
 	#ifndef «name.HDefineName»
@@ -252,6 +255,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	'''
 	#define NABLALIB_DEBUG 0
 	#define NABLA_DEBUG    0
+	«IF isGPU»
+	#define NABLALIB_GPU 1
+	«ENDIF»
 	«fileHeader»
 
 	#include "«className».h"
