@@ -120,6 +120,10 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	
 	/******************** GPU variable declarations ********************/
 	«GPUDeclaration»
+
+	«FOR v : options»
+	«typeContentProvider.getCppType(v.type)» options_«v.name»_glb;
+	«ENDFOR»
 	«ENDIF»
 
 	/******************** Module declaration ********************/

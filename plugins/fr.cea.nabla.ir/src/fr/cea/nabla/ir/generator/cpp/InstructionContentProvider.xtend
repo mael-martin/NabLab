@@ -182,10 +182,18 @@ abstract class InstructionContentProvider
 	protected def dispatch getNbElems(Iterator it) { container.nbElemsVar }
 	protected def dispatch getNbElems(Interval it) { nbElems.content }
 
-	protected def getSetDefinitionContent(String setName, ConnectivityCall call)
-	'''
-		const auto «setName»(mesh->«call.accessor»);
-	'''
+	protected def CharSequence
+	getSetDefinitionContent(String setName, ConnectivityCall call)
+	{
+		if (IsInsideGPUJob)
+		'''
+			const auto «setName»(mesh_glb->«call.accessor»);
+		'''
+		else
+		'''
+			const auto «setName»(mesh->«call.accessor»);
+		'''
+	}
 }
 
 @Data

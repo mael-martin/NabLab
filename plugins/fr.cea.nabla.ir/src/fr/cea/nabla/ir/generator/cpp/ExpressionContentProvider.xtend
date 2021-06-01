@@ -61,7 +61,8 @@ class ExpressionContentProvider
 	def dispatch CharSequence getContent(RealConstant it) '''«value»'''
 	def dispatch CharSequence getContent(BoolConstant it) '''«value»'''
 
-	def dispatch CharSequence getContent(MinConstant it)
+	def dispatch CharSequence
+	getContent(MinConstant it)
 	{
 		val t = type
 		switch t
@@ -73,7 +74,8 @@ class ExpressionContentProvider
 		}
 	}
 
-	def dispatch CharSequence getContent(MaxConstant it)
+	def dispatch CharSequence
+	getContent(MaxConstant it)
 	{
 		val t = type
 		switch t
@@ -84,7 +86,8 @@ class ExpressionContentProvider
 		}
 	}
 
-	def dispatch CharSequence getContent(BaseTypeConstant it)
+	def dispatch CharSequence
+	getContent(BaseTypeConstant it)
 	{
 		val t = type as BaseType
 
@@ -95,16 +98,20 @@ class ExpressionContentProvider
 		'''{«initArray(sizes, value.content)»}'''
 	}
 
-	def dispatch CharSequence getContent(VectorConstant it)
+	def dispatch CharSequence
+	getContent(VectorConstant it)
 	'''{«innerContent»}'''
 
-	def dispatch CharSequence getContent(Cardinality it)
+	def dispatch CharSequence
+	getContent(Cardinality it)
 	{
 		val call = container.connectivityCall
 		if (call.connectivity.multiple)
 		{
 			if (call.args.empty)
 				call.connectivity.nbElemsVar
+			else if (IsInsideGPUJob)
+				'''mesh_glb->«call.accessor».size()'''
 			else
 				'''mesh->«call.accessor».size()'''
 		}
@@ -112,7 +119,8 @@ class ExpressionContentProvider
 			'''1'''
 	}
 
-	def dispatch CharSequence getContent(FunctionCall it)
+	def dispatch CharSequence
+	getContent(FunctionCall it)
 	{
 		if (function.name == 'solveLinearSystem')
 			switch (args.length)
@@ -133,16 +141,22 @@ class ExpressionContentProvider
 			'''«function.codeName»(«FOR a:args SEPARATOR ', '»«a.content»«ENDFOR»)'''
 	}
 
-	def dispatch CharSequence getContent(ArgOrVarRef it)
+	def dispatch CharSequence
+	getContent(ArgOrVarRef it)
 	{
-		val code_name = IsInsideGPUJob ? '''«codeName»_glb''' : codeName
+		var String code_name = IsInsideGPUJob ? codeName + '_glb' : codeName + ''
+		if (IsInsideGPUJob) {
+			code_name = code_name.replace('.', '_')
+		}
+
 		if (target.linearAlgebra && !(iterators.empty && indices.empty))
 			'''«code_name».getValue(«formatIteratorsAndIndices(target.type, iterators, indices)»)'''
 		else
 			'''«code_name»«formatIteratorsAndIndices(target.type, iterators, indices)»'''
 	}
 
-	def CharSequence getCodeName(ArgOrVarRef it)
+	def CharSequence
+	getCodeName(ArgOrVarRef it)
 	{
 		if (irModule === target.irModule) target.codeName
 		else 'mainModule->' + target.codeName
@@ -152,11 +166,13 @@ class ExpressionContentProvider
 	private def dispatch CharSequence getInnerContent(VectorConstant it)
 	'''«FOR v : values SEPARATOR ', '»«v.innerContent»«ENDFOR»'''
 
-	private def CharSequence initArray(int[] sizes, CharSequence value)
+	private def CharSequence
+	initArray(int[] sizes, CharSequence value)
 	'''«FOR size : sizes SEPARATOR ",  "»«FOR i : 0..<size SEPARATOR ', '»«value»«ENDFOR»«ENDFOR»'''
 
 	// Simple helper to add pointer information to VectorType variable for LinearAlgebra cases
-	private def getCppLinearAlgebraHelper(Expression expr) 
+	private def CharSequence
+	getCppLinearAlgebraHelper(Expression expr) 
 	{
 		switch expr.type.dimension
 		{
