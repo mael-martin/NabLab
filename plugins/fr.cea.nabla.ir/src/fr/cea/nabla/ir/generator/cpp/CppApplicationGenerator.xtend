@@ -193,7 +193,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«ENDIF»
 		// Mesh and mesh variables
 		«meshClassName»* mesh;
-		«FOR c : irRoot.connectivities.filter[multiple] BEFORE 'size_t __attribute__((unused))' SEPARATOR ', '»«c.nbElemsVar»«ENDFOR»;
+	public: // Hacky boi
+		«FOR c : irRoot.connectivities.filter[multiple] BEFORE 'size_t \n__attribute__((unused))' SEPARATOR ', \n__attribute__((unused))'»«c.nbElemsVar»«ENDFOR»;
+	private:
 
 		// User options
 		Options& options;
@@ -310,8 +312,37 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDIF»
 
 	«IF isGPU»
+	«val CountVars = #[
+		'nbNodes', 'nbCells', 'nbInnerNodes', 'nbTopNodes', 'nbBottomNodes',
+		'nbLeftNodes', 'nbRightNodes', 'nbNodesOfCell', 'nbCellsOfNodes'
+	]»
 	/******************** GPU Mesh definition & declaration ********************/
 	GPU_CartesianMesh2D mesh_glb;
+	«FOR cv : CountVars»
+	size_t __attribute__((unused))«cv»;
+	«ENDFOR»
+	
+	static inline void
+	GPU_SetMeshCountVariables(«meshClassName» *mesh) noexcept
+	{
+		«FOR cv : CountVars»
+		«cv» = mesh->«cv»;
+		«ENDFOR»
+		«FOR cv : CountVars»
+		#pragma omp target enter data map(alloc: «cv»)
+		«ENDFOR»
+		«FOR cv : CountVars»
+		#pragma omp target update to («cv»)
+		«ENDFOR»
+	}
+
+	static inline void
+	GPU_UnsetMeshCountVariables(void) noexcept
+	{
+		«FOR cv : CountVars»
+		#pragma omp target exit data map(delete: «cv»)
+		«ENDFOR»
+	}
 	«ENDIF»
 
 	/******************** Options definition ********************/
@@ -380,6 +411,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 					«ENDFOR»
 				«ENDIF»
 				/* END: Free data on GPU */
+				GPU_UnsetMeshCountVariables();
 			«ENDIF»
 		«ENDIF»
 	}
@@ -494,6 +526,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				«ENDFOR»
 			«ENDIF»
 			/* END: Copy to GPU constant things */
+			GPU_SetMeshCountVariables(mesh);
 			«ENDIF»
 		«ENDIF»
 		
