@@ -131,8 +131,7 @@ class OpenMpTaskMainContentProvider extends MainContentProvider
 	
 	protected override getSimulationCall(IrModule it)
 	'''
-	setenv("OMP_PROC_BIND", "true", 1);
-	omp_set_max_active_levels(«max_active_levels»);
+	// setenv("OMP_PROC_BIND", "true", 1); // <- do nothing, set the env before calling the executable
 	omp_set_num_threads(«num_threads»);
 	«name»->simulate();
 	'''

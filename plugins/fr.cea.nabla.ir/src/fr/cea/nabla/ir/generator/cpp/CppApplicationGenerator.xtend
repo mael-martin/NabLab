@@ -703,6 +703,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	int main(int argc, char* argv[]) 
 	{
 		int ret = EXIT_SUCCESS;
+		«IF isGPU && isOpenMpTask»
+		omp_set_max_active_levels(2); /* For the task and the parallel for inside the task */
+		«ENDIF»
 		«backend.mainContentProvider.getContentFor(it, levelDBPath)»
 		return ret;
 	}
