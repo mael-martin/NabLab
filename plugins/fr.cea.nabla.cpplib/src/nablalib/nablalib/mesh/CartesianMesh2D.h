@@ -344,7 +344,7 @@ private:
     }
 };
 
-template<size_t N> static inline void
+static inline void
 GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)
 {
     /* The geometry */
@@ -421,7 +421,7 @@ GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)
     #pragma omp target update to (gpu->outer_cells[:gpu->outer_cells_count])
 }
 
-template<size_t N> static inline void
+static inline void
 GPU_CartesianMesh2D_free(GPU_CartesianMesh2D *gpu)
 {
     GPU_MeshGeometry_free<2>(gpu->geometry);

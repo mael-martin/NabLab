@@ -49,9 +49,9 @@ private:
 template<size_t N>
 struct GPU_MeshGeometry
 {
-    RealArray1D<N> *nodes;
-    Edge *edges;
-    Quad *quads;
+    const RealArray1D<N> *nodes;
+    const Edge *edges;
+    const Quad *quads;
 
     size_t nodes_count;
     size_t edges_count;
