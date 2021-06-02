@@ -60,11 +60,10 @@ abstract class JobContentProvider
 			println("Define content of GPU job " + name + ": Retrieve dataflow things...")
 
 			/* Get the MININ, OUT, READ, WRITE and take into account the ALREADY_ON_GPU */
-			val OnGPU  = alreadyOnGPU
 			val MinIns = minimalInVars.map[ name ]
 			val Outs   = outVars.map[ name ]
 			val WRITE  = outVars.map[ name ]
-			val READ   = inVars.reject[ v | OnGPU.contains(v.name) ].map[ name ]
+			val READ   = inVars.map[ name ]
 			val SIZES  = new HashMap<String, String>()
 			READ.forEach[  name | SIZES.put(name, name.globalVariableSize) ]
 			WRITE.forEach[ name | SIZES.put(name, name.globalVariableSize) ]

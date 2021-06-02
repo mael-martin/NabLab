@@ -593,9 +593,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDFOR»
 	«IF main»
 
-	/***************
-	 * MAIN MODULE *
-	 ***************/
+	/***************\
+	|  MAIN MODULE  |
+	\***************/
 	«IF postProcessing !== null»
 
 	void «className»::dumpVariables(int iteration, bool useTimer)

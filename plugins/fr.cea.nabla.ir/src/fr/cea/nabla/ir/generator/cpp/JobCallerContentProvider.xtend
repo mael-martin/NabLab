@@ -41,13 +41,6 @@ class JobCallerContentProvider
 class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 {
 	var boolean OMPRegion                 = false
-	static val Set<String> __AlreadyOnGPU = new HashSet<String>()
-
-	static def Set<String>
-	getAlreadyOnGPU()
-	{
-		return __AlreadyOnGPU
-	}
 
 	override CharSequence
 	getCallsHeader(JobCaller it)
@@ -56,23 +49,14 @@ class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 	override CharSequence
 	getCallsContent(JobCaller it)
 	'''
-		// Clear 'AlreadyOnGPU' set «__AlreadyOnGPU.clear»
 		«FOR j : calls»
 			«j.OMPRegionLimit»
 			«j.callName.replace('.', '->')»(); // @«j.at»
-			«j.computeAlreadyReadForJob /* Flush already READ for the next jobs */»
 		«ENDFOR»
 		«IF OMPRegion»
 			}}
 		«ENDIF»
 	'''
-
-	private def void
-	computeAlreadyReadForJob(Job it)
-	{
-		val INS = inVars.map[ name ]
-		__AlreadyOnGPU.addAll(INS)
-	}
 
 	/* Create or end a parallel region task single to create all the other tasks */
 	private def CharSequence
