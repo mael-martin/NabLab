@@ -144,7 +144,7 @@ class ExpressionContentProvider
 	def dispatch CharSequence
 	getContent(ArgOrVarRef it)
 	{
-		var String code_name = IsInsideGPUJob ? codeName + '_glb' : codeName + ''
+		var String code_name = codeName + '' // + (IsInsideGPUJob ? '_glb' : '')
 		if (IsInsideGPUJob) {
 			code_name = code_name.replace('.', '_')
 		}

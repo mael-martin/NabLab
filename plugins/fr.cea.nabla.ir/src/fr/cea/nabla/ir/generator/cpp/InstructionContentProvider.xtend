@@ -351,6 +351,18 @@ class OpenMpTargetInstructionContentProvider extends InstructionContentProvider
 		''')»
 	'''
 
+	protected override CharSequence
+	getSequentialLoopContent(Loop it)
+	{
+		val index_name = iterationBlock.indexName
+		'''
+			for (size_t «index_name»=0; «index_name»<«iterationBlock.nbElems»; «index_name»++)
+			{
+				«body.innerContent»
+			}
+		'''
+	}
+
 	override CharSequence
 	getParallelLoopContent(Loop it)
 	'''
