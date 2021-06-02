@@ -10,7 +10,12 @@
 #include "nablalib/mesh/CartesianMesh2D.h"
 #include <stdexcept>
 #include <sstream>
+
+#if defined(NABLALIB_GPU) && (NABLALIB_GPU == 1)
+#define assert(x)
+#else
 #include <cassert>
+#endif
 
 namespace nablalib::mesh
 {

@@ -12,9 +12,14 @@
 
 #include <array>
 #include <vector>
-#include <cassert>
 #include <algorithm>
 #include <utility>
+
+#if defined(NABLALIB_GPU) && (NABLALIB_GPU == 1)
+#define assert(x)
+#else
+#include <cassert>
+#endif
 
 namespace nablalib::types
 {
