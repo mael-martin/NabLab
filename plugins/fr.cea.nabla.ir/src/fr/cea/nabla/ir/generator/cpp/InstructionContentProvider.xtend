@@ -160,13 +160,26 @@ abstract class InstructionContentProvider
 	// ### IterationBlock Extensions ###
 	protected def dispatch defineInterval(Iterator it, CharSequence innerContent)
 	{
+		val CountVars = #[
+			'nbNodes', 'nbCells', 'nbInnerNodes', 'nbTopNodes', 'nbBottomNodes',
+			'nbLeftNodes', 'nbRightNodes', 'nbNodesOfCell', 'nbCellsOfNode'
+		]
+
 		if (container.connectivityCall.connectivity.indexEqualId)
 			innerContent
-		else
-		'''
+
+		else '''
 		{
 			«IF container instanceof ConnectivityCall»«getSetDefinitionContent(container.uniqueName, container as ConnectivityCall)»«ENDIF»
-			const size_t «nbElems»(«container.uniqueName».size());
+			«IF IsInsideGPUJob»
+				«IF CountVars.contains(nbElems)»
+				const size_t «nbElems» = mesh_glb->getNb«(container.uniqueName + '').toFirstUpper»();
+				«ELSE»
+				const size_t «nbElems» = «container.uniqueName».size();
+				«ENDIF»
+			«ELSE»
+				const size_t «nbElems» = «container.uniqueName».size();
+			«ENDIF»
 			«innerContent»
 		}
 		'''
@@ -187,11 +200,11 @@ abstract class InstructionContentProvider
 	{
 		if (IsInsideGPUJob)
 		'''
-			const auto «setName»(mesh_glb->«call.accessor»);
+			const auto «setName» = mesh_glb->«call.accessor»;
 		'''
 		else
 		'''
-			const auto «setName»(mesh->«call.accessor»);
+			const auto «setName» = mesh->«call.accessor»;
 		'''
 	}
 }

@@ -40,11 +40,23 @@ class JobCallerContentProvider
 
 class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 {
-	var boolean OMPRegion                 = false
+	var boolean OMPRegion = false
 
 	override CharSequence
 	getCallsHeader(JobCaller it)
 	''''''
+	
+	private def CharSequence
+	OMPRegionClose()
+	{
+		if (OMPRegion) {
+			OMPRegion = false
+			return '''}}'''
+		}
+		
+		else
+			return ''''''
+	}
 
 	override CharSequence
 	getCallsContent(JobCaller it)
@@ -53,9 +65,7 @@ class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 			«j.OMPRegionLimit»
 			«j.callName.replace('.', '->')»(); // @«j.at»
 		«ENDFOR»
-		«IF OMPRegion»
-			}}
-		«ENDIF»
+		«OMPRegionClose»
 	'''
 
 	/* Create or end a parallel region task single to create all the other tasks */
@@ -85,7 +95,9 @@ class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 				} else ''''''
 			}
 
-			default: throw new Exception("Unknown Job type for " + name + "@" + at)
+			default: {
+				throw new Exception("Unknown Job type for " + name + "@" + at)
+			}
 		}
 	}
 }

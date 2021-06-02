@@ -54,9 +54,10 @@ abstract class JobContentProvider
 	{
 		IsInsideGPUJob       = GPUJob
 		var CharSequence ret = null
+		val instruction_job  = it instanceof InstructionJob
 
 		/* GPU Job! */
-		if (IsInsideGPUJob) {
+		if (IsInsideGPUJob && instruction_job) {
 			println("Define content of GPU job " + name + ": Retrieve dataflow things...")
 
 			/* Get the MININ, OUT, READ, WRITE and take into account the ALREADY_ON_GPU */
@@ -84,7 +85,7 @@ abstract class JobContentProvider
 		}
 
 		/* Regular CPU Job */
-		else if (task_mode) {
+		else if (task_mode && instruction_job) {
 			println("Define content of CPU job " + name)
 
 			val MinIns = minimalInVars.filter[ !isOption ].map[ name ]
