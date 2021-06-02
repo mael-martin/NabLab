@@ -54,9 +54,13 @@ namespace nablalib::utils
 	  for (size_t i(0) ; i < array.size(); ++i)
 	    if (array[i] == value)
 	      return i;
+#if defined(NABLALIB_GPU) && (NABLALIB_GPU == 1)
+      return 0;
+#else
 	  throw std::out_of_range("Value not in array");
+#endif
 	}
-	
+
 	// Vector overload
 	// TODO: can do better with a container type trait like with operator[] and size method
 	template <typename T>
@@ -65,9 +69,13 @@ namespace nablalib::utils
 	  for (size_t i(0) ; i < vector.size(); ++i)
 	    if (vector[i] == value)
 	      return i;
+#if defined(NABLALIB_GPU) && (NABLALIB_GPU == 1)
+      return 0;
+#else
 	  throw std::out_of_range("Value not in vector");
+#endif
 	}
-	
+
 
   // Estimated simulation time
   const utils::Timer::duration_type eta(const int& it, const int& max_it, const double& t, const double& max_t,
