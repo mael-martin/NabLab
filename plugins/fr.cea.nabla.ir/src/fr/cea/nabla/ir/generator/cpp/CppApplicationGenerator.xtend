@@ -73,9 +73,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 	private def getHeaderFileContent(IrModule it)
 	'''
-	«IF isGPU»
-	#define NABLALIB_GPU	1
-	«ENDIF»
 	«fileHeader»
 
 	#ifndef «name.HDefineName»
@@ -253,7 +250,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«ENDFOR»
 		// Options
 		«FOR v : options»
-		«typeContentProvider.getCppType(v.type)» options_«v.name»;
+		«typeContentProvider.getCppType(v.type)» options_«v.name»_glb;
 		«ENDFOR»
 		#pragma omp end declare target
 	'''
@@ -413,7 +410,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				/* Options: «options.size» */
 				«IF options.size != 0»
 					«FOR v : options»
-					«target.free('options_' + v.name)»
+					«target.free('options_' + v.name + '_glb')»
 					«ENDFOR»
 				«ENDIF»
 				/* END: Free data on GPU */
@@ -505,7 +502,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 				/* Base Options Copy: T -> T */
 				«FOR v : options»
-				options_«v.name» = options.«v.name»;
+				options_«v.name»_glb = options.«v.name»;
 				«ENDFOR»
 			}
 			/* END: Alias the .data() to _glb and other to _glb */
@@ -527,10 +524,10 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			/* Options: «options.size» */
 			«IF options.size != 0»
 				«FOR v : options»
-				«target.allocate('options_' + v.name)»
+				«target.allocate('options_' + v.name + '_glb')»
 				«ENDFOR»
 				«FOR v : options»
-				«target.update('options_' + v.name)»
+				«target.update('options_' + v.name + '_glb')»
 				«ENDFOR»
 			«ENDIF»
 			/* END: Copy to GPU constant things */

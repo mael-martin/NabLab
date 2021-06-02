@@ -208,7 +208,7 @@ abstract class TypeContentProvider
 		switch t
 		{
 			case null, case BOOL : throw new RuntimeException('Not implemented')
-			default: t.cppType + ' ' + name + '_glb[' + sizes.map[arraySizeContent].join('][') + ']'
+			default: t.getName + 'Array' + sizes.size + 'D<' + sizes.map[arraySizeContent].join(',') + '>' + name + '_glb'
 		}
 	}
 

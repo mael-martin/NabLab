@@ -33,6 +33,7 @@ import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import org.eclipse.xtend.lib.annotations.Data
+import fr.cea.nabla.ir.ir.Variable
 
 @Data
 class ExpressionContentProvider
@@ -157,6 +158,19 @@ class ExpressionContentProvider
 
 	def CharSequence
 	getCodeName(ArgOrVarRef it)
+	{
+		/* Inside a GPU region AND a variable that has been aliased */
+		if (IsInsideGPUJob && (target instanceof Variable) && target.global) {
+			'''«target.codeName»_glb'''
+		}
+
+		/* Not inside a GPU region OR not a variable */
+		else 
+			getCodeNameInternal(it)
+	}
+	
+	private def CharSequence
+	getCodeNameInternal(ArgOrVarRef it)
 	{
 		if (irModule === target.irModule) target.codeName
 		else 'mainModule->' + target.codeName
