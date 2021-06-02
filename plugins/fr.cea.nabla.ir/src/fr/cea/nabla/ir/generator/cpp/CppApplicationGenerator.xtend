@@ -74,7 +74,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	private def getHeaderFileContent(IrModule it)
 	'''
 	«IF isGPU»
-	#define NABLALIB_GPU 1
+	#define NABLALIB_GPU	1
 	«ENDIF»
 	«fileHeader»
 
@@ -243,8 +243,13 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	'''
 		// Global GPU variables
 		#pragma omp declare target
+		// All vars
 		«FOR v : variables.filter[!option]»
 		«typeContentProvider.getGpuFriendlyType(v.type, v.name)»
+		«ENDFOR»
+		// Counters for connectivity vars
+		«FOR v : variables.filter[!option].filter[v | v.type instanceof ConnectivityType]»
+		size_t «v.name»_count;
 		«ENDFOR»
 		// Options
 		«FOR v : options»
@@ -255,11 +260,15 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 	private def getSourceFileContent(IrModule it)
 	'''
+	«IF isGPU»
+	#ifdef NABLALIB_GPU
+	#undef NABLALIB_GPU
+	#endif /* NABLALIB_GPU */
+
+	#define NABLALIB_GPU   1
+	«ENDIF»
 	#define NABLALIB_DEBUG 0
 	#define NABLA_DEBUG    0
-	«IF isGPU»
-	#define NABLALIB_GPU 1
-	«ENDIF»
 	«fileHeader»
 
 	#include "«className».h"
@@ -452,7 +461,8 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 						{
 							«FOR idxtype : presentGlobalVariableTypes»
 							«val idxlimit = idxtype.variableIndexTypeLimit»
-							size_t limit_«idxtype» = (i != «OMPTaskMaxNumber - 1») ? ((«idxlimit» / «OMPTaskMaxNumber») * (i + 1)) : «idxlimit»;
+							size_t limit_«idxtype» = (i != «OMPTaskMaxNumber - 1») ? ((«
+								idxlimit» / «OMPTaskMaxNumber») * (i + 1)) : «idxlimit»;
 							«ENDFOR»
 
 							«FOR v : variables.filter[needStaticAllocation]»
@@ -476,7 +486,8 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			{
 				/* Connectivities: std::vector<T> -> T* */
 				«FOR v : variables.filter[ needStaticAllocation ]»
-				«v.name»_glb = «v.name».data();
+				«v.name»_glb   = «v.name».data();
+				«v.name»_count = «v.name».size();
 				«ENDFOR»
 
 				/* Arrays: T [][]... -> T[][]... */
