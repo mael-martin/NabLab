@@ -327,8 +327,9 @@ class ComputeCostTransformation extends IrTransformationStep
 	isInstructionNotPossibleOnGPU(Instruction it)
 	{
 		switch it {
-			If | While | Exit: return true
-			default:           return false
+			If | While | Exit:    return true
+			ReductionInstruction: return true
+			default:              return false
 		}
 	}
 	
