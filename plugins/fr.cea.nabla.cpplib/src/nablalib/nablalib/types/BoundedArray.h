@@ -11,6 +11,7 @@
 #define NABLALIB_TYPES_BOUNDEDARRAY_H_
 
 #include <array>
+#include <vector>
 #include <cassert>
 #include <algorithm>
 #include <utility>
