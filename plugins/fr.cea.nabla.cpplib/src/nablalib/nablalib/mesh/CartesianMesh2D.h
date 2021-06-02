@@ -208,14 +208,14 @@ struct GPU_CartesianMesh2D {
 	static constexpr int MaxNbCellsOfFace    = 2;
 	static constexpr int MaxNbNeighbourCells = 4;
 
-	GPU_MeshGeometry<2>* m_geometry;
+	GPU_MeshGeometry<2>* geometry;
 
     /* nodes */
-	Id *inner_nodes;
-	Id *top_nodes;
-	Id *bottom_nodes;
-	Id *left_nodes;
-	Id *right_nodes;
+	const Id *inner_nodes;
+	const Id *top_nodes;
+	const Id *bottom_nodes;
+	const Id *left_nodes;
+	const Id *right_nodes;
 
 	Id inner_nodes_count;
 	Id top_nodes_count;
@@ -228,10 +228,10 @@ struct GPU_CartesianMesh2D {
 	Id bottom_left_node; Id bottom_right_node;
 
     /* border cells */
-	Id *top_cells;
-	Id *bottom_cells;
-	Id *left_cells;
-	Id *right_cells;
+	const Id *top_cells;
+	const Id *bottom_cells;
+	const Id *left_cells;
+	const Id *right_cells;
 
 	Id top_cells_count;
 	Id bottom_cells_count;
@@ -244,8 +244,8 @@ struct GPU_CartesianMesh2D {
     \**********************************/
 
     /* cells again */
-	Id *inner_cells;
-	Id *outer_cells;
+	const Id *inner_cells;
+	const Id *outer_cells;
 	Id inner_cells_count;
 	Id outer_cells_count;
 
@@ -276,17 +276,17 @@ struct GPU_CartesianMesh2D {
 	size_t getNbLeftCells()   const noexcept { return left_cells_count;   }
 	size_t getNbRightCells()  const noexcept { return right_cells_count;  }
 
-	const Id *getInnerCells()  const noexcept { return m_inner_cells;  }
-	const Id *getOuterCells()  const noexcept { return m_outer_cells;  }
-	const Id *getTopCells()    const noexcept { return m_top_cells;    }
-	const Id *getBottomCells() const noexcept { return m_bottom_cells; }
-	const Id *getLeftCells()   const noexcept { return m_left_cells;   }
-	const Id *getRightCells()  const noexcept { return m_right_cells;  }
+	const Id *getInnerCells()  const noexcept { return inner_cells;  }
+	const Id *getOuterCells()  const noexcept { return outer_cells;  }
+	const Id *getTopCells()    const noexcept { return top_cells;    }
+	const Id *getBottomCells() const noexcept { return bottom_cells; }
+	const Id *getLeftCells()   const noexcept { return left_cells;   }
+	const Id *getRightCells()  const noexcept { return right_cells;  }
 
-	Id getTopLeftNode()     const noexcept { return m_top_left_node;     }
-	Id getTopRightNode()    const noexcept { return m_top_right_node;    }
-	Id getBottomLeftNode()  const noexcept { return m_bottom_left_node;  }
-	Id getBottomRightNode() const noexcept { return m_bottom_right_node; }
+	Id getTopLeftNode()     const noexcept { return top_left_node;     }
+	Id getTopRightNode()    const noexcept { return top_right_node;    }
+	Id getBottomLeftNode()  const noexcept { return bottom_left_node;  }
+	Id getBottomRightNode() const noexcept { return bottom_right_node; }
 
     inline const std::array<Id, 4>&
 	getNodesOfCell(const Id& cellId) const noexcept
@@ -317,7 +317,7 @@ struct GPU_CartesianMesh2D {
         // TODO: Get ride of all the if/else
         // ((x ^ y) < 0); // true if x and y have opposite signs
 
-        auto [i, j] = id2IndexNode(nodeId);
+        auto [i, j] = id2IndexNode(cellId);
         vector<Id> neighbors;
 
         if (i >= 1)             neighbors.emplace_back(index2IdCell(i-1, j  ));
@@ -330,14 +330,14 @@ struct GPU_CartesianMesh2D {
 
 private:
     inline std::pair<size_t, size_t>
-    id2IndexNode(const id& k) const noexcept
+    id2IndexNode(const Id& k) const noexcept
     {
         size_t i = (static_cast<size_t>(k) / (nb_x_quads + 1));
         size_t j = static_cast<size_t>(k) - i * (nb_x_quads + 1);
         return std::pair<size_t, size_t>{ i, j };
     }
 
-    inline id
+    inline Id
     index2IdCell(const size_t i, const size_t j) const noexcept
     {
         return static_cast<Id>(i * nb_x_quads + j);
@@ -352,11 +352,11 @@ GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)
     GPU_MeshGeometry_alloc<2>(gpu->geometry, cpu->getGeometry());
 
     /* nodes */
-	gpu->inner_nodes        = cpu->getInnerNodes();
-	gpu->top_nodes          = cpu->getTopNodes();
-	gpu->bottom_nodes       = cpu->getBottomNodes();
-	gpu->left_nodes         = cpu->getLeftNodes();
-	gpu->right_nodes        = cpu->getRightNodes();
+	gpu->inner_nodes        = cpu->getInnerNodes().data();
+	gpu->top_nodes          = cpu->getTopNodes().data();
+	gpu->bottom_nodes       = cpu->getBottomNodes().data();
+	gpu->left_nodes         = cpu->getLeftNodes().data();
+	gpu->right_nodes        = cpu->getRightNodes().data();
 
 	gpu->inner_nodes_count  = cpu->getNbInnerNodes();
 	gpu->top_nodes_count    = cpu->getNbTopNodes();
@@ -370,10 +370,10 @@ GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)
 	gpu->bottom_right_node  = cpu->getBottomRightNode();
 
     /* border cells */
-	gpu->top_cells          = cpu->getTopCells();
-	gpu->bottom_cells       = cpu->getBottomCells();
-	gpu->left_cells         = cpu->getLeftCells();
-	gpu->right_cells        = cpu->getRightCells();
+	gpu->top_cells          = cpu->getTopCells().data();
+	gpu->bottom_cells       = cpu->getBottomCells().data();
+	gpu->left_cells         = cpu->getLeftCells().data();
+	gpu->right_cells        = cpu->getRightCells().data();
 
 	gpu->top_cells_count    = cpu->getNbTopCells();
 	gpu->bottom_cells_count = cpu->getNbBottomCells();
@@ -381,8 +381,8 @@ GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)
 	gpu->right_cells_count  = cpu->getNbRightCells();
 
     /* cells again */
-	gpu->inner_cells        = cpu->getInnerCells();
-	gpu->outer_cells        = cpu->getOuterCells();
+	gpu->inner_cells        = cpu->getInnerCells().data();
+	gpu->outer_cells        = cpu->getOuterCells().data();
 	gpu->inner_cells_count  = cpu->getNbInnerCells();
 	gpu->outer_cells_count  = cpu->getNbOuterCells();
 

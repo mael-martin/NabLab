@@ -49,7 +49,7 @@ private:
 template<size_t N>
 struct GPU_MeshGeometry
 {
-    RealArray1D<n> *nodes;
+    RealArray1D<N> *nodes;
     Edge *edges;
     Quad *quads;
 
@@ -59,7 +59,7 @@ struct GPU_MeshGeometry
 };
 
 template<size_t N> static inline void
-GPU_MeshGeometry_alloc(GPU_MeshGeometry<N> *gpu, MeshGeometry *cpu)
+GPU_MeshGeometry_alloc(GPU_MeshGeometry<N> *gpu, MeshGeometry<N> *cpu)
 {
     /* Alias vectors to pointers... */
     gpu->nodes       = cpu->getNodes().data();
@@ -86,10 +86,10 @@ template<size_t N> static inline void
 GPU_MeshGeometry_free(GPU_MeshGeometry<N> *gpu)
 {
     /* Free in the correct order */
-    #pragma omp target exit data(delete: gpu->nodes[:gpu->nodes_count])
-    #pragma omp target exit data(delete: gpu->edges[:gpu->edges_count])
-    #pragma omp target exit data(delete: gpu->quads[:gpu->quads_count])
-    #pragma omp target exit data(delete: gpu[:1])
+    #pragma omp target exit data map(delete: gpu->nodes[:gpu->nodes_count])
+    #pragma omp target exit data map(delete: gpu->edges[:gpu->edges_count])
+    #pragma omp target exit data map(delete: gpu->quads[:gpu->quads_count])
+    #pragma omp target exit data map(delete: gpu[:1])
 }
 
 #endif /* NABLALIB_GPU */
