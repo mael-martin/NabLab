@@ -40,7 +40,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 {
 	val String levelDBPath
 	val cMakeVars = new LinkedHashSet<Pair<String, String>>
-	val target = new OpenMPTargetProvider
+	val target    = new OpenMPTargetProvider
 
 	new(Backend backend, String wsPath, String levelDBPath, Iterable<Pair<String, String>> cMakeVars)
 	{
@@ -253,7 +253,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«ENDFOR»
 		// Options
 		«FOR v : options»
-		«typeContentProvider.getCppType(v.type)» options_«v.name»_glb;
+		«typeContentProvider.getCppType(v.type)» options_«v.name»;
 		«ENDFOR»
 		#pragma omp end declare target
 	'''
@@ -337,19 +337,15 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«FOR cv : CountVars»
 		«cv» = mesh->«cv»;
 		«ENDFOR»
-		«FOR cv : CountVars»
-		#pragma omp target enter data map(alloc: «cv»)
-		«ENDFOR»
-		«FOR cv : CountVars»
-		#pragma omp target update to («cv»)
-		«ENDFOR»
+		«FOR cv : CountVars»«target.allocate(cv)»«ENDFOR»
+		«FOR cv : CountVars»«target.update(cv)»«ENDFOR»
 	}
 
 	static inline void
 	GPU_UnsetMeshCountVariables(void) noexcept
 	{
 		«FOR cv : CountVars»
-		#pragma omp target exit data map(delete: «cv»)
+		«target.free(cv)»
 		«ENDFOR»
 	}
 	«ENDIF»
@@ -410,13 +406,13 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				/* Vars: «copy_gpu_var.size» */
 				«IF copy_gpu_var.size != 0»
 					«FOR v : copy_gpu_var»
-					#pragma omp target exit data map(delete: «v.name»_glb)
+					«target.free(v)»
 					«ENDFOR»
 				«ENDIF»
 				/* Options: «options.size» */
 				«IF options.size != 0»
 					«FOR v : options»
-					#pragma omp target exit data map(delete: option_«v.name»_glb)
+					«target.free('option_' + v.name + '_glb')»
 					«ENDFOR»
 				«ENDIF»
 				/* END: Free data on GPU */
@@ -508,7 +504,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 				/* Base Options Copy: T -> T */
 				«FOR v : options»
-				options_«v.name»_glb = options.«v.name»;
+				options_«v.name» = options.«v.name»;
 				«ENDFOR»
 			}
 			/* END: Alias the .data() to _glb and other to _glb */
@@ -521,19 +517,19 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			/* Vars: «copy_gpu_var.size» */
 			«IF copy_gpu_var.size != 0»
 				«FOR v : copy_gpu_var»
-				#pragma omp target enter data map(alloc: «v.name»_glb)
+				«target.allocate(v)»
 				«ENDFOR»
 				«FOR v : copy_gpu_var»
-				#pragma omp target update to («v.name»_glb)
+				«target.update(v)»
 				«ENDFOR»
 			«ENDIF»
 			/* Options: «options.size» */
 			«IF options.size != 0»
 				«FOR v : options»
-				#pragma omp target enter data map(alloc: option_«v.name»_glb)
+				«target.allocate('options_' + v.name)»
 				«ENDFOR»
 				«FOR v : options»
-				#pragma omp target update to («v.name»_glb)
+				«target.update('options_' + v.name)»
 				«ENDFOR»
 			«ENDIF»
 			/* END: Copy to GPU constant things */

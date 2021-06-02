@@ -332,7 +332,7 @@ class OpenMPTargetProvider
 	'''
 
 	def CharSequence
-	updatte(String name, int len)
+	update(String name, int len)
 	'''
 		#pragma omp target update to («name»[0:«len»])
 	'''
@@ -362,8 +362,26 @@ class OpenMPTargetProvider
 	'''
 		#pragma omp target exit data map(delete: «name»[0:«len»])
 	'''
+
+	def CharSequence
+	allocate(String name)
+	'''
+		#pragma omp target enter data map(alloc: «name»)
+	'''
+
+	def CharSequence
+	update(String name)
+	'''
+		#pragma omp target update to («name»)
+	'''
+
+	def CharSequence
+	free(String name)
+	'''
+		#pragma omp target exit data map(delete: «name»)
+	'''
 	
-	// With Strings
+	// With Variables
 	
 	private def CharSequence
 	getVariableMapNameAndSize(Variable it)
@@ -383,7 +401,7 @@ class OpenMPTargetProvider
 	'''
 
 	def CharSequence
-	updatte(Variable it)
+	update(Variable it)
 	'''
 		#pragma omp target update to («variableMapNameAndSize»)
 	'''
