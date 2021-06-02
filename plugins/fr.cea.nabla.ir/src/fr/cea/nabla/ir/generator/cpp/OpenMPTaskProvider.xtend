@@ -491,6 +491,7 @@ class OpenMPTargetProvider
 		FOR out : OUT   BEFORE '\\\ndepend(out: '  SEPARATOR ', ' AFTER ')'»«out»«ENDFOR»«
 		FOR r   : READ  BEFORE '\\\nmap(to: '      SEPARATOR ', ' AFTER ')'»«r»«getSizeIndicationForVariable(r, RW_VAR_SIZES)»«ENDFOR»«
 		FOR w   : WRITE BEFORE '\\\nmap(from: '    SEPARATOR ', ' AFTER ')'»«w»«getSizeIndicationForVariable(w, RW_VAR_SIZES)»«ENDFOR»
+		#pragma omp teams num_teams(1) /* One team for simplicity */
 		{
 			«body»
 		}
@@ -502,7 +503,7 @@ class OpenMPTargetProvider
 		flipTaskModeFromJob
 
 		if (current_task_mode == TASK_MODE::GPU) '''
-			#pragma omp teams distribute parallel for reduction(min: «result») map(tofrom: «result»)
+			#pragma omp distribute parallel for reduction(min: «result») map(tofrom: «result»)
 			«body»
 		'''
 		
@@ -521,7 +522,7 @@ class OpenMPTargetProvider
 		flipTaskModeFromJob
 
 		if (current_task_mode == TASK_MODE::GPU) '''
-			#pragma omp teams distribute parallel for
+			#pragma omp distribute parallel for
 			«body»
 		'''
 
