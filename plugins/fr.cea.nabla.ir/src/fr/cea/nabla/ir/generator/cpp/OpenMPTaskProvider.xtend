@@ -475,7 +475,7 @@ class OpenMPTargetProvider
 		if (size === null)
 			'''_glb'''
 		else
-			'''_ptr[0:«size»]'''
+			'''_glb[0:«size»]'''
 	}
 
 	private def CharSequence
