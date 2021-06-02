@@ -17,6 +17,8 @@ import java.util.Set
 
 import static fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
+import fr.cea.nabla.ir.ir.ConnectivityType
+import fr.cea.nabla.ir.ir.BaseType
 
 abstract class OpenMPTaskProvider
 {
@@ -317,6 +319,12 @@ class OpenMPTargetProvider
 
 	new() { }
 
+	/************************************************\
+	|  Allocate and free variables from/for the GPU  |
+	\************************************************/
+
+	// With Integers
+	
 	def CharSequence
 	allocate(String name, int len)
 	'''
@@ -324,10 +332,70 @@ class OpenMPTargetProvider
 	'''
 
 	def CharSequence
+	updatte(String name, int len)
+	'''
+		#pragma omp target update to («name»[0:«len»])
+	'''
+
+	def CharSequence
 	free(String name, int len)
 	'''
 		#pragma omp target exit data map(delete: «name»[0:«len»])
 	'''
+	
+	// With Strings
+
+	def CharSequence
+	allocate(String name, String len)
+	'''
+		#pragma omp target enter data map(alloc: «name»[0:«len»])
+	'''
+
+	def CharSequence
+	updatte(String name, String len)
+	'''
+		#pragma omp target update to («name»[0:«len»])
+	'''
+
+	def CharSequence
+	free(String name, String len)
+	'''
+		#pragma omp target exit data map(delete: «name»[0:«len»])
+	'''
+	
+	// With Strings
+	
+	private def CharSequence
+	getVariableMapNameAndSize(Variable it)
+	{
+		switch type {
+			case null:        throw new Exception("Passing null variable")
+			BaseType:         '''«name»_glb'''
+			ConnectivityType: '''«name»_glb:[:«name»_count]'''
+			default:          throw new Exception("Un-handled type " + it.toString)
+		}
+	}
+
+	def CharSequence
+	allocate(Variable it)
+	'''
+		#pragma omp target enter data map(alloc: «variableMapNameAndSize»)
+	'''
+
+	def CharSequence
+	updatte(Variable it)
+	'''
+		#pragma omp target update to («variableMapNameAndSize»)
+	'''
+
+	def CharSequence
+	free(Variable it)
+	'''
+		#pragma omp target exit data map(delete: «variableMapNameAndSize»)
+	'''
+	
+
+	/* Task/target generation and offloading */
 	
 	static def void
 	select_target(TASK_MODE mode)
@@ -447,6 +515,8 @@ class OpenMPTargetProvider
 		else
 			throw new Exception("(╯°□°)╯ ┻━┻")
 	}
+
+	/* GPU implementation/declaration of variables/functions */
 
 	def CharSequence
 	declare_gpu_jobs(List<String> funcs)
