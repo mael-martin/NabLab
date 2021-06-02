@@ -25,31 +25,32 @@ namespace nablalib::mesh
 template <typename T, size_t N, typename enable_if<is_integral<T>::value>::type* = nullptr>
 class NodeIdContainer
 {
- public:
-  template <typename... Args, typename enable_if<(is_integral<Args>::value && ...)>::type* = nullptr>
-  explicit NodeIdContainer(Args... args) : m_nodeIds{args...} {}
+public:
+    template <typename... Args, typename enable_if<(is_integral<Args>::value && ...)>::type* = nullptr>
+    explicit NodeIdContainer(Args... args) : m_nodeIds{args...} {}
 
-  explicit NodeIdContainer(const NodeIdContainer<T, N>& nc) : m_nodeIds(nc.m_nodeIds) {}
+    // Copy: Make it trivially copyable
+    // explicit NodeIdContainer(const NodeIdContainer<T, N>& nc) : m_nodeIds(nc.m_nodeIds) {}
 
-  ~NodeIdContainer() = default;
+    ~NodeIdContainer() = default;
 
-  const array<T, N>& getNodeIds() const noexcept { return m_nodeIds; }
+    const array<T, N>& getNodeIds() const noexcept { return m_nodeIds; }
 
- private:
-  array<T, N> m_nodeIds;
+private:
+    array<T, N> m_nodeIds;
 };
 
 template <typename T, size_t N>
 ostream& operator<<(ostream& s, const NodeIdContainer<T, N>& o)
 {
-  auto nodeIds = o.getNodeIds();
-  if (nodeIds.size() > 0) {
-    s << "[" << nodeIds[0];
-    for (size_t i(1); i < nodeIds.size(); ++i)
-      s << ", " << nodeIds[i];
-    s << "]";
-  }
-  return s;
+    auto nodeIds = o.getNodeIds();
+    if (nodeIds.size() > 0) {
+        s << "[" << nodeIds[0];
+        for (size_t i(1); i < nodeIds.size(); ++i)
+            s << ", " << nodeIds[i];
+        s << "]";
+    }
+    return s;
 }
 
 // Type alias
