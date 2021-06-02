@@ -63,7 +63,7 @@ class MainContentProvider
 		}
 		«meshClassName»* mesh = meshFactory.create();
 		«IF isGPU»
-		GPU_«meshClassName»_alloc(&mesh_glb, mesh);
+		GPU_«meshClassName»_alloc(mesh_glb, mesh);
 		«ENDIF»
 
 		// Module instanciation(s)
@@ -90,7 +90,7 @@ class MainContentProvider
 			delete «m.name»;
 		«ENDFOR»
 		«IF isGPU»
-		GPU_«meshClassName»_free(&mesh_glb);
+		GPU_«meshClassName»_free(mesh_glb);
 		«ENDIF»
 		delete mesh;
 	'''

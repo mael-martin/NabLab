@@ -106,7 +106,7 @@ abstract class TypeContentProvider
 		switch it {
 			case null:                  throw new Exception("Can't send the null type to GPU")
 			BaseType case sizes.empty: 	'''«primitive.cppType» «name»_glb;'''
-			BaseType: 					'''«getCppGpuFriendlyArrayType(name, primitive, sizes)» «name»_glb;'''
+			BaseType: 					'''«getCppGpuFriendlyArrayType(name, primitive, sizes)»;'''
 			ConnectivityType: 			'''«getCppGpuFriendlyConnectivityType(base, connectivities)» «name»_glb;'''
 			LinearAlgebraType:          '''«IrTypeExtensions.getLinearAlgebraClass(it)»_glb'''
 			default: 		            throw new RuntimeException("Unexpected type: " + class.name)
@@ -208,7 +208,7 @@ abstract class TypeContentProvider
 		switch t
 		{
 			case null, case BOOL : throw new RuntimeException('Not implemented')
-			default: t.cppType + ' ' + name + '[' + sizes.map[arraySizeContent].join('][') + ']'
+			default: t.cppType + ' ' + name + '_glb[' + sizes.map[arraySizeContent].join('][') + ']'
 		}
 	}
 

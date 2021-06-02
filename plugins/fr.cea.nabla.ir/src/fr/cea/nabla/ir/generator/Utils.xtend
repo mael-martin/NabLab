@@ -93,9 +93,11 @@ class Utils
 	'''
 		/**
 		 * [«IF GPUJob»GPU«ELSE»CPU«ENDIF»] Job «getCodeName» called @«at» in «caller.codeName» method.
-		 * In [«FOR v : minimalInVars BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
-		 * Out [«FOR v : outVars.sortBy[name] BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
-		 * Cost: «val jc = jobContribution»«IF jc != 0»«jc»«ELSE»N/A«ENDIF»
+		 * MinIn [«FOR v : minimalInVars.filter[!isOption] BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
+		 * In    [«FOR v : inVars BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
+		 * Out   [«FOR v : outVars.sortBy[name] BEFORE ' ' SEPARATOR ', '»«v.name»«ENDFOR» ]
+		 * Contrib: «val jc  = jobContribution»«IF jc != 0»«jc»«ELSE»N/A«ENDIF»
+		 * Cost:    «val jco = jobCost»«IF jco != 0»«jco»«ELSE»N/A«ENDIF»
 		 */
 	'''
 

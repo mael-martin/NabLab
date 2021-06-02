@@ -60,10 +60,10 @@ abstract class JobContentProvider
 			println("Define content of GPU job " + name + ": Retrieve dataflow things...")
 
 			/* Get the MININ, OUT, READ, WRITE and take into account the ALREADY_ON_GPU */
-			val MinIns = minimalInVars.map[ name ]
+			val MinIns = minimalInVars.filter[ !isOption ].map[ name ]
 			val Outs   = outVars.map[ name ]
 			val WRITE  = outVars.map[ name ]
-			val READ   = inVars.map[ name ]
+			val READ   = inVars.filter[ !isOption ].map[ name ]
 			val SIZES  = new HashMap<String, String>()
 			READ.forEach[  name | SIZES.put(name, name.globalVariableSize) ]
 			WRITE.forEach[ name | SIZES.put(name, name.globalVariableSize) ]
@@ -87,7 +87,7 @@ abstract class JobContentProvider
 		else if (task_mode) {
 			println("Define content of CPU job " + name)
 
-			val MinIns = minimalInVars.map[ name ]
+			val MinIns = minimalInVars.filter[ !isOption ].map[ name ]
 			val Outs   = outVars.map[ name ]
 
 			ret = '''

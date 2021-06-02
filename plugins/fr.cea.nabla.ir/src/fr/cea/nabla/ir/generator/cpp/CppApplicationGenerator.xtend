@@ -323,16 +323,17 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«IF isGPU»
 	«val CountVars = #[
 		'nbNodes', 'nbCells', 'nbInnerNodes', 'nbTopNodes', 'nbBottomNodes',
-		'nbLeftNodes', 'nbRightNodes', 'nbNodesOfCell', 'nbCellsOfNodes'
+		'nbLeftNodes', 'nbRightNodes', 'nbNodesOfCell', 'nbCellsOfNode'
 	]»
 	/******************** GPU Mesh definition & declaration ********************/
-	GPU_CartesianMesh2D mesh_glb;
+	GPU_CartesianMesh2D mesh_glb_data;
+	GPU_CartesianMesh2D *mesh_glb = &mesh_glb_data;
 	«FOR cv : CountVars»
 	size_t __attribute__((unused))«cv»;
 	«ENDFOR»
 	
 	static inline void
-	GPU_SetMeshCountVariables(«meshClassName» *mesh) noexcept
+	GPU_SetMeshCountVariables(«className» *mesh) noexcept
 	{
 		«FOR cv : CountVars»
 		«cv» = mesh->«cv»;
@@ -412,7 +413,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				/* Options: «options.size» */
 				«IF options.size != 0»
 					«FOR v : options»
-					«target.free('option_' + v.name + '_glb')»
+					«target.free('options_' + v.name)»
 					«ENDFOR»
 				«ENDIF»
 				/* END: Free data on GPU */
@@ -491,7 +492,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 					.filter[ !option ]
 					.filter[ !needStaticAllocation ]
 					.filter[ v | typeContentProvider.isArray(v.type) ]»
-				std::memcpy((void *) «v.name»_glb, (void *) «v.name», sizeof(«v.name»));
+				std::memcpy((void *) &«v.name»_glb, (void *) &«v.name», sizeof(«v.name»));
 				«ENDFOR»
 
 				/* Base: T -> T */
@@ -533,7 +534,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				«ENDFOR»
 			«ENDIF»
 			/* END: Copy to GPU constant things */
-			GPU_SetMeshCountVariables(mesh);
+			GPU_SetMeshCountVariables(this);
 			«ENDIF»
 		«ENDIF»
 		
