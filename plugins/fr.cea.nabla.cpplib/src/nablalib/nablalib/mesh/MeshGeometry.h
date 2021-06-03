@@ -46,6 +46,7 @@ private:
  * GPU_MeshGeometry_free<2>(&mesh_glb); // Now things are deleted from the GPU
  */
 
+#pragma omp declare target
 template<size_t N>
 struct GPU_MeshGeometry
 {
@@ -57,6 +58,7 @@ struct GPU_MeshGeometry
     size_t edges_count;
     size_t quads_count;
 };
+#pragma omp end declare target
 
 template<size_t N> static inline void
 GPU_MeshGeometry_alloc(GPU_MeshGeometry<N> *gpu, MeshGeometry<N> *cpu)

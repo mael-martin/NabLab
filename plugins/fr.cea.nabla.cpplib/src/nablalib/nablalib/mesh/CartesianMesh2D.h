@@ -129,10 +129,22 @@ public:
 	Id getLeftFaceNeighbour(const Id& faceId) const;
 
  private:
-	Id index2IdCell(const size_t& i, const size_t& j) const noexcept;
-	Id index2IdNode(const size_t& i, const size_t& j) const noexcept;
-	pair<size_t, size_t> id2IndexCell(const Id& k) const noexcept;
-	pair<size_t, size_t> id2IndexNode(const Id& k) const noexcept;
+	inline Id index2IdCell(const size_t& i, const size_t& j) const noexcept { return static_cast<Id>(i * m_nb_x_quads + j); }
+	inline Id index2IdNode(const size_t& i, const size_t& j) const noexcept { return static_cast<Id>(i * (m_nb_x_quads + 1) + j); }
+	inline pair<size_t, size_t>
+    id2IndexCell(const Id& k) const noexcept
+    {
+        size_t i(static_cast<size_t>(k) / m_nb_x_quads);
+        size_t j(static_cast<size_t>(k) - i * m_nb_x_quads);
+        return make_pair(i, j);
+    }
+	inline pair<size_t, size_t>
+    id2IndexNode(const Id& k) const noexcept
+    {
+        size_t i(static_cast<size_t>(k) / (m_nb_x_quads + 1));
+        size_t j(static_cast<size_t>(k) - i * (m_nb_x_quads + 1));
+        return make_pair(i, j);
+    }
 
 	bool isInnerEdge(const Edge& e) const noexcept;
 	bool isVerticalEdge(const Edge& e) const noexcept;
@@ -201,6 +213,7 @@ public: // Hacky boi
  * GPU_CartesianMesh2D_free(&mesh_glb); // Now things are deleted from the GPU
  */
 
+#pragma omp declare target
 struct GPU_CartesianMesh2D {
 	static constexpr int MaxNbNodesOfCell    = 4;
 	static constexpr int MaxNbNodesOfFace    = 2;
@@ -343,6 +356,7 @@ private:
         return static_cast<Id>(i * nb_x_quads + j);
     }
 };
+#pragma omp end declare target
 
 static inline void
 GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)

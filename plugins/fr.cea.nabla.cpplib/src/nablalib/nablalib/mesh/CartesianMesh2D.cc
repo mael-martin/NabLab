@@ -497,34 +497,6 @@ CartesianMesh2D::getLeftFaceNeighbour(const Id& faceId) const
     return (faceId - 2);
 }
 
-Id
-CartesianMesh2D::index2IdCell(const size_t& i, const size_t& j) const noexcept
-{
-    return static_cast<Id>(i * m_nb_x_quads + j);
-}
-
-pair<size_t, size_t>
-CartesianMesh2D::id2IndexCell(const Id& k) const noexcept
-{
-    size_t i(static_cast<size_t>(k) / m_nb_x_quads);
-    size_t j(static_cast<size_t>(k) - i * m_nb_x_quads);
-    return make_pair(i, j);
-}
-
-Id
-CartesianMesh2D::index2IdNode(const size_t& i, const size_t&j) const noexcept
-{
-    return static_cast<Id>(i * (m_nb_x_quads + 1) + j);
-}
-
-pair<size_t, size_t>
-CartesianMesh2D::id2IndexNode(const Id& k) const noexcept
-{
-    size_t i(static_cast<size_t>(k) / (m_nb_x_quads + 1));
-    size_t j(static_cast<size_t>(k) - i * (m_nb_x_quads + 1));
-    return make_pair(i, j);
-}
-
 vector<Id>
 CartesianMesh2D::cellsOfNodeCollection(const vector<Id>& nodes)
 {
