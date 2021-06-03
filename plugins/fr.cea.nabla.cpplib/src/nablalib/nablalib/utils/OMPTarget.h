@@ -9,12 +9,15 @@ extern int omptarget_host_id;
 
 /* Move a vector to the GPU */
 #define N_VECTOR_CPU_TO_GPU(gpu_ptr, cpu_vector, base_type)             \
-    omp_target_memcpy((void *)gpu_ptr, (void *)((cpu_vector).data()),   \
+    omp_target_memcpy((void *)(gpu_ptr), (void *)((cpu_vector).data()), \
                       sizeof(base_type) * (cpu_vector).size(),          \
                       0, 0, omptarget_device_id, omptarget_host_id)
 
 /* Move a vector to the CPU */
-#define N_VECTOR_CPU_FROM_GPU(gpu_ptr, cpu_vector, base_type)
+#define N_VECTOR_CPU_FROM_GPU(gpu_ptr, cpu_vector, base_type)           \
+    omp_target_memcpy((void *)((cpu_vector).data()), (void *)(gpu_ptr), \
+                      sizeof(base_type) * (cpu_vector).size(),          \
+                      0, 0, omptarget_host_id, omptarget_target_id)
 
 /* Alloc macros: Simple case */
 #define N_GPU_ALLOC(basetype) \
