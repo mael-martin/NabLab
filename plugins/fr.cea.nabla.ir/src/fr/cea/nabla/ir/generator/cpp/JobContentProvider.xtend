@@ -22,8 +22,6 @@ import java.util.HashMap
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Data
 
-import static fr.cea.nabla.ir.generator.cpp.OpenMpTargetJobCallerContentProvider.*
-
 import static extension fr.cea.nabla.ir.IrModuleExtensions.*
 import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
@@ -64,10 +62,11 @@ abstract class JobContentProvider
 			val MinIns = minimalInVars.filter[ !isOption ].map[ name ]
 			val Outs   = outVars.map[ name ]
 			val WRITE  = outVars.map[ name ]
-			val READ   = inVars.filter[ !isOption ].map[ name ]
+			val READ   = inVars.filter[ !isOption ].map[ name ].toList
 			val SIZES  = new HashMap<String, String>()
 			READ.forEach[  name | SIZES.put(name, name.globalVariableSize) ]
 			WRITE.forEach[ name | SIZES.put(name, name.globalVariableSize) ]
+			READ.addAll(inVars.filter[ isOption ].map[ 'options_' + name ])
 
 			println("Define content of GPU job " + name + ": Get method content")
 			ret = '''

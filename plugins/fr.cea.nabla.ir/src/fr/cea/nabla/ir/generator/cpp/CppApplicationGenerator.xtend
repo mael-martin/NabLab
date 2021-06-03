@@ -118,8 +118,10 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDIF»
 	«IF isOpenMpTask»
 	
-	/******************** GPU variable declarations ********************/
+	/********************* GPU variable declarations *********************/
+	/* Disabled for the moment, don't do 'smart allocations to avoid maps'
 	«GPUDeclaration»
+	*/
 	«ENDIF»
 
 	/******************** Module declaration ********************/
@@ -280,9 +282,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDIF»
 	
 	«IF isOpenMpTask»
+		/* Disabled for the moment
 		static size_t __attribute__((unused)) ___DAG_loops = 0;
 		#include <algorithm>
-		namespace internal_omptask {
+		namespace internal_omptask
+		{
 		auto __attribute__((unused)) max = [](const auto& vec) -> Id { return *std::max_element(vec.begin(), vec.end()); };
 		auto __attribute__((unused)) min = [](const auto& vec) -> Id { return *std::min_element(vec.begin(), vec.end()); };
 		
@@ -290,6 +294,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		static size_t __attribute__((unused)) nbX_FACES = 0;
 		static size_t __attribute__((unused)) nbX_NODES = 0;
 		}
+		*/
 	«ENDIF»
 	«val internFunctions = functions.filter(InternFunction)»
 	«IF !internFunctions.empty»
@@ -328,10 +333,13 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	int omptarget_device_id;
 	int omptarget_host_id;
 	}
+	/* Disabled for the moment
 	«FOR cv : CountVars»
 	size_t __attribute__((unused))«cv»;
 	«ENDFOR»
+	*/
 	
+	/* Disabled for the moment
 	static inline void
 	GPU_SetMeshCountVariables(«className» *mesh) noexcept
 	{
@@ -349,6 +357,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«target.free(cv)»
 		«ENDFOR»
 	}
+	*/
 	«ENDIF»
 
 	/******************** Options definition ********************/
@@ -399,25 +408,27 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	{
 		«IF typeContentProvider instanceof StlThreadTypeContentProvider»
 			«IF isGPU»
-				/* BEGIN: Free data on GPU */
+				/* Disabled for the moment
+				// BEGIN: Free data on GPU
 				«val copy_gpu_var = variables
 					.filter[ !option ]
 					.filter[ constExpr || const ]
 					.filter[ !needStaticAllocation ]»
-				/* Vars: «copy_gpu_var.size» */
+				// Vars: «copy_gpu_var.size»
 				«IF copy_gpu_var.size != 0»
 					«FOR v : copy_gpu_var»
 					«target.free(v)»
 					«ENDFOR»
 				«ENDIF»
-				/* Options: «options.size» */
+				// Options: «options.size»
 				«IF options.size != 0»
 					«FOR v : options»
 					«target.free('options_' + v.name + '_glb')»
 					«ENDFOR»
 				«ENDIF»
-				/* END: Free data on GPU */
+				// END: Free data on GPU
 				GPU_UnsetMeshCountVariables();
+				*/
 			«ENDIF»
 		«ENDIF»
 	}
@@ -511,6 +522,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			/* END: Alias the .data() to _glb and other to _glb */
 
 			/* BEGIN: Copy to GPU constant things */
+			/* NOTE: Some parts are disabled      */
 			«val copy_gpu_var = variables
 				.filter[ !option ]
 				.filter[ constExpr || const ]
@@ -518,23 +530,23 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			/* Vars: «copy_gpu_var.size» */
 			«IF copy_gpu_var.size != 0»
 				«FOR v : copy_gpu_var»
-				«target.allocate(v)»
+				// «target.allocate(v)»
 				«ENDFOR»
 				«FOR v : copy_gpu_var»
-				«target.update(v)»
+				// «target.update(v)»
 				«ENDFOR»
 			«ENDIF»
 			/* Options: «options.size» */
 			«IF options.size != 0»
 				«FOR v : options»
-				«target.allocate('options_' + v.name + '_glb')»
+				// «target.allocate('options_' + v.name + '_glb')»
 				«ENDFOR»
 				«FOR v : options»
-				«target.update('options_' + v.name + '_glb')»
+				// «target.update('options_' + v.name + '_glb')»
 				«ENDFOR»
 			«ENDIF»
 			/* END: Copy to GPU constant things */
-			GPU_SetMeshCountVariables(this);
+			// GPU_SetMeshCountVariables(this);
 			«ENDIF»
 		«ENDIF»
 		
