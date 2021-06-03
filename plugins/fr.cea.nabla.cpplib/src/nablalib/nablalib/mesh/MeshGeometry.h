@@ -58,42 +58,74 @@ struct GPU_MeshGeometry
     size_t edges_count;
     size_t quads_count;
 };
+
+extern "C" {
+extern int omptarget_device_id;
+extern int omptarget_host_id;
+}
 #pragma omp end declare target
 
-template<size_t N> static inline void
+// Move a vector to the GPU
+#ifdef N_VECTOR_CPU_TO_GPU
+#undef N_VECTOR_CPU_TO_GPU
+#endif
+#define N_VECTOR_CPU_TO_GPU(gpu_ptr, cpu_vector, base_type)             \
+    omp_target_memcpy((void *)gpu_ptr, (void *)((cpu_vector).data()),   \
+                      sizeof(base_type) * (cpu_vector).size(),          \
+                      0, 0, omptarget_device_id, omptarget_host_id)
+
+// Move a vector to the CPU
+#ifdef N_VECTOR_CPU_FROM_GPU
+#undef N_VECTOR_CPU_FROM_GPU
+#endif
+#define N_VECTOR_CPU_FROM_GPU(gpu_ptr, cpu_vector, base_type)
+
+// Alloc macros
+#ifdef N_GPU_ALLOC_VECTOR
+#undef N_GPU_ALLOC_VECTOR
+#endif
+#define N_GPU_ALLOC_VECTOR(basetype, size) \
+    (basetype *)omp_target_alloc(sizeof(basetype) * (size), omptarget_device_id)
+
+#ifdef N_GPU_FREE
+#undef N_GPU_FREE
+#endif
+#define N_GPU_FREE(ptr) omp_target_free((void *)ptr, omptarget_device_id)
+
+template<size_t N> __attribute__((noinline)) static void
 GPU_MeshGeometry_alloc(GPU_MeshGeometry<N> *gpu, MeshGeometry<N> *cpu)
 {
     static_assert(std::is_trivial<GPU_MeshGeometry<N>>::value, "Must be trivial");
+    GPU_MeshGeometry<N> local_gpu;
 
-    /* Alias vectors to pointers... */
-    gpu->nodes       = cpu->getNodes().data();
-    gpu->edges       = cpu->getEdges().data();
-    gpu->quads       = cpu->getQuads().data();
-    gpu->nodes_count = cpu->getNodes().size();
-    gpu->edges_count = cpu->getEdges().size();
-    gpu->quads_count = cpu->getQuads().size();
+    /* Alias vectors to pointers... Construct the thing as it should be on the
+     * GPU, to raw copy later. */
+    local_gpu.nodes_count = cpu->getNodes().size();
+    local_gpu.edges_count = cpu->getEdges().size();
+    local_gpu.quads_count = cpu->getQuads().size();
+    local_gpu.nodes       = N_GPU_ALLOC_VECTOR(RealArray1D<N>, cpu->getNodes().size());
+    local_gpu.edges       = N_GPU_ALLOC_VECTOR(Edge,           cpu->getEdges().size());
+    local_gpu.quads       = N_GPU_ALLOC_VECTOR(Quad,           cpu->getQuads().size());
 
-    /* Copy the big structure with all counters */
-    #pragma omp target enter data map(alloc: gpu[:1])
-    #pragma omp target update to (gpu[:1])
+    /* Raw copy the local boi into the GPU */
+    N_VECTOR_CPU_TO_GPU(local_gpu.nodes, cpu->getNodes(), RealArray1D<N>);
+    N_VECTOR_CPU_TO_GPU(local_gpu.edges, cpu->getEdges(), Edge);
+    N_VECTOR_CPU_TO_GPU(local_gpu.quads, cpu->getQuads(), Quad);
 
-    /* The deep-copy boi */
-    #pragma omp target enter data map(alloc: gpu->nodes[:gpu->nodes_count])
-    #pragma omp target enter data map(alloc: gpu->edges[:gpu->edges_count])
-    #pragma omp target enter data map(alloc: gpu->quads[:gpu->quads_count])
-    #pragma omp target update to (gpu->nodes[:gpu->nodes_count])
-    #pragma omp target update to (gpu->edges[:gpu->edges_count])
-    #pragma omp target update to (gpu->quads[:gpu->quads_count])
+    omp_target_memcpy(gpu, &local_gpu, sizeof(GPU_MeshGeometry<N>),
+                      0, 0, omptarget_device_id, omptarget_host_id);
 }
 
 template<size_t N> static inline void
 GPU_MeshGeometry_free(GPU_MeshGeometry<N> *gpu)
 {
-    /* Free in the correct order */
-    #pragma omp target exit data map(delete: gpu->nodes[:gpu->nodes_count])
-    #pragma omp target exit data map(delete: gpu->edges[:gpu->edges_count])
-    #pragma omp target exit data map(delete: gpu->quads[:gpu->quads_count])
-    #pragma omp target exit data map(delete: gpu[:1])
+    /* Get the raw GPU data to get GPU pointers */
+    GPU_MeshGeometry<N> local_gpu;
+    omp_target_memcpy(&local_gpu, gpu, sizeof(GPU_MeshGeometry<N>),
+                      0, 0, omptarget_host_id, omptarget_device_id);
+    N_GPU_FREE(local_gpu.nodes);
+    N_GPU_FREE(local_gpu.quads);
+    N_GPU_FREE(local_gpu.edges);
 }
 
 #endif /* NABLALIB_GPU */

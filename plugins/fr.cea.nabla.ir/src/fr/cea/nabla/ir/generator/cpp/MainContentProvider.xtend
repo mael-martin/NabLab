@@ -63,7 +63,13 @@ class MainContentProvider
 		}
 		«meshClassName»* mesh = meshFactory.create();
 		«IF isGPU»
-		mesh_glb = new GPU_CartesianMesh2D();
+		omptarget_device_id = omp_get_default_device();
+		omptarget_host_id   = omp_get_initial_device();
+		mesh_glb            = new GPU_CartesianMesh2D();
+		if (omp_get_num_devices() < 1 || omptarget_device_id < 0) {
+			puts("ERROR: No device found ¯\(º_o)/¯");
+			exit(1);
+		}
 		GPU_«meshClassName»_alloc(mesh_glb, mesh);
 		«ENDIF»
 

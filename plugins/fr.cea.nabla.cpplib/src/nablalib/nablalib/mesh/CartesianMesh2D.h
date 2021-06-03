@@ -356,6 +356,11 @@ private:
         return static_cast<Id>(i * nb_x_quads + j);
     }
 };
+
+extern "C" {
+extern int omptarget_device_id;
+extern int omptarget_host_id;
+}
 #pragma omp end declare target
 
 static inline void
@@ -364,7 +369,7 @@ GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)
     static_assert(std::is_trivial<GPU_CartesianMesh2D>::value, "Must be trivial");
 
     /* The geometry */
-    gpu->geometry = (GPU_MeshGeometry<2> *)malloc(sizeof(GPU_MeshGeometry<2>));
+    gpu->geometry = (GPU_MeshGeometry<2> *)omp_target_alloc(sizeof(GPU_MeshGeometry<2>), omptarget_device_id);
     GPU_MeshGeometry_alloc<2>(gpu->geometry, cpu->getGeometry());
 
     /* nodes */
@@ -441,7 +446,7 @@ static inline void
 GPU_CartesianMesh2D_free(GPU_CartesianMesh2D *gpu)
 {
     GPU_MeshGeometry_free<2>(gpu->geometry);
-    free(gpu->geometry);
+    omp_target_free((void *)gpu->geometry, omptarget_device_id);
 
     #pragma omp target exit data map(delete: gpu->inner_nodes [:gpu->inner_nodes_count ])
     #pragma omp target exit data map(delete: gpu->top_nodes   [:gpu->top_nodes_count   ])

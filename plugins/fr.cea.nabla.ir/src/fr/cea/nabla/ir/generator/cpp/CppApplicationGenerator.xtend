@@ -324,6 +324,10 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	]»
 	/******************** GPU Mesh definition & declaration ********************/
 	GPU_CartesianMesh2D *mesh_glb = nullptr;
+	extern "C" {
+	int omptarget_device_id;
+	int omptarget_host_id;
+	}
 	«FOR cv : CountVars»
 	size_t __attribute__((unused))«cv»;
 	«ENDFOR»
