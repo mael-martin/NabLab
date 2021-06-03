@@ -103,44 +103,71 @@ abstract class InstructionContentProvider
 		«ENDIF»
 	'''
 
-	def dispatch CharSequence getContent(ItemIndexDefinition it)
-	'''
-		const size_t «index.name»(«value.content»);
-	'''
+	def dispatch CharSequence
+	getContent(ItemIndexDefinition it)
+	{
+		if (IsInsideGPUJob) {
+			val ret = '''
+			const size_t «index.name»(«value.content»);
+			'''
+			return (ret + '').replace('mesh->', 'mesh_glb->')
+		}
 
-	def dispatch CharSequence getContent(ItemIdDefinition it)
-	'''
-		const Id «id.name»(«value.content»);
-	'''
+		else
+		'''
+			const size_t «index.name»(«value.content»);
+		'''
+	}
 
-	def dispatch CharSequence getContent(SetDefinition it)
+	def dispatch CharSequence
+	getContent(ItemIdDefinition it)
+	{
+		if (IsInsideGPUJob) {
+			val ret = '''
+			const Id «id.name»(«value.content»);
+			'''
+			return (ret + '').replace('mesh->', 'mesh_glb->')
+		}
+		else
+		'''
+			const Id «id.name»(«value.content»);
+		'''
+	}
+
+	def dispatch CharSequence
+	getContent(SetDefinition it)
 	{
 		getSetDefinitionContent(name, value)
 	}
 
-	def dispatch CharSequence getContent(While it)
+	def dispatch CharSequence
+	getContent(While it)
 	'''
 		while («condition.content»)
 		«val iContent = instruction.content»
 		«IF !(iContent.charAt(0) == '{'.charAt(0))»	«ENDIF»«iContent»
 	'''
 
-	def dispatch CharSequence getContent(Return it)
+	def dispatch CharSequence
+	getContent(Return it)
 	'''
 		return «expression.content»;
 	'''
 
-	def dispatch CharSequence getContent(Exit it)
+	def dispatch CharSequence
+	getContent(Exit it)
 	'''
 		throw std::runtime_error("«message»");
 	'''
 
-	def dispatch getInnerContent(Instruction it)
+	def dispatch CharSequence
+	getInnerContent(Instruction it)
 	{ 
 		content
 	}
 
-	def dispatch getInnerContent(InstructionBlock it)
+	def dispatch CharSequence
+	getInnerContent(InstructionBlock it)
 	'''
 		«FOR i : instructions»
 		«i.content»
@@ -149,7 +176,8 @@ abstract class InstructionContentProvider
 
 	protected def boolean isParallel(Loop it) { parallelLoop }
 
-	protected def CharSequence getSequentialLoopContent(Loop it)
+	protected def CharSequence
+	getSequentialLoopContent(Loop it)
 	'''
 		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
 		{
@@ -158,7 +186,8 @@ abstract class InstructionContentProvider
 	'''
 
 	// ### IterationBlock Extensions ###
-	protected def dispatch defineInterval(Iterator it, CharSequence innerContent)
+	protected def dispatch CharSequence
+	defineInterval(Iterator it, CharSequence innerContent)
 	{
 		val CountVars = #[
 			'nbNodes', 'nbCells', 'nbInnerNodes', 'nbTopNodes', 'nbBottomNodes',
@@ -185,7 +214,8 @@ abstract class InstructionContentProvider
 		'''
 	}
 
-	protected def dispatch defineInterval(Interval it, CharSequence innerContent)
+	protected def dispatch CharSequence
+	defineInterval(Interval it, CharSequence innerContent)
 	{
 		innerContent
 	}
@@ -198,10 +228,13 @@ abstract class InstructionContentProvider
 	protected def CharSequence
 	getSetDefinitionContent(String setName, ConnectivityCall call)
 	{
-		if (IsInsideGPUJob)
-		'''
+		if (IsInsideGPUJob) {
+			val ret = '''
 			const auto «setName» = mesh_glb->«call.accessor»;
-		'''
+			'''
+			return (ret + '').replace('mesh->', 'mesh_glb->')
+		}
+
 		else
 		'''
 			const auto «setName» = mesh->«call.accessor»;
