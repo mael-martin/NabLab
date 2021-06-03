@@ -9,16 +9,16 @@
  *******************************************************************************/
 package fr.cea.nabla.ir.generator.cpp
 
+import fr.cea.nabla.ir.ir.BaseType
+import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.Variable
 import java.util.List
 import java.util.Map
 import java.util.Set
 
+import static fr.cea.nabla.ir.generator.Utils.*
 import static fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
-import static extension fr.cea.nabla.ir.generator.Utils.*
-import fr.cea.nabla.ir.ir.ConnectivityType
-import fr.cea.nabla.ir.ir.BaseType
 
 abstract class OpenMPTaskProvider
 {
@@ -323,26 +323,6 @@ class OpenMPTargetProvider
 	|  Allocate and free variables from/for the GPU  |
 	\************************************************/
 
-	// With Integers
-	
-	def CharSequence
-	allocate(String name, int len)
-	'''
-		#pragma omp target enter data map(alloc: «name»[0:«len»])
-	'''
-
-	def CharSequence
-	update(String name, int len)
-	'''
-		#pragma omp target update to («name»[0:«len»])
-	'''
-
-	def CharSequence
-	free(String name, int len)
-	'''
-		#pragma omp target exit data map(delete: «name»[0:«len»])
-	'''
-	
 	// With Strings
 
 	def CharSequence
@@ -412,7 +392,6 @@ class OpenMPTargetProvider
 		#pragma omp target exit data map(delete: «variableMapNameAndSize»)
 	'''
 	
-
 	/* Task/target generation and offloading */
 	
 	static def void

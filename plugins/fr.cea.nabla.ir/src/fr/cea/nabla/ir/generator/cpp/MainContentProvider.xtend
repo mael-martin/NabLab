@@ -67,7 +67,7 @@ class MainContentProvider
 		omptarget_host_id   = omp_get_initial_device();
 		mesh_glb            = N_GPU_ALLOC(GPU_CartesianMesh2D);
 		if (omp_get_num_devices() < 1 || omptarget_device_id < 0) {
-			puts("ERROR: No device found ¯\(º_o)/¯");
+			puts("ERROR: No device found ¯\\(º_o)/¯");
 			exit(1);
 		}
 		GPU_«meshClassName»_alloc(mesh_glb, mesh);
