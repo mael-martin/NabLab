@@ -65,7 +65,7 @@ class MainContentProvider
 		«IF isGPU»
 		omptarget_device_id = omp_get_default_device();
 		omptarget_host_id   = omp_get_initial_device();
-		mesh_glb            = new GPU_CartesianMesh2D();
+		mesh_glb            = N_GPU_ALLOC(GPU_CartesianMesh2D);
 		if (omp_get_num_devices() < 1 || omptarget_device_id < 0) {
 			puts("ERROR: No device found ¯\(º_o)/¯");
 			exit(1);
@@ -98,7 +98,7 @@ class MainContentProvider
 		«ENDFOR»
 		«IF isGPU»
 		GPU_«meshClassName»_free(mesh_glb);
-		delete mesh_glb;
+		N_GPU_FREE(mesh_glb);
 		«ENDIF»
 		delete mesh;
 	'''

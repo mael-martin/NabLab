@@ -58,39 +58,9 @@ struct GPU_MeshGeometry
     size_t edges_count;
     size_t quads_count;
 };
-
-extern "C" {
-extern int omptarget_device_id;
-extern int omptarget_host_id;
-}
 #pragma omp end declare target
 
-// Move a vector to the GPU
-#ifdef N_VECTOR_CPU_TO_GPU
-#undef N_VECTOR_CPU_TO_GPU
-#endif
-#define N_VECTOR_CPU_TO_GPU(gpu_ptr, cpu_vector, base_type)             \
-    omp_target_memcpy((void *)gpu_ptr, (void *)((cpu_vector).data()),   \
-                      sizeof(base_type) * (cpu_vector).size(),          \
-                      0, 0, omptarget_device_id, omptarget_host_id)
-
-// Move a vector to the CPU
-#ifdef N_VECTOR_CPU_FROM_GPU
-#undef N_VECTOR_CPU_FROM_GPU
-#endif
-#define N_VECTOR_CPU_FROM_GPU(gpu_ptr, cpu_vector, base_type)
-
-// Alloc macros
-#ifdef N_GPU_ALLOC_VECTOR
-#undef N_GPU_ALLOC_VECTOR
-#endif
-#define N_GPU_ALLOC_VECTOR(basetype, size) \
-    (basetype *)omp_target_alloc(sizeof(basetype) * (size), omptarget_device_id)
-
-#ifdef N_GPU_FREE
-#undef N_GPU_FREE
-#endif
-#define N_GPU_FREE(ptr) omp_target_free((void *)ptr, omptarget_device_id)
+#include "nablalib/utils/OMPTarget.h"
 
 template<size_t N> __attribute__((noinline)) static void
 GPU_MeshGeometry_alloc(GPU_MeshGeometry<N> *gpu, MeshGeometry<N> *cpu)
