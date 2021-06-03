@@ -63,6 +63,8 @@ struct GPU_MeshGeometry
 template<size_t N> static inline void
 GPU_MeshGeometry_alloc(GPU_MeshGeometry<N> *gpu, MeshGeometry<N> *cpu)
 {
+    static_assert(std::is_trivial<GPU_MeshGeometry<N>>::value, "Must be trivial");
+
     /* Alias vectors to pointers... */
     gpu->nodes       = cpu->getNodes().data();
     gpu->edges       = cpu->getEdges().data();

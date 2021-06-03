@@ -323,8 +323,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		'nbLeftNodes', 'nbRightNodes', 'nbNodesOfCell', 'nbCellsOfNode'
 	]»
 	/******************** GPU Mesh definition & declaration ********************/
-	GPU_CartesianMesh2D mesh_glb_data;
-	GPU_CartesianMesh2D *mesh_glb = &mesh_glb_data;
+	GPU_CartesianMesh2D *mesh_glb = nullptr;
 	«FOR cv : CountVars»
 	size_t __attribute__((unused))«cv»;
 	«ENDFOR»

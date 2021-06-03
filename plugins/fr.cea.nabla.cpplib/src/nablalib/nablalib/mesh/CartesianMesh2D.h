@@ -361,6 +361,8 @@ private:
 static inline void
 GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)
 {
+    static_assert(std::is_trivial<GPU_CartesianMesh2D>::value, "Must be trivial");
+
     /* The geometry */
     gpu->geometry = (GPU_MeshGeometry<2> *)malloc(sizeof(GPU_MeshGeometry<2>));
     GPU_MeshGeometry_alloc<2>(gpu->geometry, cpu->getGeometry());

@@ -63,6 +63,7 @@ class MainContentProvider
 		}
 		«meshClassName»* mesh = meshFactory.create();
 		«IF isGPU»
+		mesh_glb = new GPU_CartesianMesh2D();
 		GPU_«meshClassName»_alloc(mesh_glb, mesh);
 		«ENDIF»
 
@@ -91,6 +92,7 @@ class MainContentProvider
 		«ENDFOR»
 		«IF isGPU»
 		GPU_«meshClassName»_free(mesh_glb);
+		delete mesh_glb;
 		«ENDIF»
 		delete mesh;
 	'''
