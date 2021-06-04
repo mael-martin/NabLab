@@ -55,6 +55,7 @@ import java.util.Map
 import org.eclipse.xtend.lib.annotations.Data
 
 import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
+import fr.cea.nabla.ir.ir.Connectivity
 
 /* Approximate the number of connectivities' element number on connectivity call.
  * One simple rule: all methods must return a positive integer or zero. */
@@ -291,14 +292,17 @@ class ComputeCostTransformation extends IrTransformationStep
 		switch it {
 			case null: 					{ return }
 			TimeLoopCopy | TimeLoopJob: jobCantBePlacedOnGPU.put(name, true)
+
 			InstructionJob: {
 				val boolean nop1 = eAllContents.filter(Expression).filter[ expressionNotPossibleOnGPU ].size > 0
 				val boolean nop2 = eAllContents.filter(Instruction).filter[ instructionNotPossibleOnGPU ].size > 0
-				if (nop1 || nop2)
+				val boolean nop3 = eAllContents.filter(Connectivity).filter[ connectivityNotPossibleOnGPU ].size > 0
+				if (nop1 || nop2 || nop3)
 					jobCantBePlacedOnGPU.put(name, true)
 				else
 					jobCantBePlacedOnGPU.put(name, false)
 			}
+
 			default: throw new Exception("Can't handle unknown job type for " + it.toString)
 		}
 	}
@@ -320,6 +324,16 @@ class ComputeCostTransformation extends IrTransformationStep
 			ContractedIf: return true
 			FunctionCall: return functionCantBePlacedOnGPU.getOrDefault(function.name, false)
 			default:      return false
+		}
+	}
+
+	static private def boolean
+	isConnectivityNotPossibleOnGPU(Connectivity it)
+	{
+		switch it.name {
+			case "nodes": return false
+			case "cells": return false
+			default: 	  return true
 		}
 	}
 
