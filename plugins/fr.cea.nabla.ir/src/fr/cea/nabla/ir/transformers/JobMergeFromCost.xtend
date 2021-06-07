@@ -420,9 +420,17 @@ class JobMergeFromCost extends IrTransformationStep
 	{
 		return calls.map[ job |
 			val map = new HashMap<String, TARGET_TAG>()
+
 			calls.filter[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency.TARGET_TAG::CPU)  ] // Forced
 			calls.reject[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency.TARGET_TAG::BOTH) ] // Will vary
-			map.put(job.name, EnsuredDependency::TARGET_TAG::GPU)
+
+			if (job.isJobGPUBlacklisted) {
+				msg("Can't set a GPU-blacklisted job " + job.name + " as GPU job!")
+				map.put(job.name, EnsuredDependency::TARGET_TAG::CPU)
+			} else {
+				map.put(job.name, EnsuredDependency::TARGET_TAG::GPU)
+			}
+
 			return computePossibleTaggedDAG_TREESEARCH_REC(map)
 		]
 	}

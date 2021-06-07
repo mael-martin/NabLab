@@ -296,9 +296,18 @@ class ComputeCostTransformation extends IrTransformationStep
 			InstructionJob: {
 				val boolean nop1 = eAllContents.filter(Expression).filter[ expressionNotPossibleOnGPU ].size > 0
 				val boolean nop2 = eAllContents.filter(Instruction).filter[ instructionNotPossibleOnGPU ].size > 0
-				val boolean nop3 = eAllContents.filter(Connectivity).filter[ connectivityNotPossibleOnGPU ].size > 0
-				if (nop1 || nop2 || nop3)
+				val boolean nop3 = eAllContents.filter(ConnectivityCall).filter[ connectivityNotPossibleOnGPU ].size > 0
+
+				if (nop3) {
+					println("Found a not allowed connectivity call in " + name)
+				} else {
+					println("All connectivity call in " + name + " are OK")
+				}
+
+				if (nop1 || nop2 || nop3) {
+					println("GPU-Blacklist " + name)
 					jobCantBePlacedOnGPU.put(name, true)
+				}
 				else
 					jobCantBePlacedOnGPU.put(name, false)
 			}
@@ -328,9 +337,9 @@ class ComputeCostTransformation extends IrTransformationStep
 	}
 
 	static private def boolean
-	isConnectivityNotPossibleOnGPU(Connectivity it)
+	isConnectivityNotPossibleOnGPU(ConnectivityCall it)
 	{
-		switch it.name {
+		switch it.connectivity.name {
 			case "nodes": return false
 			case "cells": return false
 			default: 	  return true
