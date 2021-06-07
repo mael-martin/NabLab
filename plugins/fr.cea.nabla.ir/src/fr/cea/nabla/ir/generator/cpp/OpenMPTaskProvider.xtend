@@ -453,6 +453,8 @@ class OpenMPTargetProvider
 		val size = sizes.get(name)
 		if (size === null)
 			'''_glb'''
+		else if (size == 'cpu_copy')
+			''''''
 		else
 			'''_glb[0:«size»]'''
 	}
@@ -469,8 +471,7 @@ class OpenMPTargetProvider
 		FOR in  : IN    BEFORE '\\\ndepend(in: '   SEPARATOR ', ' AFTER ')'»«in »«ENDFOR»«
 		FOR out : OUT   BEFORE '\\\ndepend(out: '  SEPARATOR ', ' AFTER ')'»«out»«ENDFOR»«
 		FOR r   : READ  BEFORE '\\\nmap(to: '      SEPARATOR ', ' AFTER ')'»«r»«getSizeIndicationForVariable(r, RW_VAR_SIZES)»«ENDFOR»«
-		FOR w   : WRITE BEFORE '\\\nmap(from: '    SEPARATOR ', ' AFTER ')'»«w»«getSizeIndicationForVariable(w, RW_VAR_SIZES)»«ENDFOR»
-		#pragma omp teams num_teams(1) /* One team for simplicity */
+		FOR w   : WRITE BEFORE '\\\nmap(tofrom: '  SEPARATOR ', ' AFTER ')'»«w»«getSizeIndicationForVariable(w, RW_VAR_SIZES)»«ENDFOR»
 		{
 			«body»
 		}

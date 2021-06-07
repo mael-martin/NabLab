@@ -28,6 +28,11 @@ import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
+import static extension fr.cea.nabla.ir.ContainerExtensions.*
+import static extension fr.cea.nabla.ir.ContainerExtensions.*
+import fr.cea.nabla.ir.ir.Loop
+import fr.cea.nabla.ir.ir.Iterator
+import fr.cea.nabla.ir.ir.Interval
 
 @Data
 abstract class JobContentProvider
@@ -46,6 +51,9 @@ abstract class JobContentProvider
 	def getDeclarationContent(Job it)
 	'''
 		void «codeName»() noexcept;'''
+
+	protected def dispatch getNbElems(Iterator it) { container.nbElemsVar }
+	protected def dispatch getNbElems(Interval it) { nbElems.content }
 
 	def CharSequence
 	getDefinitionContent(Job it)
@@ -67,6 +75,13 @@ abstract class JobContentProvider
 			READ.forEach[  name | SIZES.put(name, name.globalVariableSize) ]
 			WRITE.forEach[ name | SIZES.put(name, name.globalVariableSize) ]
 			READ.addAll(inVars.filter[ isOption ].map[ 'options_' + name ])
+			
+			/* Add the loop count as a READ variable */
+			eAllContents.filter(Loop).map[ l | l.iterationBlock.getNbElems ].forEach[ v |
+				val string_v = v + ''
+				READ.add(string_v)
+				SIZES.put(string_v, 'cpu_copy')
+			]
 
 			println("Define content of GPU job " + name + ": Get method content")
 			ret = '''
