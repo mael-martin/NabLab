@@ -56,6 +56,7 @@ import org.eclipse.xtend.lib.annotations.Data
 
 import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
 import fr.cea.nabla.ir.ir.Connectivity
+import fr.cea.nabla.ir.ir.IterationBlock
 
 /* Approximate the number of connectivities' element number on connectivity call.
  * One simple rule: all methods must return a positive integer or zero. */
@@ -297,6 +298,9 @@ class ComputeCostTransformation extends IrTransformationStep
 				val boolean nop1 = eAllContents.filter(Expression).filter[ expressionNotPossibleOnGPU ].size > 0
 				val boolean nop2 = eAllContents.filter(Instruction).filter[ instructionNotPossibleOnGPU ].size > 0
 				val boolean nop3 = eAllContents.filter(ConnectivityCall).filter[ connectivityNotPossibleOnGPU ].size > 0
+				
+				/* Only puts loops on the GPU */
+				val boolean loops_present = eAllContents.filter(Loop).size > 0
 
 				if (nop3) {
 					println("Found a not allowed connectivity call in " + name)
@@ -304,7 +308,7 @@ class ComputeCostTransformation extends IrTransformationStep
 					println("All connectivity call in " + name + " are OK")
 				}
 
-				if (nop1 || nop2 || nop3) {
+				if (nop1 || nop2 || nop3 || (!loops_present)) {
 					println("GPU-Blacklist " + name)
 					jobCantBePlacedOnGPU.put(name, true)
 				}
