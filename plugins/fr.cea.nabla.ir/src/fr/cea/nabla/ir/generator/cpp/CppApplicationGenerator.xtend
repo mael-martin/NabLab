@@ -119,9 +119,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«IF isOpenMpTask»
 	
 	/********************* GPU variable declarations *********************/
-	/* Disabled for the moment, don't do 'smart allocations to avoid maps'
 	«GPUDeclaration»
-	*/
 	«ENDIF»
 
 	/******************** Module declaration ********************/
