@@ -214,13 +214,13 @@ public: // Hacky boi
  */
 
 #pragma omp declare target
-struct GPU_CartesianMesh2D {
-	static constexpr int MaxNbNodesOfCell    = 4;
-	static constexpr int MaxNbNodesOfFace    = 2;
-	static constexpr int MaxNbCellsOfNode    = 4;
-	static constexpr int MaxNbCellsOfFace    = 2;
-	static constexpr int MaxNbNeighbourCells = 4;
+constexpr int GPU_CartesianMesh2D_MaxNbNodesOfCell    = 4;
+constexpr int GPU_CartesianMesh2D_MaxNbNodesOfFace    = 2;
+constexpr int GPU_CartesianMesh2D_MaxNbCellsOfNode    = 4;
+constexpr int GPU_CartesianMesh2D_MaxNbCellsOfFace    = 2;
+constexpr int GPU_CartesianMesh2D_MaxNbNeighbourCells = 4;
 
+struct GPU_CartesianMesh2D {
 	GPU_MeshGeometry<2>* geometry;
 
     /* nodes */
@@ -308,7 +308,7 @@ public:
         return geometry->quads[cellId].getNodeIds();
     }
 
-    inline BoundedArray<Id, MaxNbCellsOfNode>
+    inline BoundedArray<Id, GPU_CartesianMesh2D_MaxNbCellsOfNode>
 	getCellsOfNode(const Id& nodeId) const noexcept
     {
         // TODO: Get ride of all the if/else
@@ -322,10 +322,10 @@ public:
         if (i > 0          && j < nb_x_quads) cells.emplace_back(index2IdCell(i-1, j  ));
         if (i > 0          && j > 0)          cells.emplace_back(index2IdCell(i-1, j-1));
 
-        return BoundedArray<Id, MaxNbCellsOfNode>::fromVector(cells);
+        return BoundedArray<Id, GPU_CartesianMesh2D_MaxNbCellsOfNode>::fromVector(cells);
     }
 
-    inline const std::array<Id, MaxNbNeighbourCells>
+    inline const std::array<Id, GPU_CartesianMesh2D_MaxNbNeighbourCells>
 	getNeighbourCells(const Id& cellId) const noexcept
     {
         // TODO: Get ride of all the if/else
@@ -339,7 +339,7 @@ public:
         if (j >= 1)             neighbors.emplace_back(index2IdCell(i,   j-1));
         if (j < nb_x_quads - 1) neighbors.emplace_back(index2IdCell(i,   j+1));
 
-        return BoundedArray<Id, MaxNbNeighbourCells>::fromVector(neighbors);
+        return BoundedArray<Id, GPU_CartesianMesh2D_MaxNbNeighbourCells>::fromVector(neighbors);
     }
 
 private:
