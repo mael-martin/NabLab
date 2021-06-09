@@ -466,14 +466,30 @@ class OpenMPTargetProvider
 		List<String> READ, List<String> WRITE, Map<String, String> RW_VAR_SIZES,
 		CharSequence body
 	) '''
+		// Update to GPU
+		#pragma omp task«
+		FOR in  : IN    BEFORE ' depend(in: '   SEPARATOR ', ' AFTER ')'»«in »«ENDFOR»«
+		FOR out : OUT   BEFORE ' depend(out: '  SEPARATOR ', ' AFTER ')'»«out»«ENDFOR»
+		{
+			«FOR r : READ»
+			#pragma omp target update to («r»«getSizeIndicationForVariable(r, RW_VAR_SIZES)»)
+			«ENDFOR»
+		}
+
 		#pragma omp target«
-		FOR v   : fp    BEFORE '\\\nfirstprivate(' SEPARATOR ', ' AFTER ')'»«v  »«ENDFOR»«
-		FOR in  : IN    BEFORE '\\\ndepend(in: '   SEPARATOR ', ' AFTER ')'»«in »«ENDFOR»«
-		FOR out : OUT   BEFORE '\\\ndepend(out: '  SEPARATOR ', ' AFTER ')'»«out»«ENDFOR»«
-		/* FOR r   : READ  BEFORE '\\\nmap(to: '      SEPARATOR ', ' AFTER ')'»«r»«getSizeIndicationForVariable(r, RW_VAR_SIZES)»«ENDFOR»« */
-		/* FOR w   : WRITE BEFORE '\\\nmap(tofrom: '  SEPARATOR ', ' AFTER ')'»«w»«getSizeIndicationForVariable(w, RW_VAR_SIZES)»«ENDFOR */»
+		FOR v   : fp    BEFORE ' firstprivate('  SEPARATOR ', ' AFTER ')'»«v  »«ENDFOR»«
+		FOR out : OUT   BEFORE ' depend(inout: ' SEPARATOR ', ' AFTER ')'»«out»«ENDFOR»
 		{
 			«body»
+		}
+
+		// Update from GPU
+		#pragma omp task«
+		FOR out : OUT   BEFORE ' depend(inout: ' SEPARATOR ', ' AFTER ')'»«out»«ENDFOR»
+		{
+			«FOR w : WRITE»
+			#pragma omp target update from («w»«getSizeIndicationForVariable(w, RW_VAR_SIZES)»)
+			«ENDFOR»
 		}
 	'''
 
