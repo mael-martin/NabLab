@@ -422,6 +422,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 					«target.free('options_' + v.name + '_glb')»
 					«ENDFOR»
 				«ENDIF»
+				«FOR v : variables.filter[ needStaticAllocation ]»
+					«val var_name = v.name + '_glb'»
+					«val var_size = v.name + '_count'»
+					«target.free(var_name, var_size)»
+				«ENDFOR»
 				// END: Free data on GPU
 				GPU_UnsetMeshCountVariables();
 			«ENDIF»
@@ -515,6 +520,15 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				«ENDFOR»
 			}
 			/* END: Alias the .data() to _glb and other to _glb */
+
+			/* BEGIN: Copy all connectivities to GPU */
+			«FOR v : variables.filter[ needStaticAllocation ]»
+				«val var_name = v.name + '_glb'»
+				«val var_size = v.name + '_count'»
+				«target.allocate(var_name, var_size)»
+				«target.updatte(var_name, var_size)»
+			«ENDFOR»
+			/* END: Copy all connectivities to GPU */
 
 			/* BEGIN: Copy to GPU constant things */
 			«val copy_gpu_var = variables

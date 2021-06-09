@@ -77,11 +77,11 @@ abstract class JobContentProvider
 			// READ.addAll(inVars.filter[ isOption ].map[ 'options_' + name ]) <- options should already be on the GPU
 			
 			/* Add the loop count as a READ variable */
-			eAllContents.filter(Loop).map[ l | l.iterationBlock.getNbElems ].forEach[ v |
-				val string_v = v + ''
-				READ.add(string_v)
-				SIZES.put(string_v, 'cpu_copy')
-			]
+			// eAllContents.filter(Loop).map[ l | l.iterationBlock.getNbElems ].forEach[ v |
+			//	val string_v = v + ''
+			//	READ.add(string_v)
+			//	SIZES.put(string_v, 'cpu_copy')
+			// ] <- Not needed because those things are already on the GPU
 
 			println("Define content of GPU job " + name + ": Get method content")
 			ret = '''
