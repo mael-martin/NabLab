@@ -13,26 +13,27 @@ import fr.cea.nabla.ir.ir.BaseType
 import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.ir.InstructionJob
+import fr.cea.nabla.ir.ir.Interval
+import fr.cea.nabla.ir.ir.IrModule
+import fr.cea.nabla.ir.ir.Iterator
 import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.TimeLoopCopy
 import fr.cea.nabla.ir.ir.TimeLoopJob
+import fr.cea.nabla.ir.ir.Variable
 import java.util.ArrayList
 import java.util.HashMap
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Data
+import org.eclipse.xtext.EcoreUtil2
 
+import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.IrModuleExtensions.*
 import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
-import static extension fr.cea.nabla.ir.ContainerExtensions.*
-import static extension fr.cea.nabla.ir.ContainerExtensions.*
-import fr.cea.nabla.ir.ir.Loop
-import fr.cea.nabla.ir.ir.Iterator
-import fr.cea.nabla.ir.ir.Interval
 
 @Data
 abstract class JobContentProvider
@@ -139,6 +140,11 @@ abstract class JobContentProvider
 		«instruction.innerContent»
 	'''
 
+	private def needStaticAllocation(Variable v)
+	{
+		!(v.type instanceof BaseType) && typeContentProvider.isBaseTypeStatic(v.type)
+	}
+
 	protected def dispatch CharSequence getInnerContent(ExecuteTimeLoopJob it)
 	'''
 		«callsHeader»
@@ -170,11 +176,16 @@ abstract class JobContentProvider
 				«FOR copy : copies»
 				std::swap(«copy.source.name», «copy.destination.name»);
 				«ENDFOR»
-				#if defined(NABLA_GPU) && (NABLA_GPU == 1)
 				«FOR copy : copies»
 				std::swap(«copy.source.name»_glb, «copy.destination.name»_glb);
 				«ENDFOR»
-				#endif
+				«FOR v : EcoreUtil2.getContainerOfType(it, IrModule).variables
+					.filter[ !option ]
+					.filter[ !needStaticAllocation ]
+					.filter[ v | !typeContentProvider.isArray(v.type) ]»
+				«v.name»_glb = «v.name»;
+				«target.update(v.name + '_glb')»
+				«ENDFOR»
 			}
 			«IF caller.main»
 

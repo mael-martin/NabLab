@@ -531,6 +531,14 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			/* END: Copy all connectivities to GPU */
 
 			/* BEGIN: Copy to GPU constant things */
+			/* Simple vars: */
+			«FOR v : variables
+				.filter[ !option ]
+				.filter[ !needStaticAllocation ]
+				.filter[ v | !typeContentProvider.isArray(v.type) ]»
+				«target.allocate(v.name + '_glb')»
+				«target.update(v.name + '_glb')»
+			«ENDFOR»
 			«val copy_gpu_var = variables
 				.filter[ !option ]
 				.filter[ constExpr || const ]
@@ -539,8 +547,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			«IF copy_gpu_var.size != 0»
 				«FOR v : copy_gpu_var»
 				«target.allocate(v)»
-				«ENDFOR»
-				«FOR v : copy_gpu_var»
 				«target.update(v)»
 				«ENDFOR»
 			«ENDIF»
@@ -548,8 +554,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			«IF options.size != 0»
 				«FOR v : options»
 				«target.allocate('options_' + v.name + '_glb')»
-				«ENDFOR»
-				«FOR v : options»
 				«target.update('options_' + v.name + '_glb')»
 				«ENDFOR»
 			«ENDIF»
