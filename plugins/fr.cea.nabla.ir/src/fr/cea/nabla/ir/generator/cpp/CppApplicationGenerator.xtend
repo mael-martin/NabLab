@@ -262,7 +262,8 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	#undef NABLALIB_GPU
 	#endif /* NABLALIB_GPU */
 
-	#define NABLALIB_GPU   1
+	#define NABLALIB_GPU   0
+	#define NABLA_GPU      1
 	«ENDIF»
 	#define NABLALIB_DEBUG 0
 	#define NABLA_DEBUG    0

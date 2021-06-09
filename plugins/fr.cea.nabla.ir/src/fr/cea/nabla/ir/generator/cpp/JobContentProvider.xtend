@@ -170,7 +170,7 @@ abstract class JobContentProvider
 				«FOR copy : copies»
 				std::swap(«copy.source.name», «copy.destination.name»);
 				«ENDFOR»
-				#if defined(NABLALIB_GPU) && (NABLALIB_GPU == 1)
+				#if defined(NABLA_GPU) && (NABLA_GPU == 1)
 				«FOR copy : copies»
 				std::swap(«copy.source.name»_glb, «copy.destination.name»_glb);
 				«ENDFOR»
