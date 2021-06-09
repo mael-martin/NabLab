@@ -456,7 +456,7 @@ class OpenMPTargetProvider
 		else if (size == 'cpu_copy')
 			''''''
 		else
-			'''_glb[0:«size»]'''
+			'''_glb[:«size»]'''
 	}
 
 	private def CharSequence
