@@ -74,7 +74,7 @@ abstract class JobContentProvider
 			val SIZES  = new HashMap<String, String>()
 			READ.forEach[  name | SIZES.put(name, name.globalVariableSize) ]
 			WRITE.forEach[ name | SIZES.put(name, name.globalVariableSize) ]
-			READ.addAll(inVars.filter[ isOption ].map[ 'options_' + name ])
+			// READ.addAll(inVars.filter[ isOption ].map[ 'options_' + name ]) <- options should already be on the GPU
 			
 			/* Add the loop count as a READ variable */
 			eAllContents.filter(Loop).map[ l | l.iterationBlock.getNbElems ].forEach[ v |

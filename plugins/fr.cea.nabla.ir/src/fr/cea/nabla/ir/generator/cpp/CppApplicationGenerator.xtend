@@ -327,18 +327,17 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		'nbLeftNodes', 'nbRightNodes', 'nbNodesOfCell', 'nbCellsOfNode'
 	]»
 	/******************** GPU Mesh definition & declaration ********************/
-	GPU_CartesianMesh2D *mesh_glb = nullptr;
+	// GPU_CartesianMesh2D *mesh_glb = nullptr; // <- not needed if NABLALIB_GPU != 1
 	extern "C" {
 	int omptarget_device_id;
 	int omptarget_host_id;
-	}
-	/* Disabled for the moment
+	#pragma omp declare target
 	«FOR cv : CountVars»
 	size_t __attribute__((unused))«cv»;
 	«ENDFOR»
-	*/
+	#pragma omp end declare target
+	}
 	
-	/* Disabled for the moment
 	static inline void
 	GPU_SetMeshCountVariables(«className» *mesh) noexcept
 	{
@@ -356,7 +355,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«target.free(cv)»
 		«ENDFOR»
 	}
-	*/
 	«ENDIF»
 
 	/******************** Options definition ********************/
@@ -407,7 +405,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	{
 		«IF typeContentProvider instanceof StlThreadTypeContentProvider»
 			«IF isGPU»
-				/* Disabled for the moment
 				// BEGIN: Free data on GPU
 				«val copy_gpu_var = variables
 					.filter[ !option ]
@@ -427,7 +424,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				«ENDIF»
 				// END: Free data on GPU
 				GPU_UnsetMeshCountVariables();
-				*/
 			«ENDIF»
 		«ENDIF»
 	}
@@ -521,7 +517,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			/* END: Alias the .data() to _glb and other to _glb */
 
 			/* BEGIN: Copy to GPU constant things */
-			/* NOTE: Some parts are disabled      */
 			«val copy_gpu_var = variables
 				.filter[ !option ]
 				.filter[ constExpr || const ]
@@ -529,23 +524,22 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			/* Vars: «copy_gpu_var.size» */
 			«IF copy_gpu_var.size != 0»
 				«FOR v : copy_gpu_var»
-				// «target.allocate(v)»
+				«target.allocate(v)»
 				«ENDFOR»
 				«FOR v : copy_gpu_var»
-				// «target.update(v)»
+				«target.update(v)»
 				«ENDFOR»
 			«ENDIF»
 			/* Options: «options.size» */
 			«IF options.size != 0»
 				«FOR v : options»
-				// «target.allocate('options_' + v.name + '_glb')»
+				«target.allocate('options_' + v.name + '_glb')»
 				«ENDFOR»
 				«FOR v : options»
-				// «target.update('options_' + v.name + '_glb')»
+				«target.update('options_' + v.name + '_glb')»
 				«ENDFOR»
 			«ENDIF»
-			/* END: Copy to GPU constant things */
-			// GPU_SetMeshCountVariables(this);
+			GPU_SetMeshCountVariables(this);
 			«ENDIF»
 		«ENDIF»
 		
