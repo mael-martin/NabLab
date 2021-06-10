@@ -437,11 +437,11 @@ class OpenMPTargetProvider
 		CharSequence body
 	) '''
 		«val Set<String> SHARED = #[ READ.clone.toSet, WRITE.clone.toSet ].flatten.toSet»
-		#pragma omp task «
-		FOR v   : fp     BEFORE '\\\nfirstprivate(' SEPARATOR ', ' AFTER ')'»«v»«ENDFOR»«
-		FOR in  : IN     BEFORE '\\\ndepend(in: '   SEPARATOR ', ' AFTER ')'»«in»«ENDFOR»«
-		FOR out : OUT    BEFORE '\\\ndepend(out: '  SEPARATOR ', ' AFTER ')'»«out»«ENDFOR»«
-		FOR s   : SHARED BEFORE '\\\nshared('       SEPARATOR ', ' AFTER ')'»«s»«ENDFOR»
+		#pragma omp task«
+		FOR v   : fp     BEFORE ' firstprivate(' SEPARATOR ', ' AFTER ')'»«v  »«ENDFOR»«
+		FOR in  : IN     BEFORE ' depend(in: '   SEPARATOR ', ' AFTER ')'»«in »«ENDFOR»«
+		FOR out : OUT    BEFORE ' depend(out: '  SEPARATOR ', ' AFTER ')'»«out»«ENDFOR»«
+		FOR s   : SHARED BEFORE ' shared('       SEPARATOR ', ' AFTER ')'»«s  »«ENDFOR»
 		{
 			«body»
 		}
