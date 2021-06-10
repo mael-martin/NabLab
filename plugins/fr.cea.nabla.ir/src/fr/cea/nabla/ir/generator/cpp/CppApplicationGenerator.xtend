@@ -239,7 +239,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	getGPUDeclaration(IrModule it)
 	'''
 		// Global GPU variables
-		#pragma omp declare target
 		// All vars
 		«FOR v : variables.filter[!option]»
 		«typeContentProvider.getGpuFriendlyType(v.type, v.name)»
@@ -252,7 +251,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«FOR v : options»
 		«typeContentProvider.getCppType(v.type)» options_«v.name»_glb;
 		«ENDFOR»
-		#pragma omp end declare target
 	'''
 
 	private def getSourceFileContent(IrModule it)
