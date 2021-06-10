@@ -64,7 +64,7 @@ abstract class JobContentProvider
 		val instruction_job  = it instanceof InstructionJob
 
 		/* GPU Job! */
-		if (IsInsideGPUJob && instruction_job) {
+		if (IsInsideGPUJob && instruction_job && task_mode) {
 			println("Define content of GPU job " + name + ": Retrieve dataflow things...")
 
 			/* Get the MININ, OUT, READ, WRITE and take into account the ALREADY_ON_GPU */
@@ -176,16 +176,18 @@ abstract class JobContentProvider
 				«FOR copy : copies»
 				std::swap(«copy.source.name», «copy.destination.name»);
 				«ENDFOR»
-				«FOR copy : copies»
-				std::swap(«copy.source.name»_glb, «copy.destination.name»_glb);
-				«ENDFOR»
-				«FOR v : EcoreUtil2.getContainerOfType(it, IrModule).variables
-					.filter[ !option ]
-					.filter[ !needStaticAllocation ]
-					.filter[ v | !typeContentProvider.isArray(v.type) ]»
-				«v.name»_glb = «v.name»;
-				«target.update(v.name + '_glb')»
-				«ENDFOR»
+				«IF task_mode»
+					«FOR copy : copies»
+					std::swap(«copy.source.name»_glb, «copy.destination.name»_glb);
+					«ENDFOR»
+					«FOR v : EcoreUtil2.getContainerOfType(it, IrModule).variables
+						.filter[ !option ]
+						.filter[ !needStaticAllocation ]
+						.filter[ v | !typeContentProvider.isArray(v.type) ]»
+					«v.name»_glb = «v.name»;
+					«target.update(v.name + '_glb')»
+					«ENDFOR»
+				«ENDIF»
 			}
 			«IF caller.main»
 

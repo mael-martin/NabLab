@@ -40,6 +40,7 @@ class SequentialBackend extends Backend
 	new()
 	{
 		name = 'Sequential'
+		JobContentProvider::task_mode = false
 		irTransformationStep = new ReplaceReductions(true)
 		cmakeContentProvider = new CMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
@@ -61,6 +62,7 @@ class StlThreadBackend extends Backend
 	new()
 	{
 		name = 'StlThread'
+		JobContentProvider::task_mode = false
 		cmakeContentProvider = new StlThreadCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -81,6 +83,7 @@ class KokkosBackend extends Backend
 	new()
 	{
 		name = 'Kokkos'
+		JobContentProvider::task_mode = false
 		cmakeContentProvider = new KokkosCMakeContentProvider
 		typeContentProvider = new KokkosTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -101,6 +104,7 @@ class KokkosTeamThreadBackend extends Backend
 	new()
 	{
 		name = 'Kokkos Team Thread'
+		JobContentProvider::task_mode = false
 		cmakeContentProvider = new KokkosCMakeContentProvider
 		typeContentProvider = new KokkosTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -121,6 +125,7 @@ class OpenMpBackend extends Backend
 	new()
 	{
 		name = 'OpenMP'
+		JobContentProvider::task_mode = false
 		cmakeContentProvider = new OpenMpCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)

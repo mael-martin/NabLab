@@ -111,7 +111,7 @@ class ExpressionContentProvider
 		{
 			if (call.args.empty)
 				call.connectivity.nbElemsVar
-			else if (IsInsideGPUJob)
+			else if (JobContentProvider::task_mode && IsInsideGPUJob)
 				'''mesh_glb->«call.accessor».size()'''
 			else
 				'''mesh->«call.accessor».size()'''
@@ -146,7 +146,7 @@ class ExpressionContentProvider
 	getContent(ArgOrVarRef it)
 	{
 		var String code_name = codeName + '' // + (IsInsideGPUJob ? '_glb' : '')
-		if (IsInsideGPUJob) {
+		if (JobContentProvider::task_mode && IsInsideGPUJob) {
 			code_name = code_name.replace('.', '_')
 		}
 
@@ -160,7 +160,7 @@ class ExpressionContentProvider
 	getCodeName(ArgOrVarRef it)
 	{
 		/* Inside a GPU region AND a variable that has been aliased */
-		if (IsInsideGPUJob && (target instanceof Variable) && target.global) {
+		if (JobContentProvider::task_mode && IsInsideGPUJob && (target instanceof Variable) && target.global) {
 			'''«target.codeName»_glb'''
 		}
 
