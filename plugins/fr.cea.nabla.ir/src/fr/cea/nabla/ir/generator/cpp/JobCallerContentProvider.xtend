@@ -41,46 +41,17 @@ class JobCallerContentProvider
 class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 {
 	var boolean OMPRegion = false
-	var boolean OMPCloseGPURegion = false
 
 	override CharSequence
 	getCallsHeader(JobCaller it)
 	''''''
 	
 	private def CharSequence
-	OMPRegionIndent()
-	{
-		if (OMPRegion || OMPCloseGPURegion)
-		'''		'''
-		else ''''''
-	}
-	
-	private def CharSequence
-	GPURegionClose()
-	{
-		if (OMPCloseGPURegion) {
-			OMPCloseGPURegion = false
-			OMPRegion         = false
-			return '''
-				}
-			}
-			/* END GPU Jobs! */
-			
-			'''
-		}
-		else
-			return ''''''
-	}
-	
-	private def CharSequence
 	OMPRegionClose()
 	{
 		if (OMPRegion) {
 			OMPRegion = false
-			return '''
-				}
-			}
-			'''
+			return '''}}'''
 		}
 		
 		else
@@ -92,8 +63,7 @@ class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 	'''
 		«FOR j : calls»
 			«j.OMPRegionLimit»
-			«OMPRegionIndent»«j.callName.replace('.', '->')»(); // @«j.at»
-			«GPURegionClose»
+			«j.callName.replace('.', '->')»(); // @«j.at»
 		«ENDFOR»
 		«OMPRegionClose»
 	'''
@@ -109,45 +79,20 @@ class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 			TimeLoopCopy | TimeLoopJob: {
 				if (OMPRegion) {
 					OMPRegion = false
-					'''
-						}
-					}
-					'''
+					'''}}'''
 				} else ''''''
 			}
 
 			InstructionJob: {
-				/* Create the parallel region */
 				if (!OMPRegion) {
 					OMPRegion = true
 					'''
 						#pragma omp parallel
 						{
-							#pragma omp single nowait
-							{
-					'''
-				}
-				
-				/* Inside a parallel region but need to isolate the GPU job to
-				 * avoid some deadlocks of the OpenMP runtime */
-				 
-				else if (isGPUJob) {
-					OMPCloseGPURegion = true
-					'''
-							}
-						}
-
-						/* BEGIN GPU Jobs! */
-						#pragma omp parallel
+						#pragma omp single nowait
 						{
-							#pragma omp single nowait
-							{
 					'''
-				}
-				
-				/* Inside a parallel region and don't need to isolate the thing
-				 * because of some GPU jobs */
-				else ''''''
+				} else ''''''
 			}
 
 			default: {
