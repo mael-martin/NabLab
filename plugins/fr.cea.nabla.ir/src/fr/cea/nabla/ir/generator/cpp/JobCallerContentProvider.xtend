@@ -47,11 +47,23 @@ class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 	''''''
 	
 	private def CharSequence
+	OMPRegionIndent()
+	{
+		if (OMPRegion)
+			'''		'''
+		else
+			''''''
+	}
+	
+	private def CharSequence
 	OMPRegionClose()
 	{
 		if (OMPRegion) {
 			OMPRegion = false
-			return '''}}'''
+			return '''
+				}
+			}
+			'''
 		}
 		
 		else
@@ -63,7 +75,7 @@ class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 	'''
 		«FOR j : calls»
 			«j.OMPRegionLimit»
-			«j.callName.replace('.', '->')»(); // @«j.at»
+			«OMPRegionIndent»«j.callName.replace('.', '->')»(); // «IF JobContentProvider::task_mode && isGPUJob(j)»GPU «ENDIF»@«j.at»
 		«ENDFOR»
 		«OMPRegionClose»
 	'''
@@ -77,20 +89,19 @@ class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 
 			/* TimeLoopJob == ExecuteTimeLoopJob | TearDownTimeLoopJob | SetUpTimeLoopJob */
 			TimeLoopCopy | TimeLoopJob: {
-				if (OMPRegion) {
-					OMPRegion = false
-					'''}}'''
-				} else ''''''
+				OMPRegionClose
 			}
 
 			InstructionJob: {
 				if (!OMPRegion) {
 					OMPRegion = true
 					'''
-						#pragma omp parallel
+						#pragma omp parallel num_threads(2) /* 2 to exec more than one job if possible,
+															 * the rest of the CPUs will be populated by
+															 * the second level parallel for chuncks */
 						{
-						#pragma omp single nowait
-						{
+							#pragma omp single nowait
+							{
 					'''
 				} else ''''''
 			}

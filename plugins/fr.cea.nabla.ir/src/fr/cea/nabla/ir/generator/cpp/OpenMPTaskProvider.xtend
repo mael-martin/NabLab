@@ -295,7 +295,8 @@ class OpenMPTargetProvider
 	enum BASIC_TYPE { FLOATING, INTEGER }
 	enum TASK_MODE { NONE, GPU, CPU }
 
-	static var current_task_mode = TASK_MODE::NONE
+	static var current_task_mode  = TASK_MODE::NONE
+	public static var num_threads = 0
 
 	static def TASK_MODE
 	getCurrentTaskMode()
@@ -496,7 +497,7 @@ class OpenMPTargetProvider
 		'''
 		
 		else if (current_task_mode == TASK_MODE::CPU) '''
-			#pragma omp parallel for reduction(min: «result»)
+			#pragma omp parallel for reduction(min: «result») num_threads(NABLA_NUM_THREADS)
 			«body»
 		'''
 		
@@ -515,7 +516,7 @@ class OpenMPTargetProvider
 		'''
 
 		else if (current_task_mode == TASK_MODE::CPU) '''
-			#pragma omp parallel for
+			#pragma omp parallel for num_threads(NABLA_NUM_THREADS)
 			«body»
 		'''
 

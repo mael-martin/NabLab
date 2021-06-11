@@ -39,8 +39,10 @@ class SequentialBackend extends Backend
 {
 	new()
 	{
-		name = 'Sequential'
-		JobContentProvider::task_mode = false
+		name 									= 'Sequential'
+		JobContentProvider::task_mode 			= false
+		CppApplicationGenerator::first_touch    = false
+		
 		irTransformationStep = new ReplaceReductions(true)
 		cmakeContentProvider = new CMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
@@ -61,8 +63,10 @@ class StlThreadBackend extends Backend
 {
 	new()
 	{
-		name = 'StlThread'
-		JobContentProvider::task_mode = false
+		name 									= 'StlThread'
+		JobContentProvider::task_mode 			= false
+		CppApplicationGenerator::first_touch    = false
+
 		cmakeContentProvider = new StlThreadCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -82,8 +86,10 @@ class KokkosBackend extends Backend
 {
 	new()
 	{
-		name = 'Kokkos'
-		JobContentProvider::task_mode = false
+		name 									= 'Kokkos'
+		JobContentProvider::task_mode 			= false
+		CppApplicationGenerator::first_touch    = false
+
 		cmakeContentProvider = new KokkosCMakeContentProvider
 		typeContentProvider = new KokkosTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -103,8 +109,10 @@ class KokkosTeamThreadBackend extends Backend
 {
 	new()
 	{
-		name = 'Kokkos Team Thread'
-		JobContentProvider::task_mode = false
+		name 									= 'Kokkos Team Thread'
+		JobContentProvider::task_mode 			= false
+		CppApplicationGenerator::first_touch    = false
+
 		cmakeContentProvider = new KokkosCMakeContentProvider
 		typeContentProvider = new KokkosTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -124,8 +132,10 @@ class OpenMpBackend extends Backend
 {
 	new()
 	{
-		name = 'OpenMP'
-		JobContentProvider::task_mode = false
+		name 									= 'OpenMP'
+		CppApplicationGenerator::first_touch    = false
+		JobContentProvider::task_mode 			= false
+
 		cmakeContentProvider = new OpenMpCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
 		expressionContentProvider = new ExpressionContentProvider(typeContentProvider)
@@ -145,11 +155,13 @@ class OpenMpTaskBackend extends Backend
 {
 	new()
 	{
-		OpenMpTaskMainContentProvider::num_threads = JobMergeFromCost::num_threads; // FIXME: Must be set by the user
+		OpenMpTaskMainContentProvider::num_threads 		 = JobMergeFromCost::num_threads; // FIXME: Must be set by the user
 		OpenMpTaskMainContentProvider::max_active_levels = 1; 
-		OMPTaskMaxNumber = JobMergeFromCost::num_tasks
-		OMPTraces        = false
-		name             = 'OpenMPTask'
+		OMPTaskMaxNumber 							 	 = JobMergeFromCost::num_tasks
+		OMPTraces        								 = false
+		CppApplicationGenerator::first_touch    		 = true
+		name             								 = 'OpenMPTask'
+
 		cmakeContentProvider       = new OpenMpTaskCMakeContentProvider
 		typeContentProvider        = new StlThreadTypeContentProvider
 		expressionContentProvider  = new ExpressionContentProvider(typeContentProvider)
@@ -175,6 +187,8 @@ class OpenMpTargetBackend extends Backend
 		OMPTaskMaxNumber                                 = JobMergeFromCost::num_tasks
 		OMPTraces                                        = false
 		JobContentProvider::task_mode                    = true
+		CppApplicationGenerator::first_touch             = false
+		OpenMPTargetProvider::num_threads                = JobMergeFromCost::num_threads
 		name                                             = 'OpenMPTarget'
 
 		cmakeContentProvider       = new OpenMpTargetCMakeContentProvider

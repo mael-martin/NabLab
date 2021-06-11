@@ -39,8 +39,9 @@ import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 class CppApplicationGenerator extends CppGenerator implements ApplicationGenerator
 {
 	val String levelDBPath
-	val cMakeVars = new LinkedHashSet<Pair<String, String>>
-	val target    = new OpenMPTargetProvider
+	val cMakeVars                 = new LinkedHashSet<Pair<String, String>>
+	val target                    = new OpenMPTargetProvider
+	public static var first_touch = false
 
 	new(Backend backend, String wsPath, String levelDBPath, Iterable<Pair<String, String>> cMakeVars)
 	{
@@ -260,11 +261,12 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	#undef NABLALIB_GPU
 	#endif /* NABLALIB_GPU */
 
-	#define NABLALIB_GPU   0
-	#define NABLA_GPU      1
+	#define NABLALIB_GPU      0
+	#define NABLA_GPU         1
+	#define NABLA_NUM_THREADS 12
 	«ENDIF»
-	#define NABLALIB_DEBUG 0
-	#define NABLA_DEBUG    0
+	#define NABLALIB_DEBUG    0
+	#define NABLA_DEBUG       0
 	«fileHeader»
 
 	#include "«className».h"
@@ -441,13 +443,13 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«FOR v : variablesWithDefaultValue.filter[x | !x.constExpr]»
 	, «v.name»(«expressionContentProvider.getContent(v.defaultValue)»)
 	«ENDFOR»
-	«IF ! (typeContentProvider instanceof StlThreadTypeContentProvider)»
+	«IF (! first_touch)»
 		«FOR v : variables.filter[needStaticAllocation]»
 		, «v.name»(«typeContentProvider.getCstrInit(v.type, v.name)»)
 		«ENDFOR»
 	«ENDIF»
 	{
-		«IF typeContentProvider instanceof StlThreadTypeContentProvider»
+		«IF first_touch»
 			/* BEGIN: First touch for data vectors */
 			{
 				/* Reserve the space */
@@ -487,7 +489,8 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			}
 			/* END: First touch for data vectors */
 
-			«IF isGPU»
+		«ENDIF»
+		«IF isGPU»
 			/* BEGIN: Alias the .data() to _glb and other to _glb */
 			{
 				/* Connectivities: std::vector<T> -> T* */
@@ -556,9 +559,8 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 				«ENDFOR»
 			«ENDIF»
 			GPU_SetMeshCountVariables(this);
-			«ENDIF»
+
 		«ENDIF»
-		
 		«val dynamicArrayVariables = variables.filter[ needDynamicAllocation ]»
 		«IF !dynamicArrayVariables.empty»
 			// Allocate dynamic arrays (RealArrays with at least a dynamic dimension)
