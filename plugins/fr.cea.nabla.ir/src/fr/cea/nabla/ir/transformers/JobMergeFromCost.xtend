@@ -37,7 +37,9 @@ import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
 
 import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.transformers.ComputeCostTransformation.*
-import fr.cea.nabla.ir.transformers.EnsuredDependency.TARGET_TAG
+
+enum TARGET_TAG { CPU, GPU, BOTH } // CPU = (1 << 1), GPU = (1 << 2), BOTH = (CPU | GPU) <- Not possible in Xtext...
+	
 
 /* Job -> EnsuredDependency<Variable> := which one needs CPU or GPU
  * Variable -> EnsuredDependency<Job> := which one needs CPU or GPU */
@@ -45,8 +47,6 @@ class EnsuredDependency
 {
 	public Set<String> GPU = new HashSet<String>();
 	public Set<String> CPU = new HashSet<String>();
-	
-	enum TARGET_TAG { CPU, GPU, BOTH } // CPU = (1 << 1), GPU = (1 << 2), BOTH = (CPU | GPU) <- Not possible in Xtext...
 	
 	static def EnsuredDependency
 	newMerge(EnsuredDependency first, EnsuredDependency second)
@@ -329,7 +329,7 @@ class JobMergeFromCost extends IrTransformationStep
 	 *************************************************************************/
 
 	private def Map<String, EnsuredDependency>
-	computeEnsuredDependency(Map<String, EnsuredDependency.TARGET_TAG> DAG_TAG, boolean BOTH_is_CPU)
+	computeEnsuredDependency(Map<String, TARGET_TAG> DAG_TAG, boolean BOTH_is_CPU)
 	{
 		val JobEnsuredDependencies = new HashMap<String, EnsuredDependency>();
 		val VariableTags           = new EnsuredDependency;
@@ -337,9 +337,9 @@ class JobMergeFromCost extends IrTransformationStep
 		DAG_TAG.forEach[ jname, TAG |
 			val In = MinimalInVariablesPerJobs.get(jname)
 			if (In !== null) {
-				if      (TAG == EnsuredDependency.TARGET_TAG::CPU) { VariableTags.CPU.addAll(In.map[ name ]) }
-				else if (TAG == EnsuredDependency.TARGET_TAG::GPU) { VariableTags.GPU.addAll(In.map[ name ]) }
-				else if (BOTH_is_CPU)                              { VariableTags.CPU.addAll(In.map[ name ]) }
+				if      (TAG == TARGET_TAG::CPU) { VariableTags.CPU.addAll(In.map[ name ]) }
+				else if (TAG == TARGET_TAG::GPU) { VariableTags.GPU.addAll(In.map[ name ]) }
+				else if (BOTH_is_CPU)            { VariableTags.CPU.addAll(In.map[ name ]) }
 				else {
 					VariableTags.GPU.addAll(In.map[ name ])
 					VariableTags.CPU.addAll(In.map[ name ])
@@ -357,9 +357,9 @@ class JobMergeFromCost extends IrTransformationStep
 
 				/* If a variable is present on both CPU and GPU, it doesn't need to
 				 * be moved to the job location. */
-				if      (jtag == EnsuredDependency.TARGET_TAG::CPU) { AccTagedIn.GPU.removeAll(AccTagedIn.CPU) }
-				else if (jtag == EnsuredDependency.TARGET_TAG::GPU) { AccTagedIn.CPU.removeAll(AccTagedIn.GPU) }
-				else if (BOTH_is_CPU)                               { AccTagedIn.GPU.removeAll(AccTagedIn.CPU) }
+				if      (jtag == TARGET_TAG::CPU) { AccTagedIn.GPU.removeAll(AccTagedIn.CPU) }
+				else if (jtag == TARGET_TAG::GPU) { AccTagedIn.CPU.removeAll(AccTagedIn.GPU) }
+				else if (BOTH_is_CPU)             { AccTagedIn.GPU.removeAll(AccTagedIn.CPU) }
 				else { throw new Exception("A job should not be present on both CPU and GPU") }
 
 				// msg("Job " + jname)
@@ -391,14 +391,14 @@ class JobMergeFromCost extends IrTransformationStep
 		return calls.map[ job |
 			val map = new HashMap<String, TARGET_TAG>()
 
-			calls.filter[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency.TARGET_TAG::CPU)  ] // Forced
-			calls.reject[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, EnsuredDependency.TARGET_TAG::BOTH) ] // Will vary
+			calls.filter[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, TARGET_TAG::CPU)  ] // Forced
+			calls.reject[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, TARGET_TAG::BOTH) ] // Will vary
 
 			if (job.isJobGPUBlacklisted) {
 				msg("Can't set a GPU-blacklisted job " + job.name + " as GPU job!")
-				map.put(job.name, EnsuredDependency.TARGET_TAG::CPU)
+				map.put(job.name, TARGET_TAG::CPU)
 			} else {
-				map.put(job.name, EnsuredDependency.TARGET_TAG::GPU)
+				map.put(job.name, TARGET_TAG::GPU)
 			}
 
 			return computePossibleTaggedDAG_TREESEARCH_REC(map)
