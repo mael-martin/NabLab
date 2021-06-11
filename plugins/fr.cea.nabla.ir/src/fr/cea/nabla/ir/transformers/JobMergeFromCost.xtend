@@ -200,6 +200,7 @@ class JobMergeFromCost extends IrTransformationStep
 	private def void
 	computeVariableRegionLocality(IrRoot ir)
 	{
+		/* First pass */
 		ir.eAllContents.filter(JobCaller).map[ parallelJobs ].toSet.flatten.forEach[ job |
 			val jtag = job.isGPUJob ? TARGET_TAG::GPU : TARGET_TAG::CPU
 			val vars = job.inVars
@@ -211,6 +212,29 @@ class JobMergeFromCost extends IrTransformationStep
 				}
 				VariableRegionLocality.put(v.name, region_locality)
 			]
+		]
+		
+		/* Second pass: {var}plus1 and {var} should have the same region locality
+		 * - Get all the vars
+		 * - If we find a couple ({var}plus1, {var}), we merge the region tags:
+		 *   tag({var}plus1) |= tag({var})
+		 * XXX: Only supporte the 'plus1', should add a way to link the 'plus1',
+		 *      'minus1', 'plus2', etc variables with the corresponding one. */
+		val all_vars = ir.eAllContents
+		.filter(JobCaller)
+		.map[ parallelJobs ].toSet.flatten
+		.map[
+			val vars = inVars
+			vars.addAll(outVars)
+			return vars
+		].flatten
+
+		all_vars.forEach[ v |
+			val var_region_base  = VariableRegionLocality.get(v.name)
+			val var_region_plus1 = VariableRegionLocality.getOrDefault(v.name + 'plus1', null) // XXX
+			if (var_region_plus1 !== null && var_region_base != var_region_plus1) {
+				VariableRegionLocality.put(v.name + 'plus1', TARGET_TAG::BOTH)
+			}
 		]
 	}
 	
