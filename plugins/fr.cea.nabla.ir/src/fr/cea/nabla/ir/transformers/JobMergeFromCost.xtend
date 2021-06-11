@@ -175,10 +175,16 @@ class JobMergeFromCost extends IrTransformationStep
 			}
 		]
 
+		trace('    IR -> IR: ' + description + ':ComputeVarMovements')
+		VariableRegionLocality.clear
+		computeVariableRegionLocality(ir)
+		reportHashMap('VariableLocality', reverseHashMap(VariableRegionLocality), 'Region Locality', ': ')
+
 		/* Return OK */
 		return true
 	}
 	
+	static HashMap<String, TARGET_TAG>		  VariableRegionLocality		= new HashMap();
 	static HashMap<String, HashSet<String>>   AccumulatedInVariablesPerJobs = new HashMap();
 	static HashMap<String, HashSet<Variable>> MinimalInVariablesPerJobs     = new HashMap();
 	static HashMap<String, Integer>           JobSynchroCoeffs              = new HashMap();
@@ -190,6 +196,23 @@ class JobMergeFromCost extends IrTransformationStep
 	static public final int num_threads = 4; // FIXME: Must be set by the user
 	static int num_tasks;
 	static def int getNum_tasks() { return num_tasks; }
+	
+	private def void
+	computeVariableRegionLocality(IrRoot ir)
+	{
+		ir.eAllContents.filter(JobCaller).map[ parallelJobs ].toSet.flatten.forEach[ job |
+			val jtag = job.isGPUJob ? TARGET_TAG::GPU : TARGET_TAG::CPU
+			val vars = job.inVars
+			vars.addAll(job.outVars)
+			vars.forEach[ v |
+				var region_locality = VariableRegionLocality.getOrDefault(v.name, jtag)
+				if (region_locality != jtag) {
+					region_locality = TARGET_TAG::BOTH
+				}
+				VariableRegionLocality.put(v.name, region_locality)
+			]
+		]
+	}
 	
 	/******************************************
 	 * Get Jobs that must be run on CPU / GPU *
