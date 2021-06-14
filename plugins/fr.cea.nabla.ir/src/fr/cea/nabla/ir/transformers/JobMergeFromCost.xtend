@@ -197,6 +197,17 @@ class JobMergeFromCost extends IrTransformationStep
 	static int num_tasks;
 	static def int getNum_tasks() { return num_tasks; }
 	
+	/*********************************
+	 * Get the locality of variables *
+	 *********************************/
+	
+	static def TARGET_TAG
+	getVariableLocality(String vname)
+	{
+		/* Will throw if the name is not found, should not if everything is fine */
+		return VariableRegionLocality.get(vname)
+	}
+	
 	private def void
 	computeVariableRegionLocality(IrRoot ir)
 	{
@@ -213,7 +224,7 @@ class JobMergeFromCost extends IrTransformationStep
 				VariableRegionLocality.put(v.name, region_locality)
 			]
 		]
-		
+
 		/* Second pass: {var}plus1 and {var} should have the same region locality
 		 * - Get all the vars
 		 * - If we find a couple ({var}plus1, {var}), we merge the region tags:
@@ -237,7 +248,7 @@ class JobMergeFromCost extends IrTransformationStep
 			}
 		]
 	}
-	
+
 	/******************************************
 	 * Get Jobs that must be run on CPU / GPU *
 	 ******************************************/
@@ -571,13 +582,6 @@ class JobMergeFromCost extends IrTransformationStep
 		/* The number of produced variables, each one of these variable will contribute to another task */
 	 	JobSynchroCoeffs.put(name, mapped.apply(outVars))
 	}
-	
-	/***********************************************************************
-	 * Compute the DAG with the minimal IN and to cost to pass by a vertex *
-	 * is its cost                                                         *
-	 ***********************************************************************/
-	 
-	
 	
 	/************************************
 	 * In/Out/MinIn variables from Jobs *

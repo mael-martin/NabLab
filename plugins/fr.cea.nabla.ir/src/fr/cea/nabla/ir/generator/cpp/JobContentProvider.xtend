@@ -21,6 +21,7 @@ import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.TimeLoopCopy
 import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.Variable
+import fr.cea.nabla.ir.transformers.TARGET_TAG
 import java.util.ArrayList
 import java.util.HashMap
 import java.util.List
@@ -70,11 +71,15 @@ abstract class JobContentProvider
 			/* Get the MININ, OUT, READ, WRITE and take into account the ALREADY_ON_GPU */
 			val MinIns = minimalInVars.filter[ !isOption ].map[ name ]
 			val Outs   = outVars.map[ name ]
-			val WRITE  = outVars.map[ name ]
+			val WRITE  = outVars.map[ name ].toList
 			val READ   = inVars.filter[ !isOption ].map[ name ].toList
 			val SIZES  = new HashMap<String, String>()
 			READ.forEach[  name | SIZES.put(name, name.globalVariableSize) ]
 			WRITE.forEach[ name | SIZES.put(name, name.globalVariableSize) ]
+
+			/* Remove variables that already are on the GPU and must only be on GPU */
+			READ.removeIf([ vname | getVariableLocality(vname) == TARGET_TAG::GPU ])
+			WRITE.removeIf([ vname | getVariableLocality(vname) == TARGET_TAG::GPU ])
 			// READ.addAll(inVars.filter[ isOption ].map[ 'options_' + name ]) <- options should already be on the GPU
 			
 			/* Add the loop count as a READ variable */
