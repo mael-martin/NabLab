@@ -308,6 +308,7 @@ public:
         return geometry->quads[cellId].getNodeIds();
     }
 
+    /*
     inline BoundedArray<Id, GPU_CartesianMesh2D_MaxNbCellsOfNode>
 	getCellsOfNode(const Id& nodeId) const noexcept
     {
@@ -341,6 +342,7 @@ public:
 
         return BoundedArray<Id, GPU_CartesianMesh2D_MaxNbNeighbourCells>::fromVector(neighbors);
     }
+    */
 
 private:
     inline std::pair<size_t, size_t>

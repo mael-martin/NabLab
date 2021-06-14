@@ -261,7 +261,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	#undef NABLALIB_GPU
 	#endif /* NABLALIB_GPU */
 
-	#define NABLALIB_GPU      0
+	#define NABLALIB_GPU      1
 	#define NABLA_GPU         1
 	#define NABLA_NUM_THREADS 12
 	«ENDIF»
@@ -327,7 +327,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		'nbLeftNodes', 'nbRightNodes', 'nbNodesOfCell', 'nbCellsOfNode'
 	]»
 	/******************** GPU Mesh definition & declaration ********************/
-	// GPU_CartesianMesh2D *mesh_glb = nullptr; // <- not needed if NABLALIB_GPU != 1
+	#if defined(NABLALIB_GPU) && (NABLALIB_GPU == 1)
+	GPU_CartesianMesh2D *mesh_glb = nullptr; 
+	#endif // <- not needed if NABLALIB_GPU != 1
 	extern "C" {
 	int omptarget_device_id;
 	int omptarget_host_id;

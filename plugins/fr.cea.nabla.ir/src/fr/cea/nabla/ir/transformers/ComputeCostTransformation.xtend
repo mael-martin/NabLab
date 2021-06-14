@@ -344,9 +344,10 @@ class ComputeCostTransformation extends IrTransformationStep
 	isConnectivityNotPossibleOnGPU(ConnectivityCall it)
 	{
 		switch it.connectivity.name {
-			case "nodes": return false
-			case "cells": return false
-			default: 	  return true
+			case "nodes":       return false
+			case "cells":       return false
+			case "nodesOfCell": return false
+			default: 	        return true
 		}
 	}
 
