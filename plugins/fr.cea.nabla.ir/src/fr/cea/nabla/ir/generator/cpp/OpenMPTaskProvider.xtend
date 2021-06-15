@@ -492,7 +492,7 @@ class OpenMPTargetProvider
 		flipTaskModeFromJob
 
 		if (current_task_mode == TASK_MODE::GPU) '''
-			#pragma omp teams distribute parallel for reduction(min: «result») map(tofrom: «result»)
+			#pragma omp teams distribute parallel for reduction(min: «result») map(tofrom: «result») schedule(static,1)
 			«body»
 		'''
 		
@@ -511,7 +511,7 @@ class OpenMPTargetProvider
 		flipTaskModeFromJob
 
 		if (current_task_mode == TASK_MODE::GPU) '''
-			#pragma omp teams distribute parallel for
+			#pragma omp teams distribute parallel for schedule(static,1)
 			«body»
 		'''
 
