@@ -445,13 +445,19 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«FOR v : variablesWithDefaultValue.filter[x | !x.constExpr]»
 	, «v.name»(«expressionContentProvider.getContent(v.defaultValue)»)
 	«ENDFOR»
-	«IF (! first_touch)»
-		«FOR v : variables.filter[needStaticAllocation]»
-		, «v.name»(«typeContentProvider.getCstrInit(v.type, v.name)»)
-		«ENDFOR»
-	«ENDIF»
 	{
-		«IF first_touch»
+		«IF !first_touch»
+			/* Use the resize instead of the constructors */
+			«FOR v : variables.filter[needStaticAllocation]»
+				«val conn_type = v.type as ConnectivityType»
+				«v.name».resize(«typeContentProvider.getCstrResize(
+					 v.name, conn_type.base,
+					 v.name.globalVariableType.variableIndexTypeLimit,
+					 conn_type.connectivities
+				 )»);
+			«ENDFOR»
+
+		«ELSE»
 			/* BEGIN: First touch for data vectors */
 			{
 				/* Reserve the space */
