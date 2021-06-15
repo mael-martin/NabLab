@@ -497,7 +497,7 @@ class OpenMPTargetProvider
 		'''
 		
 		else if (current_task_mode == TASK_MODE::CPU) '''
-			#pragma omp parallel for reduction(min: «result») num_threads(NABLA_NUM_THREADS)
+			#pragma omp parallel for reduction(min: «result») num_threads(NABLA_NUM_THREADS) proc_bind(spread)
 			«body»
 		'''
 		
@@ -516,7 +516,7 @@ class OpenMPTargetProvider
 		'''
 
 		else if (current_task_mode == TASK_MODE::CPU) '''
-			#pragma omp parallel for num_threads(NABLA_NUM_THREADS)
+			#pragma omp parallel for num_threads(NABLA_NUM_THREADS) proc_bind(spread)
 			«body»
 		'''
 
