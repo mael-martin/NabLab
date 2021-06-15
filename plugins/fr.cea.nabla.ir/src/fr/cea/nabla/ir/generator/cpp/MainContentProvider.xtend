@@ -63,6 +63,7 @@ class MainContentProvider
 		}
 		«meshClassName»* mesh = meshFactory.create();
 		«IF isGPU»
+		#if defined(NABLA_GPU) && (NABLA_GPU == 1)
 		omptarget_device_id = omp_get_default_device();
 		omptarget_host_id   = omp_get_initial_device();
 		mesh_glb            = N_GPU_ALLOC(GPU_CartesianMesh2D);
@@ -71,6 +72,7 @@ class MainContentProvider
 			exit(1);
 		}
 		GPU_«meshClassName»_alloc(mesh_glb, mesh);
+		#endif
 		«ENDIF»
 
 		// Module instanciation(s)
@@ -97,8 +99,10 @@ class MainContentProvider
 			delete «m.name»;
 		«ENDFOR»
 		«IF isGPU»
+		#if defined(NABLA_GPU) && (NABLA_GPU == 1)
 		GPU_«meshClassName»_free(mesh_glb);
 		N_GPU_FREE(mesh_glb);
+		#endif
 		«ENDIF»
 		delete mesh;
 	'''
