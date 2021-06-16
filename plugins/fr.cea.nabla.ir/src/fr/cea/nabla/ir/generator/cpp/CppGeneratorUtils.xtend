@@ -10,7 +10,6 @@
 package fr.cea.nabla.ir.generator.cpp
 
 import fr.cea.nabla.ir.ir.ArgOrVar
-import fr.cea.nabla.ir.ir.ArgOrVarRef
 import fr.cea.nabla.ir.ir.ConnectivityCall
 import fr.cea.nabla.ir.ir.ConnectivityType
 import fr.cea.nabla.ir.ir.Container
@@ -18,8 +17,6 @@ import fr.cea.nabla.ir.ir.ExternFunction
 import fr.cea.nabla.ir.ir.InternFunction
 import fr.cea.nabla.ir.ir.IrAnnotable
 import fr.cea.nabla.ir.ir.IrModule
-import fr.cea.nabla.ir.ir.ItemIndex
-import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.JobCaller
 import fr.cea.nabla.ir.ir.Loop
@@ -34,11 +31,12 @@ import java.util.stream.Collectors
 import java.util.stream.IntStream
 import org.eclipse.xtext.EcoreUtil2
 
+import static fr.cea.nabla.ir.generator.Utils.*
+
 import static extension fr.cea.nabla.ir.ContainerExtensions.*
 import static extension fr.cea.nabla.ir.ExtensionProviderExtensions.getInstanceName
 import static extension fr.cea.nabla.ir.IrModuleExtensions.getClassName
 import static extension fr.cea.nabla.ir.Utils.getIrModule
-import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 
 enum INDEX_TYPE { NODES, CELLS, FACES, NULL }
@@ -162,14 +160,6 @@ class CppGeneratorUtils
 	{
 		if (provider.extensionName == "Math") 'std::' + name
 		else 'options.' + provider.instanceName + '.' + name
-	}
-	
-	/* Get most used variables in loops and reductions */
-	static def getMostUsedVariable(IterableInstruction it)
-	{
-		val affectations = eAllContents.filter(ArgOrVarRef);
-		val targets = affectations.filter(Variable);
-		val used = affectations.filter(ItemIndex);
 	}
 
 	/* Get variable dependencies and their ranges, etc */

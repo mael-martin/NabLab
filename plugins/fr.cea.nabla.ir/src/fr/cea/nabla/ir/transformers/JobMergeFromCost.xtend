@@ -104,13 +104,6 @@ class JobMergeFromCost extends IrTransformationStep
 	    	computeMinimalInVariables
 		]
 
-		/* Set MAX_TASK_NUMBER = ncpu * max(concurrentJobs + 1) */
-		val max_concurrent_jobs = ir.eAllContents.filter(JobCaller).map[ jc |
-			val jobsByAt = jc.calls.groupBy[ at ]
-			jobsByAt.keySet.map[ at | jobsByAt.get(at).size ].max
-		].max
-		num_tasks = num_threads * (max_concurrent_jobs + 1);
-
 		/* Global variable types */
 		trace('    IR -> IR: ' + description + ':VariableReport')
 		GlobalVariableIndexTypes.clear
@@ -193,9 +186,8 @@ class JobMergeFromCost extends IrTransformationStep
 	static HashMap<String, Integer>           JobCostByName                 = new HashMap();
 	static HashMap<String, Boolean>           JobPlacedOnGPU                = new HashMap();
 	
-	static public final int num_threads = 4; // FIXME: Must be set by the user
-	static int num_tasks;
-	static def int getNum_tasks() { return num_tasks; }
+	static public final int num_threads = 12; // FIXME: Must be set by the user, here we generate for sandy
+	static public final int num_tasks   = num_threads * 1; // FIXME: Must be set by the user
 	
 	/*********************************
 	 * Get the locality of variables *

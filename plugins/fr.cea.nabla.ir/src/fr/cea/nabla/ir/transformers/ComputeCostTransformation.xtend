@@ -346,7 +346,7 @@ class ComputeCostTransformation extends IrTransformationStep
 		switch it.connectivity.name {
 			case "nodes":       return false
 			case "cells":       return false
-			case "nodesOfCell": return false
+			case "nodesOfCell": return true // false
 			default: 	        return true
 		}
 	}
