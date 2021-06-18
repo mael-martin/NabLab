@@ -1,6 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2020 CEA
- * This program and the accompanying materials are made available under the 
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
  *
@@ -46,7 +46,7 @@ abstract class JobContentProvider
 
 	protected def abstract CharSequence
 	copyConnectivityType(String leftName, String rightName, int dimension, List<CharSequence> indexNames)
-	
+
 	val OpenMPTargetProvider target = new OpenMPTargetProvider()
 	static public var task_mode     = false
 
@@ -74,14 +74,14 @@ abstract class JobContentProvider
 			val WRITE  = outVars.map[ name ].toList
 			val READ   = inVars.filter[ !isOption ].map[ name ].toList
 			val SIZES  = new HashMap<String, String>()
-			READ.forEach[  name | SIZES.put(name, name.globalVariableSize) ]
-			WRITE.forEach[ name | SIZES.put(name, name.globalVariableSize) ]
+			// READ.forEach[  name | SIZES.put(name, name.globalVariableSize) ]
+			// WRITE.forEach[ name | SIZES.put(name, name.globalVariableSize) ]
 
 			/* Remove variables that already are on the GPU and must only be on GPU */
 			READ.removeIf([ vname | getVariableLocality(vname) == TARGET_TAG::GPU ])
 			WRITE.removeIf([ vname | getVariableLocality(vname) == TARGET_TAG::GPU ])
 			// READ.addAll(inVars.filter[ isOption ].map[ 'options_' + name ]) <- options should already be on the GPU
-			
+
 			/* Add the loop count as a READ variable */
 			// eAllContents.filter(Loop).map[ l | l.iterationBlock.getNbElems ].forEach[ v |
 			//	val string_v = v + ''
