@@ -38,6 +38,79 @@ class JobCallerContentProvider
 	'''
 }
 
+class OpenMpTaskV2JobCallerContentProvider extends JobCallerContentProvider
+{
+	var boolean OMPRegion = false
+
+	override CharSequence
+	getCallsHeader(JobCaller it)
+	''''''
+	
+	private def CharSequence
+	OMPRegionIndent()
+	{
+		if (OMPRegion)
+			'''		'''
+		else
+			''''''
+	}
+	
+	private def CharSequence
+	OMPRegionClose()
+	{
+		if (OMPRegion) {
+			OMPRegion = false
+			return '''
+				}
+			}
+			'''
+		}
+		
+		else
+			return ''''''
+	}
+
+	override CharSequence
+	getCallsContent(JobCaller it)
+	'''
+		«FOR j : calls»
+			«j.OMPRegionLimit»
+			«OMPRegionIndent»«j.callName.replace('.', '->')»(); // @«j.at»
+		«ENDFOR»
+		«OMPRegionClose»
+	'''
+
+	/* Create or end a parallel region task single to create all the other tasks */
+	private def CharSequence
+	OMPRegionLimit(Job it)
+	{
+		switch it {
+			case null: throw new Exception("Can't do anything with a null job")
+
+			/* TimeLoopJob == ExecuteTimeLoopJob | TearDownTimeLoopJob | SetUpTimeLoopJob */
+			TimeLoopCopy | TimeLoopJob: {
+				OMPRegionClose
+			}
+
+			InstructionJob: {
+				if (!OMPRegion) {
+					OMPRegion = true
+					'''
+						#pragma omp parallel
+						{
+							#pragma omp single nowait
+							{
+					'''
+				} else ''''''
+			}
+
+			default: {
+				throw new Exception("Unknown Job type for " + name + "@" + at)
+			}
+		}
+	}
+}
+
 class OpenMpTargetJobCallerContentProvider extends JobCallerContentProvider
 {
 	var boolean OMPRegion = false

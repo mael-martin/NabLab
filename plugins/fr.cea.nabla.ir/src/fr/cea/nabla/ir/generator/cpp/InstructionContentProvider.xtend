@@ -417,6 +417,34 @@ class OpenMpTargetInstructionContentProvider extends InstructionContentProvider
 }
 
 @Data
+class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
+{
+	override getReductionContent(ReductionInstruction it)
+	'''
+		«result.type.cppType» «result.name»(«result.defaultValue.content»);
+		#pragma omp parallel for reduction(min:«result.name»)
+		«iterationBlock.defineInterval('''
+		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
+		{
+			«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
+		}''')»
+	'''
+
+	override getParallelLoopContent(Loop it)
+	'''
+		«val vars = modifiedVariables»
+		#pragma omp parallel«IF !vars.empty» for shared(«vars.map[codeName].join(', ')»«ENDIF»)
+		«sequentialLoopContent»
+	'''
+
+	private def getModifiedVariables(Loop l)
+	{
+		val modifiedVars = l.eAllContents.filter(Affectation).map[left.target].toSet
+		modifiedVars.filter[global]
+	}
+}
+
+@Data
 class OpenMpTaskInstructionContentProvider extends InstructionContentProvider
 {
 	HashMap<String, Pair<Integer, Integer>> dataShift = new HashMap(); /* item name => iterator shift    */

@@ -150,6 +150,30 @@ class OpenMpBackend extends Backend
 	}
 }
 
+/** Expected variables: N_CXX_COMPILER */
+class OpenMpTaskV2Backend extends Backend
+{
+	new()
+	{
+		OMPTraces        					 = false
+		CppApplicationGenerator::first_touch = false
+		name             					 = 'OpenMPTask'
+
+		cmakeContentProvider       = new OpenMpTaskCMakeContentProvider
+		typeContentProvider        = new StlThreadTypeContentProvider
+		expressionContentProvider  = new ExpressionContentProvider(typeContentProvider)
+		instructionContentProvider = new OpenMpTaskV2InstructionContentProvider(typeContentProvider, expressionContentProvider, new OpenMPTaskMPCProvider)
+		functionContentProvider    = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
+		traceContentProvider       = new TraceContentProvider
+		includesContentProvider    = new OpenMpIncludesContentProvider
+		jsonContentProvider        = new JsonContentProvider(expressionContentProvider)
+		jobCallerContentProvider   = new OpenMpTaskV2JobCallerContentProvider
+		jobContentProvider         = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
+		mainContentProvider        = new OpenMpTaskMainContentProvider(jsonContentProvider)
+		registerTypeContentProvider(typeContentProvider)
+	}
+}
+
 /** Expected variables: N_CXX_COMPILER, N_C_COMPILER */
 class OpenMpTaskBackend extends Backend
 {

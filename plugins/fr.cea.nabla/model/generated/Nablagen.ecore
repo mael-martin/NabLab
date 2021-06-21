@@ -90,8 +90,9 @@
     <eLiterals name="StlThread" value="2" literal="StlThread"/>
     <eLiterals name="OpenMP" value="3" literal="OpenMP"/>
     <eLiterals name="OpenMPTask" value="4" literal="OpenMPTask"/>
-    <eLiterals name="OpenMPTarget" value="5" literal="OpenMPTarget"/>
-    <eLiterals name="Kokkos" value="6" literal="Kokkos"/>
-    <eLiterals name="KokkosTeamThread" value="7" literal="KokkosTeamThread"/>
+    <eLiterals name="OpenMPTaskV2" value="5" literal="OpenMPTaskV2"/>
+    <eLiterals name="OpenMPTarget" value="6" literal="OpenMPTarget"/>
+    <eLiterals name="Kokkos" value="7" literal="Kokkos"/>
+    <eLiterals name="KokkosTeamThread" value="8" literal="KokkosTeamThread"/>
   </eClassifiers>
 </ecore:EPackage>
