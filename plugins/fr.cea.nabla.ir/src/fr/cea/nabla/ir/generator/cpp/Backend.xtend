@@ -162,7 +162,7 @@ class OpenMpTaskV2Backend extends Backend
 		cmakeContentProvider       = new OpenMpTaskCMakeContentProvider
 		typeContentProvider        = new StlThreadTypeContentProvider
 		expressionContentProvider  = new ExpressionContentProvider(typeContentProvider)
-		instructionContentProvider = new OpenMpTaskV2InstructionContentProvider(typeContentProvider, expressionContentProvider, new OpenMPTaskMPCProvider)
+		instructionContentProvider = new OpenMpTaskV2InstructionContentProvider(typeContentProvider, expressionContentProvider)
 		functionContentProvider    = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
 		traceContentProvider       = new TraceContentProvider
 		includesContentProvider    = new OpenMpIncludesContentProvider
