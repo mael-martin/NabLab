@@ -428,7 +428,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		static «result.type.cppType» «result.name»;
 
 		/* Agglomerate all slices */
-		for (const size_t line = 0; line < «numberOfLines»; ++line)
+		for (size_t line = 0; line < «numberOfLines»; ++line)
 		{
 			#pragma omp task«getTaskDependenciesSliceToAgg('''line''')»
 			{ /* ... */ }
@@ -478,8 +478,8 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 				}
 
 				// The last line + the rest
-				#pragma omp task«getTaskDependencies('lines - 1')»«sharedClause» firstprivate(lineLimit, «numberOfElementsPerLine»)
-				«getSequentialLoopContentBody(it, '''lineLimit * «numberOfElementsPerLine»''', iterationBlock.nbElems)»
+				#pragma omp task«getTaskDependencies('lines - 1')»«sharedClause» firstprivate(lines, «numberOfElementsPerLine»)
+				«getSequentialLoopContentBody(it, '''(lines - 1) * «numberOfElementsPerLine»''', iterationBlock.nbElems)»
 			}
 		'''
 

@@ -119,8 +119,8 @@ class MainContentProvider
 		}
 		«className»* «name» = new «className»(mesh, «name»Options);
 		«IF !main»«name»->setMainModule(«irRoot.mainModule.name»);«ENDIF»
-		«name».nbXCells = meshFactory.getNbXQuads();
-		«name».nbXNodes = meshFactory.getNbXQuads() + 1;
+		«name»->nbXCells = meshFactory.getNbXQuads();
+		«name»->nbXNodes = meshFactory.getNbXQuads() + 1;
 	'''
 
 	protected def getSimulationCall(IrModule it)
