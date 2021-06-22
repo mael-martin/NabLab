@@ -119,6 +119,8 @@ class MainContentProvider
 		}
 		«className»* «name» = new «className»(mesh, «name»Options);
 		«IF !main»«name»->setMainModule(«irRoot.mainModule.name»);«ENDIF»
+		«name».nbXCells = meshFactory.getNbXQuads();
+		«name».nbXNodes = meshFactory.getNbXQuads() + 1;
 	'''
 
 	protected def getSimulationCall(IrModule it)
@@ -144,7 +146,7 @@ class OpenMpTaskMainContentProvider extends MainContentProvider
 	protected override getSimulationCall(IrModule it)
 	'''
 	// setenv("OMP_PROC_BIND", "true", 1); // <- do nothing, set the env before calling the executable
-	omp_set_num_threads(«num_threads»);
+	// omp_set_num_threads(«num_threads»);
 	«name»->simulate();
 	'''
 }

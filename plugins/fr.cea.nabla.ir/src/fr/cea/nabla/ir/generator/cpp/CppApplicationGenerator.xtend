@@ -193,6 +193,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 		«meshClassName»* mesh;
 	public: // Hacky boi
 		«FOR c : irRoot.connectivities.filter[multiple] BEFORE 'size_t \n__attribute__((unused))' SEPARATOR ', \n__attribute__((unused))'»«c.nbElemsVar»«ENDFOR»;
+		size_t __attribute__((unused)) nbXCells;
+		size_t __attribute__((unused)) nbXNodes;
+		size_t __attribute__((unused)) nbXFaces;
 	private:
 
 		// User options
