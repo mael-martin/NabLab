@@ -34,14 +34,16 @@ import static extension fr.cea.nabla.ir.JobCallerExtensions.*
 import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
+import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
+import fr.cea.nabla.ir.ir.IterableInstruction
 
 @Data
 abstract class JobContentProvider
 {
 	protected val TraceContentProvider traceContentProvider
 	protected val extension ExpressionContentProvider
-	protected val extension InstructionContentProvider
+	protected val extension InstructionContentProvider instructionContentProvider
 	protected val extension JobCallerContentProvider
 
 	protected def abstract CharSequence
@@ -121,6 +123,27 @@ abstract class JobContentProvider
 						#[], #[], null, /* Don't need data movement, always on CPU */
 						'''«innerContent»'''
 					)»
+				}
+			'''
+		}
+		
+		else if (
+			(instructionContentProvider instanceof OpenMpTaskV2InstructionContentProvider) && // Only in V2
+			(eAllContents.filter(IterableInstruction).size() == 0) && // No things that can be sliced
+			(it instanceof InstructionJob) // Don't do that for TimeLoopJobs (special control jobs)
+		) {
+			/* Should only be affectations of reals or other simple types */
+			val minIns = minimalInVars
+			minIns.removeAll(falseInVariableForJob)
+			ret = '''
+				«comment»
+				void «irModule.className»::«codeName»() noexcept
+				{
+					// No tasks will be generated
+					#pragma omp task«IF !minIns.isEmpty» depend(in: «minimalInVars.map[codeName].join(', ')»)«ENDIF» depend(out: «outVars.map[codeName].join(', ')»)
+					{
+						«innerContent»
+					}
 				}
 			'''
 		}

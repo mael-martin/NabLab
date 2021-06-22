@@ -457,12 +457,15 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		val falseIns 			= getFalseInVariableForJob(parentJob)
 		val outConnectivitiy 	= parentJob.outVars.filter[globalVariableSize !== null].reject[ v | falseIns.contains(v) ].map[globalVariableSize].toSet.head
 		val inConnectivities  	= parentJob.minimalInVars.filter[globalVariableSize !== null].map[globalVariableSize].toSet
-		
+
 		/* Need separated loops for the first and last line only if reading cells and writing nodes */
 		val boolean needSeparatedLoopsForLines = outConnectivitiy == 'nbNodes' && inConnectivities.contains('nbCells');
-		
+
+		/* Generate tasks? */
+		val boolean canSliceLoopInTasks = compteleConnectivities.contains(iterationBlock.nbElems)
+
 		/* Only generate tasks for complete connectivities iterations */
-		if (compteleConnectivities.contains(iterationBlock.nbElems))
+		if (canSliceLoopInTasks)
 		'''
 			{
 				const size_t lines = «numberOfLines»;
@@ -476,7 +479,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		'''
 
 		/* Only generate tasks for complete connectivities iterations + write nodes while reading cells */
-		else if (compteleConnectivities.contains(iterationBlock.nbElems) && needSeparatedLoopsForLines)
+		else if (canSliceLoopInTasks && needSeparatedLoopsForLines)
 		'''
 			{
 				/* First iteration: may handle things differently in the case (in: cells)->(out: nodes) */
@@ -497,12 +500,12 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 				«getSequentialLoopContentBody(it, '''(lines - 1) * «numberOfElementsPerLine»''', iterationBlock.nbElems)»
 			}
 		'''
-		
+
 		/* If we are not in the case of complete iteration over connectivities, generate a sequential loop */
 		else
 			sequentialLoopContent
 	}
-	
+
 	private def CharSequence
 	getTaskDependenciesReadAgg(IterableInstruction it)
 	{
