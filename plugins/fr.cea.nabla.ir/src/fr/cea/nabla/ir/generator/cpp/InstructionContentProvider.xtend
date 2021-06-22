@@ -422,7 +422,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 {
 	override getReductionContent(ReductionInstruction it)
 	'''
-		«val vars = modifiedVariables»
+		«val vars      = modifiedVariables»
 		«val parentJob = EcoreUtil2.getContainerOfType(it, Job)»
 		«val dependOut = '''«IF !vars.empty» depend(out: «vars.map[codeName].join(', ')»)«ENDIF»'''»
 		static «result.type.cppType» «result.name»;
@@ -449,12 +449,34 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 
 	override getParallelLoopContent(Loop it)
 	{
-		val vars = modifiedVariables
-		val sharedClause = '''«IF !vars.empty» shared(«vars.map[codeName].join(', ')»)«ENDIF»'''
-		val compteleConnectivities = #[ 'nbCells', 'nbFaces', 'nbNodes' ]
+		val vars 					= modifiedVariables
+		val sharedClause 			= '''«IF !vars.empty» shared(«vars.map[codeName].join(', ')»)«ENDIF»'''
+		val compteleConnectivities 	= #[ 'nbCells', 'nbFaces', 'nbNodes' ]
+
+		val parentJob 			= EcoreUtil2.getContainerOfType(it, Job)
+		val falseIns 			= getFalseInVariableForJob(parentJob)
+		val outConnectivitiy 	= parentJob.outVars.filter[globalVariableSize !== null].reject[ v | falseIns.contains(v) ].map[globalVariableSize].toSet.head
+		val inConnectivities  	= parentJob.minimalInVars.filter[globalVariableSize !== null].map[globalVariableSize].toSet
+		
+		/* Need separated loops for the first and last line only if reading cells and writing nodes */
+		val boolean needSeparatedLoopsForLines = outConnectivitiy == 'nbNodes' && inConnectivities.contains('nbCells');
 		
 		/* Only generate tasks for complete connectivities iterations */
 		if (compteleConnectivities.contains(iterationBlock.nbElems))
+		'''
+			{
+				const size_t lines = «numberOfLines»;
+				for (size_t line = 0; line < lines; ++line)
+				{
+					const size_t lineLimit = (line + 1) * «numberOfElementsPerLine»;
+					#pragma omp task«getTaskDependencies('line')»«sharedClause» firstprivate(lines, lineLimit, «numberOfElementsPerLine»)
+					«getSequentialLoopContentBody(it, '''lines * «numberOfElementsPerLine»''', '''lineLimit''')»
+				}
+			}
+		'''
+
+		/* Only generate tasks for complete connectivities iterations + write nodes while reading cells */
+		else if (compteleConnectivities.contains(iterationBlock.nbElems) && needSeparatedLoopsForLines)
 		'''
 			{
 				/* First iteration: may handle things differently in the case (in: cells)->(out: nodes) */
@@ -486,7 +508,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	{
 		/* Only read agglomerated variables: in = A, B, ... */
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
-		val ins = parentJob.inVars
+		val ins = parentJob.minimalInVars
 		ins.removeAll(getFalseInVariableForJob(parentJob))
 		if (ins.isEmpty())
 			''''''
@@ -499,7 +521,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	{
 		/* Depend on the agglomerated slices of a variable to produce a new slice: A -> B[0] */
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
-		val ins  = parentJob.inVars
+		val ins  = parentJob.minimalInVars
 		val outs = parentJob.outVars
 		ins.removeAll(getFalseInVariableForJob(parentJob))
 		var ret = ''''''
@@ -525,7 +547,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	{
 		/* Agglomerate all slices of a variable: A[0] -> A */
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
-		val ins  = parentJob.inVars
+		val ins  = parentJob.minimalInVars
 		val outs = parentJob.outVars
 		ins.removeAll(getFalseInVariableForJob(parentJob))
 		var ret = ''''''
@@ -551,7 +573,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	{
 		/* Slice a variable: A[0] -> B[0] */
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
-		val ins  = parentJob.inVars
+		val ins  = parentJob.minimalInVars
 		val outs = parentJob.outVars
 		ins.removeAll(getFalseInVariableForJob(parentJob))
 		var ret = ''''''
