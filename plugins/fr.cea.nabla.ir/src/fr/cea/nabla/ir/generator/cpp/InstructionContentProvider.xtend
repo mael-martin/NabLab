@@ -468,13 +468,18 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		if (canSliceLoopInTasks)
 		'''
 			{
+				// Most of the lines
 				const size_t lines = «numberOfLines»;
-				for (size_t line = 0; line < lines; ++line)
+				for (size_t line = 0; line < lines - 1; ++line)
 				{
 					const size_t lineLimit = (line + 1) * «numberOfElementsPerLine»;
 					#pragma omp task«getTaskDependencies('line')»«sharedClause» firstprivate(lines, lineLimit, «numberOfElementsPerLine»)
 					«getSequentialLoopContentBody(it, '''lines * «numberOfElementsPerLine»''', '''lineLimit''')»
 				}
+
+				// The last line + the rest
+				#pragma omp task«getTaskDependencies('lines - 1')»«sharedClause» firstprivate(lineLimit, «numberOfElementsPerLine»)
+				«getSequentialLoopContentBody(it, '''lineLimit * «numberOfElementsPerLine»''', iterationBlock.nbElems)»
 			}
 		'''
 
