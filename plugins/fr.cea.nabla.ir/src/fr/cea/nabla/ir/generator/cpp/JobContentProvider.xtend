@@ -166,54 +166,28 @@ abstract class JobContentProvider
 		) {
 			val ins      = minimalInVars
 			val outs     = outVars
-			val outCells = outs.filter[globalVariableSize == 'nbCells']
-			val outFaces = outs.filter[globalVariableSize == 'nbFaces']
-			val outNodes = outs.filter[globalVariableSize == 'nbNodes']
 
 			ret = '''
 				«comment»
 				void «irModule.className»::«codeName»() noexcept
 				{
+					// Agglomerate sliced of variables if needed for the ins
+					«aggSlicedVariables('Cells', ins.filter[globalVariableSize == 'nbCells'])»
+					«aggSlicedVariables('Nodes', ins.filter[globalVariableSize == 'nbNodes'])»
+					«aggSlicedVariables('Faces', ins.filter[globalVariableSize == 'nbFaces'])»
+
 					// Super task!
-					#pragma omp task depend(in: ...) depend(out: ...)
+					#pragma omp task«
+					IF !ins.empty» depend(in: «ins.map[codeName].join(', ')»)«ENDIF
+					» depend(out: «outs.map[codeName].join(', ')»)
 					{
 						«innerContent»
 					}
 
 					// Generate slices if needed for parts of the agglomerated variables
-					«IF !outCells.empty»
-					for (size_t line = 0; line < nbCells / nbXCells; ++line)
-					{
-						#pragma omp task depend(in: «
-							outCells.map[codeName].join(', ')
-						») depend(out: «
-							outCells.map[codeName + '[line]'].join(', ')
-						»)
-						{ /* ... */ }
-					}
-					«ENDIF»
-					«IF !outNodes.empty»
-					for (size_t line = 0; line < nbNodes / nbXNodes; ++line)
-					{
-						#pragma omp task depend(in: «
-							outNodes.map[codeName].join(', ')
-						») depend(out: «
-							outNodes.map[codeName + '[line]'].join(', ')
-						»)
-						{ /* ... */ }
-					}
-					«ENDIF»
-					«IF !outFaces.empty»
-					for (size_t line = 0; line < nbFaces / nbXFaces; ++line)
-					{
-						#pragma omp task depend(in: «
-							outFaces.map[codeName].join(', ')
-						») depend(out: «
-							outFaces.map[codeName + '[line]'].join(', ')
-						»)
-						{ /* ... */ }
-					}
-					«ENDIF»
+					«sliceAggVariables('Cells', outs.filter[globalVariableSize == 'nbCells'])»
+					«sliceAggVariables('Nodes', outs.filter[globalVariableSize == 'nbNodes'])»
+					«sliceAggVariables('Faces', outs.filter[globalVariableSize == 'nbFaces'])»
 				}
 			'''
 		}
@@ -232,6 +206,38 @@ abstract class JobContentProvider
 		IsInsideGPUJob = false
 		return ret
 	}
+
+	private def CharSequence
+	aggSlicedVariables(String which, Iterable<Variable> vars)
+	'''
+		«IF !vars.empty»
+		for (size_t line = 0; line < nb«which» / nbX«which»; ++line)
+		{
+			#pragma omp task depend(in: «
+				vars.map[codeName + '[line]'].join(', ')
+			») depend(out: «
+				vars.map[codeName].join(', ')
+			»)
+			{ /* ... */ }
+		}
+		«ENDIF»
+	'''
+	
+	private def CharSequence
+	sliceAggVariables(String which, Iterable<Variable> vars)
+	'''
+		«IF !vars.empty»
+		for (size_t line = 0; line < nb«which» / nbX«which»; ++line)
+		{
+			#pragma omp task depend(in: «
+				vars.map[codeName].join(', ')
+			») depend(out: «
+				vars.map[codeName + '[line]'].join(', ')
+			»)
+			{ /* ... */ }
+		}
+		«ENDIF»
+	'''
 
 	protected def dispatch CharSequence getInnerContent(InstructionJob it)
 	'''
