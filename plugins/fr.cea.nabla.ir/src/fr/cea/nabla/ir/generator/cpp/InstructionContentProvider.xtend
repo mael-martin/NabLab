@@ -506,7 +506,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 			sequentialLoopContent
 	}
 
-	private def CharSequence
+	def CharSequence
 	getTaskDependenciesReadAgg(IterableInstruction it)
 	{
 		/* Only read agglomerated variables: in = A, B, ... */
@@ -519,7 +519,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 			''' depend(in: «ins.map[codeName].join(', ')»)'''
 	}
 
-	private def CharSequence
+	def CharSequence
 	getTaskDependenciesAggToSlice(IterableInstruction it, CharSequence line)
 	{
 		/* Depend on the agglomerated slices of a variable to produce a new slice: A -> B[0] */
@@ -545,7 +545,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		return ret
 	}
 
-	private def CharSequence
+	def CharSequence
 	getTaskDependenciesSliceToAgg(IterableInstruction it, CharSequence line)
 	{
 		/* Agglomerate all slices of a variable: A[0] -> A */
@@ -571,7 +571,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		return ret
 	}
 
-	private def CharSequence
+	def CharSequence
 	getTaskDependencies(IterableInstruction it, CharSequence line)
 	{
 		/* Slice a variable: A[0] -> B[0] */

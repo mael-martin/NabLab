@@ -37,6 +37,7 @@ import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 import fr.cea.nabla.ir.ir.IterableInstruction
+import fr.cea.nabla.ir.ir.Loop
 
 @Data
 abstract class JobContentProvider
@@ -144,6 +145,33 @@ abstract class JobContentProvider
 					{
 						«innerContent»
 					}
+				}
+			'''
+		}
+		
+		else if (
+			(instructionContentProvider instanceof OpenMpTaskV2InstructionContentProvider) && // Only in V2
+			(eAllContents.filter(Loop).filter[parallel].size > 0) && // There are multi-threadable loops
+			(!eAllContents.filter(Loop)
+				.filter[parallel]				// Parallel loops
+				.map[iterationBlock.nbElems]	// Their connectivity
+				.reject[ nb |					// We will reject the complete connectivities
+					#[ 'nbCells', 'nbNodes', 'nbFaces' ].contains(nb)
+				].empty
+			) // Multi-threadable loops that iterate other something that is not the complete connectivity
+		) {
+			ret = '''
+				«comment»
+				void «irModule.className»::«codeName»() noexcept
+				{
+					// Super task!
+					#pragma omp task depend(in: ...) depend(out: ...)
+					{
+						«innerContent»
+					}
+
+					// Generate slices if needed for parts of the agglomerated variables
+					// Do this for nbCells, nbNodes and nbFaces
 				}
 			'''
 		}
