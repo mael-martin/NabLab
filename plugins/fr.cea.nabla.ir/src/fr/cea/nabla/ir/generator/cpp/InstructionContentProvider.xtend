@@ -423,6 +423,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	override getReductionContent(ReductionInstruction it)
 	'''
 		«val vars = modifiedVariables»
+		«val parentJob = EcoreUtil2.getContainerOfType(it, Job)»
 		«val dependOut = '''«IF !vars.empty» depend(out: «vars.map[codeName].join(', ')»)«ENDIF»'''»
 		static «result.type.cppType» «result.name»;
 
@@ -434,7 +435,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		}
 
 		/* The task for the reduction */
-		#pragma omp task shared(«result.name»)«dependOut»«taskDependenciesReadAgg»
+		#pragma omp task shared(«result.name»)«dependOut»«taskDependenciesReadAgg» depend(out: «parentJob.outVars.map[codeName].join(', ')»)
 		{
 			«result.name» = «result.defaultValue.content»; // Always set this static variable
 			«iterationBlock.defineInterval('''
@@ -474,27 +475,72 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	getTaskDependenciesReadAgg(IterableInstruction it)
 	{
 		/* Only read agglomerated variables: in = A, B, ... */
-		''''''
+		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
+		val ins = parentJob.inVars
+		ins.removeAll(getFalseInVariableForJob(parentJob))
+		if (ins.isEmpty())
+			''''''
+		else
+			''' depend(in: «ins.map[codeName].join(', ')»)'''
 	}
 
 	protected def CharSequence
 	getTaskDependenciesAggToSlice(IterableInstruction it, CharSequence line)
 	{
 		/* Depend on the agglomerated slices of a variable to produce a new slice: A -> B[0] */
-		''''''
+		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
+		val ins  = parentJob.inVars
+		val outs = parentJob.outVars
+		ins.removeAll(getFalseInVariableForJob(parentJob))
+		var ret = ''''''
+
+		if (!ins.isEmpty()) {
+			/* Get the agglomerated variables */
+			ret = '''«ret» depend(in: «ins.map[codeName].join(', ')»)'''
+		}
+
+		if (!outs.isEmpty()) {
+			/* Get the sliced variables */
+			if (!outs.filter[globalVariableSize !== null].isEmpty)
+				ret = '''«ret» depend(out: «outs.filter[globalVariableSize !== null].map[codeName + '''[«line»]'''].join(', ')»)'''
+			if (!outs.filter[globalVariableSize === null].isEmpty)
+				ret = '''«ret» depend(out: «outs.filter[globalVariableSize === null].map[codeName].join(', ')»)'''
+		}
+
+		return ret
 	}
 
 	protected def CharSequence
 	getTaskDependenciesSliceToAgg(IterableInstruction it, CharSequence line)
 	{
 		/* Agglomerate all slices of a variable: A[0] -> A */
-		''''''
+		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
+		val ins  = parentJob.inVars
+		val outs = parentJob.outVars
+		ins.removeAll(getFalseInVariableForJob(parentJob))
+		var ret = ''''''
+
+		if (!ins.isEmpty()) {
+			/* Get the sliced variables */
+			if (!ins.filter[globalVariableSize !== null].isEmpty)
+				ret = '''«ret» depend(in: «ins.filter[globalVariableSize !== null].map[codeName + '''[«line»]'''].join(', ')»)'''
+			if (!ins.filter[globalVariableSize === null].isEmpty)
+				ret = '''«ret» depend(in: «ins.filter[globalVariableSize === null].map[codeName].join(', ')»)'''
+		}
+
+		if (!outs.isEmpty()) {
+			/* Get the agglomerated variables */
+			ret = '''«ret» depend(out: «ins.map[codeName].join(', ')»)'''
+		}
+
+		return ret
 	}
 
 	protected def CharSequence
 	getTaskDependencies(IterableInstruction it, CharSequence line)
 	{
 		/* Slice a variable: A[0] -> B[0] */
+		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
 		''''''
 	}
 

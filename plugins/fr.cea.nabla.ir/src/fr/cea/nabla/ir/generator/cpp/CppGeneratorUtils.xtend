@@ -139,7 +139,7 @@ class CppGeneratorUtils
 	}
 
 	/* False 'in' variables */
-	static private def getFalseInVariableForJob(Job it)
+	static def getFalseInVariableForJob(Job it)
 	{
 		val parentJobCaller = caller
 		if (parentJobCaller === null) {
