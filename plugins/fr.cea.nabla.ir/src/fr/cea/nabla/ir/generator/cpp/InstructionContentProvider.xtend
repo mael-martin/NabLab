@@ -43,6 +43,7 @@ import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 import java.util.HashSet
+import fr.cea.nabla.ir.ir.IterableInstruction
 
 @Data
 abstract class InstructionContentProvider
@@ -421,13 +422,28 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 {
 	override getReductionContent(ReductionInstruction it)
 	'''
-		«result.type.cppType» «result.name»(«result.defaultValue.content»);
-		#pragma omp parallel for reduction(min:«result.name»)
-		«iterationBlock.defineInterval('''
-		for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
+		«val vars = modifiedVariables»
+		«val dependOut = '''«IF !vars.empty» depend(out: «vars.map[codeName].join(', ')»)«ENDIF»'''»
+		static «result.type.cppType» «result.name»;
+
+		/* Agglomerate all slices */
+		for (const size_t line = 0; line < «numberOfLines»; ++line)
 		{
-			«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
-		}''')»
+			#pragma omp task«getTaskDependenciesSliceToAgg('''line''')»
+			{ /* ... */ }
+		}
+
+		/* The task for the reduction */
+		#pragma omp task shared(«result.name»)«dependOut»«taskDependenciesReadAgg»
+		{
+			«result.name» = «result.defaultValue.content»; // Always set this static variable
+			«iterationBlock.defineInterval('''
+			for (size_t «iterationBlock.indexName»=0; «iterationBlock.indexName»<«iterationBlock.nbElems»; «iterationBlock.indexName»++)
+			{
+				«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
+			}''')»
+		}
+		#error "Replace by hand the following affectation"
 	'''
 
 	override getParallelLoopContent(Loop it)
@@ -435,7 +451,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		«val vars = modifiedVariables»
 		«val sharedClause = '''«IF !vars.empty» shared(«vars.map[codeName].join(', ')»)«ENDIF»'''»
 		{
-			/* First iteration */
+			/* First iteration: may handle things differently in the case (in: cells)->(out: nodes) */
 			#pragma omp task«getTaskDependencies('0')»«sharedClause»
 			«getSequentialLoopContentBody(it, '0', numberOfElementsPerLine)» firstprivate(«numberOfElementsPerLine»)
 
@@ -448,15 +464,37 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 				«getSequentialLoopContentBody(it, '''lines * «numberOfElementsPerLine»''', '''lineLimit''')»
 			}
 
-			/* Last iteration */
+			/* Last iteration: may handle things differently in the case (in: cells)->(out: nodes) */
 			#pragma omp task«getTaskDependencies('lines - 1')»«sharedClause» firstprivate(lines, «numberOfElementsPerLine»)
 			«getSequentialLoopContentBody(it, '''(lines - 1) * «numberOfElementsPerLine»''', iterationBlock.nbElems)»
 		}
 	'''
 	
 	protected def CharSequence
-	getTaskDependencies(Loop it, CharSequence line)
+	getTaskDependenciesReadAgg(IterableInstruction it)
 	{
+		/* Only read agglomerated variables: in = A, B, ... */
+		''''''
+	}
+
+	protected def CharSequence
+	getTaskDependenciesAggToSlice(IterableInstruction it, CharSequence line)
+	{
+		/* Depend on the agglomerated slices of a variable to produce a new slice: A -> B[0] */
+		''''''
+	}
+
+	protected def CharSequence
+	getTaskDependenciesSliceToAgg(IterableInstruction it, CharSequence line)
+	{
+		/* Agglomerate all slices of a variable: A[0] -> A */
+		''''''
+	}
+
+	protected def CharSequence
+	getTaskDependencies(IterableInstruction it, CharSequence line)
+	{
+		/* Slice a variable: A[0] -> B[0] */
 		''''''
 	}
 
@@ -470,7 +508,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	'''
 	
 	private def CharSequence
-	getNumberOfElementsPerLine(Loop it)
+	getNumberOfElementsPerLine(IterableInstruction it)
 	{
 		val itemname = iterationBlock.nbElems + ''
 		if      (itemname.contains("Cells")) return 'nbXCells'
@@ -479,15 +517,15 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	}
 	
 	private def CharSequence
-	getNumberOfLines(Loop it)
+	getNumberOfLines(IterableInstruction it)
 	{
 		'''«iterationBlock.nbElems» / «numberOfElementsPerLine»'''
 	}
 
-	private def getModifiedVariables(Loop l)
+	private def
+	getModifiedVariables(IterableInstruction it)
 	{
-		val modifiedVars = l.eAllContents.filter(Affectation).map[left.target].toSet
-		modifiedVars.filter[global]
+		eAllContents.filter(Affectation).map[left.target].toSet.filter[global]
 	}
 }
 
