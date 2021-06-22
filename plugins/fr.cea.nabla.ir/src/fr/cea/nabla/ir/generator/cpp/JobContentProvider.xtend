@@ -141,7 +141,11 @@ abstract class JobContentProvider
 				void «irModule.className»::«codeName»() noexcept
 				{
 					// No tasks will be generated
-					#pragma omp task«IF !minIns.isEmpty» depend(in: «minimalInVars.map[codeName].join(', ')»)«ENDIF» depend(out: «outVars.map[codeName].join(', ')»)
+					#pragma omp task«IF !minIns.isEmpty» depend(in: «
+						minimalInVars.map[codeName].join(', ')
+					»)«ENDIF» depend(out: «
+						outVars.map[codeName].join(', ')
+					»)
 					{
 						«innerContent»
 					}
@@ -160,6 +164,12 @@ abstract class JobContentProvider
 				].empty
 			) // Multi-threadable loops that iterate other something that is not the complete connectivity
 		) {
+			val ins      = minimalInVars
+			val outs     = outVars
+			val outCells = outs.filter[globalVariableSize == 'nbCells']
+			val outFaces = outs.filter[globalVariableSize == 'nbFaces']
+			val outNodes = outs.filter[globalVariableSize == 'nbNodes']
+
 			ret = '''
 				«comment»
 				void «irModule.className»::«codeName»() noexcept
@@ -171,7 +181,39 @@ abstract class JobContentProvider
 					}
 
 					// Generate slices if needed for parts of the agglomerated variables
-					// Do this for nbCells, nbNodes and nbFaces
+					«IF !outCells.empty»
+					for (size_t line = 0; line < nbCells / nbXCells; ++line)
+					{
+						#pragma omp task depend(in: «
+							outCells.map[codeName].join(', ')
+						») depend(out: «
+							outCells.map[codeName + '[line]'].join(', ')
+						»)
+						{ /* ... */ }
+					}
+					«ENDIF»
+					«IF !outNodes.empty»
+					for (size_t line = 0; line < nbNodes / nbXNodes; ++line)
+					{
+						#pragma omp task depend(in: «
+							outNodes.map[codeName].join(', ')
+						») depend(out: «
+							outNodes.map[codeName + '[line]'].join(', ')
+						»)
+						{ /* ... */ }
+					}
+					«ENDIF»
+					«IF !outFaces.empty»
+					for (size_t line = 0; line < nbFaces / nbXFaces; ++line)
+					{
+						#pragma omp task depend(in: «
+							outFaces.map[codeName].join(', ')
+						») depend(out: «
+							outFaces.map[codeName + '[line]'].join(', ')
+						»)
+						{ /* ... */ }
+					}
+					«ENDIF»
 				}
 			'''
 		}
