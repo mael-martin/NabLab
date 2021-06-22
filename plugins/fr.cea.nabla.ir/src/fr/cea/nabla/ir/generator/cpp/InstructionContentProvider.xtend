@@ -541,7 +541,28 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	{
 		/* Slice a variable: A[0] -> B[0] */
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
-		''''''
+		val ins  = parentJob.inVars
+		val outs = parentJob.outVars
+		ins.removeAll(getFalseInVariableForJob(parentJob))
+		var ret = ''''''
+
+		if (!ins.isEmpty()) {
+			/* Get the sliced variables */
+			if (!ins.filter[globalVariableSize !== null].isEmpty)
+				ret = '''«ret» depend(in: «ins.filter[globalVariableSize !== null].map[codeName + '''[«line»]'''].join(', ')»)'''
+			if (!ins.filter[globalVariableSize === null].isEmpty)
+				ret = '''«ret» depend(in: «ins.filter[globalVariableSize === null].map[codeName].join(', ')»)'''
+		}
+
+		if (!outs.isEmpty()) {
+			/* Get the sliced variables */
+			if (!outs.filter[globalVariableSize !== null].isEmpty)
+				ret = '''«ret» depend(out: «outs.filter[globalVariableSize !== null].map[codeName + '''[«line»]'''].join(', ')»)'''
+			if (!outs.filter[globalVariableSize === null].isEmpty)
+				ret = '''«ret» depend(out: «outs.filter[globalVariableSize === null].map[codeName].join(', ')»)'''
+		}
+
+		return ret
 	}
 
 	protected def CharSequence
