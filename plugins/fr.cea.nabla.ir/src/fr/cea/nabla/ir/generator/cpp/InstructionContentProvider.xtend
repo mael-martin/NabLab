@@ -448,28 +448,38 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	'''
 
 	override getParallelLoopContent(Loop it)
-	'''
-		«val vars = modifiedVariables»
-		«val sharedClause = '''«IF !vars.empty» shared(«vars.map[codeName].join(', ')»)«ENDIF»'''»
-		{
-			/* First iteration: may handle things differently in the case (in: cells)->(out: nodes) */
-			#pragma omp task«getTaskDependencies('0')»«sharedClause»
-			«getSequentialLoopContentBody(it, '0', numberOfElementsPerLine)» firstprivate(«numberOfElementsPerLine»)
-
-			/* Middle iterations */
-			const size_t lines = «numberOfLines»;
-			for (size_t line = 1; line < lines - 1; ++line)
+	{
+		val vars = modifiedVariables
+		val sharedClause = '''«IF !vars.empty» shared(«vars.map[codeName].join(', ')»)«ENDIF»'''
+		val compteleConnectivities = #[ 'nbCells', 'nbFaces', 'nbNodes' ]
+		
+		/* Only generate tasks for complete connectivities iterations */
+		if (compteleConnectivities.contains(iterationBlock.nbElems))
+		'''
 			{
-				const size_t lineLimit = (line + 1) * «numberOfElementsPerLine»;
-				#pragma omp task«getTaskDependencies('line')»«sharedClause» firstprivate(lines, lineLimit, «numberOfElementsPerLine»)
-				«getSequentialLoopContentBody(it, '''lines * «numberOfElementsPerLine»''', '''lineLimit''')»
-			}
+				/* First iteration: may handle things differently in the case (in: cells)->(out: nodes) */
+				#pragma omp task«getTaskDependencies('0')»«sharedClause» firstprivate(«numberOfElementsPerLine»)
+				«getSequentialLoopContentBody(it, '0', numberOfElementsPerLine)»
 
-			/* Last iteration: may handle things differently in the case (in: cells)->(out: nodes) */
-			#pragma omp task«getTaskDependencies('lines - 1')»«sharedClause» firstprivate(lines, «numberOfElementsPerLine»)
-			«getSequentialLoopContentBody(it, '''(lines - 1) * «numberOfElementsPerLine»''', iterationBlock.nbElems)»
-		}
-	'''
+				/* Middle iterations */
+				const size_t lines = «numberOfLines»;
+				for (size_t line = 1; line < lines - 1; ++line)
+				{
+					const size_t lineLimit = (line + 1) * «numberOfElementsPerLine»;
+					#pragma omp task«getTaskDependencies('line')»«sharedClause» firstprivate(lines, lineLimit, «numberOfElementsPerLine»)
+					«getSequentialLoopContentBody(it, '''lines * «numberOfElementsPerLine»''', '''lineLimit''')»
+				}
+
+				/* Last iteration: may handle things differently in the case (in: cells)->(out: nodes) */
+				#pragma omp task«getTaskDependencies('lines - 1')»«sharedClause» firstprivate(lines, «numberOfElementsPerLine»)
+				«getSequentialLoopContentBody(it, '''(lines - 1) * «numberOfElementsPerLine»''', iterationBlock.nbElems)»
+			}
+		'''
+		
+		/* If we are not in the case of complete iteration over connectivities, generate a sequential loop */
+		else
+			sequentialLoopContent
+	}
 	
 	protected def CharSequence
 	getTaskDependenciesReadAgg(IterableInstruction it)
