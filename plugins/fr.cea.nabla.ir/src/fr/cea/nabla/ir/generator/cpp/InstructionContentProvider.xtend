@@ -481,7 +481,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 			sequentialLoopContent
 	}
 	
-	protected def CharSequence
+	private def CharSequence
 	getTaskDependenciesReadAgg(IterableInstruction it)
 	{
 		/* Only read agglomerated variables: in = A, B, ... */
@@ -494,7 +494,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 			''' depend(in: «ins.map[codeName].join(', ')»)'''
 	}
 
-	protected def CharSequence
+	private def CharSequence
 	getTaskDependenciesAggToSlice(IterableInstruction it, CharSequence line)
 	{
 		/* Depend on the agglomerated slices of a variable to produce a new slice: A -> B[0] */
@@ -520,7 +520,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		return ret
 	}
 
-	protected def CharSequence
+	private def CharSequence
 	getTaskDependenciesSliceToAgg(IterableInstruction it, CharSequence line)
 	{
 		/* Agglomerate all slices of a variable: A[0] -> A */
@@ -546,7 +546,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		return ret
 	}
 
-	protected def CharSequence
+	private def CharSequence
 	getTaskDependencies(IterableInstruction it, CharSequence line)
 	{
 		/* Slice a variable: A[0] -> B[0] */
@@ -556,14 +556,15 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		ins.removeAll(getFalseInVariableForJob(parentJob))
 		var ret = ''''''
 		
-		var outConnectivities = outs.filter[globalVariableSize !== null].map[globalVariableSize].toSet
+		val outConnectivities = outs.filter[globalVariableSize !== null].map[globalVariableSize].toSet
 		if (outConnectivities.size > 1)
 			throw new Exception("The task will write more than on one connectivity type: not supported")
+		val outConnectivity = outConnectivities.head
 
 		if (!ins.isEmpty()) {
 			/* Get the sliced variables */
 			if (!ins.filter[globalVariableSize !== null].isEmpty)
-				ret = '''«ret» depend(in: «ins.filter[globalVariableSize !== null].map[codeName + '''[«line»]'''].join(', ')»)'''
+				ret = '''«ret» depend(in: «ins.filter[globalVariableSize !== null].map[translateLineIndex(codeName, line, globalVariableSize, outConnectivity)].join(', ')»)'''
 			if (!ins.filter[globalVariableSize === null].isEmpty)
 				ret = '''«ret» depend(in: «ins.filter[globalVariableSize === null].map[codeName].join(', ')»)'''
 		}
@@ -571,12 +572,38 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		if (!outs.isEmpty()) {
 			/* Get the sliced variables */
 			if (!outs.filter[globalVariableSize !== null].isEmpty)
-				ret = '''«ret» depend(out: «outs.filter[globalVariableSize !== null].map[codeName + '''[«line»]'''].join(', ')»)'''
+				ret = '''«ret» depend(out: «outs.filter[globalVariableSize !== null].map[translateLineIndex(codeName, line, globalVariableSize, outConnectivity)].join(', ')»)'''
 			if (!outs.filter[globalVariableSize === null].isEmpty)
 				ret = '''«ret» depend(out: «outs.filter[globalVariableSize === null].map[codeName].join(', ')»)'''
 		}
 
 		return ret
+	}
+
+	private def CharSequence
+	translateLineIndex(CharSequence codeName, CharSequence line, String from, String to)
+	{
+		if (from == to)
+			'''«codeName»[«line»]'''
+
+		/* The complicated case... */
+		else if (from == "nbCells" && to == "nbNodes") {
+			val boolean isFirstLine = line == '0'
+			val boolean isLastLine  = line == 'lineLimit'
+			if (!isFirstLine && !isLastLine)
+				'''«codeName»[«line»], «codeName»[«line»-1]'''
+			else if (isFirstLine)
+				'''«codeName»[«line»]'''
+			else if (isLastLine)
+				'''«codeName»[«line»-1]'''
+		}
+
+		else if (from == "nbNodes" && to == "nbCells")
+			'''«codeName»[«line»], «codeName»[«line»+1]'''
+
+		// (╯°□°)╯ ┻━┻
+		else
+			throw new Exception("Unsupported translation from " + from + " to " + to)
 	}
 
 	protected def CharSequence
