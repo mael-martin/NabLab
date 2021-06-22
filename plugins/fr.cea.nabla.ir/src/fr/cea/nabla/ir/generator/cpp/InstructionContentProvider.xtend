@@ -433,9 +433,56 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	override getParallelLoopContent(Loop it)
 	'''
 		«val vars = modifiedVariables»
-		#pragma omp parallel«IF !vars.empty» for shared(«vars.map[codeName].join(', ')»«ENDIF»)
-		«sequentialLoopContent»
+		«val sharedClause = '''«IF !vars.empty» shared(«vars.map[codeName].join(', ')»)«ENDIF»'''»
+		{
+			/* First iteration */
+			#pragma omp task«getTaskDependencies('0')»«sharedClause»
+			«getSequentialLoopContentBody(it, '0', numberOfElementsPerLine)» firstprivate(«numberOfElementsPerLine»)
+
+			/* Middle iterations */
+			const size_t lines = «numberOfLines»;
+			for (size_t line = 1; line < lines - 1; ++line)
+			{
+				const size_t lineLimit = (line + 1) * «numberOfElementsPerLine»;
+				#pragma omp task«getTaskDependencies('line')»«sharedClause» firstprivate(lines, lineLimit, «numberOfElementsPerLine»)
+				«getSequentialLoopContentBody(it, '''lines * «numberOfElementsPerLine»''', '''lineLimit''')»
+			}
+
+			/* Last iteration */
+			#pragma omp task«getTaskDependencies('lines - 1')»«sharedClause» firstprivate(lines, «numberOfElementsPerLine»)
+			«getSequentialLoopContentBody(it, '''(lines - 1) * «numberOfElementsPerLine»''', iterationBlock.nbElems)»
+		}
 	'''
+	
+	protected def CharSequence
+	getTaskDependencies(Loop it, CharSequence line)
+	{
+		''''''
+	}
+
+	protected def CharSequence
+	getSequentialLoopContentBody(Loop it, CharSequence base, CharSequence limit)
+	'''
+		for (size_t «iterationBlock.indexName» = «base»; «iterationBlock.indexName» < «limit»; «iterationBlock.indexName»++)
+		{
+			«body.innerContent»
+		}
+	'''
+	
+	private def CharSequence
+	getNumberOfElementsPerLine(Loop it)
+	{
+		val itemname = iterationBlock.nbElems + ''
+		if      (itemname.contains("Cells")) return 'nbXCells'
+		else if (itemname.contains("Nodes")) return 'nbXNodes'
+		else throw new Exception("Unknown number of items: " + itemname)
+	}
+	
+	private def CharSequence
+	getNumberOfLines(Loop it)
+	{
+		'''«iterationBlock.nbElems» / «numberOfElementsPerLine»'''
+	}
 
 	private def getModifiedVariables(Loop l)
 	{
