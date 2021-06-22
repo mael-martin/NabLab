@@ -555,6 +555,10 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 		val outs = parentJob.outVars
 		ins.removeAll(getFalseInVariableForJob(parentJob))
 		var ret = ''''''
+		
+		var outConnectivities = outs.filter[globalVariableSize !== null].map[globalVariableSize].toSet
+		if (outConnectivities.size > 1)
+			throw new Exception("The task will write more than on one connectivity type: not supported")
 
 		if (!ins.isEmpty()) {
 			/* Get the sliced variables */
