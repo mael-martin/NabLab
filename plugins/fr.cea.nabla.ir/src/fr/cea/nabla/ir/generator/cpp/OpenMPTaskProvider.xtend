@@ -370,7 +370,7 @@ class OpenMPTargetProvider
 		switch type {
 			case null:        throw new Exception("Passing null variable")
 			BaseType:         '''«name»_glb'''
-			ConnectivityType: '''«name»_glb:[:«name»_count]'''
+			ConnectivityType: '''«name»_glb[:«name»_count]'''
 			default:          throw new Exception("Un-handled type " + it.toString)
 		}
 	}
@@ -451,7 +451,10 @@ class OpenMPTargetProvider
 	private static def CharSequence
 	getSizeIndicationForVariable(String name, Map<String, String> sizes)
 	{
-		val size = sizes.get(name)
+		var size = sizes.get(name)
+		if (size === null)
+			size = sizes.get(name + '_glb')
+
 		if (size === null)
 			'''_glb'''
 		else if (size == 'cpu_copy')

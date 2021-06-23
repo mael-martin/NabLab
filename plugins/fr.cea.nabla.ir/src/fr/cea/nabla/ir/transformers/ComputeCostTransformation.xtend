@@ -171,7 +171,7 @@ class ComputeCostTransformation extends IrTransformationStep
 	static final int    defaultUnknownCost          = 10
 
 	/* Some extern functions are available on GPU, but with a different implementation */
-	static val externFunctionGPUWhitelist           = #[ 'sqrt', 'min' ];
+	static val          externFunctionGPUWhitelist  = #[ 'sqrt', 'min' ];
 
 	/* HashMaps to store cost of functions, jobs, etc */
 	static Map<String, Integer> functionCostMap           = new HashMap();
@@ -359,7 +359,7 @@ class ComputeCostTransformation extends IrTransformationStep
 		switch it.connectivity.name {
 			case "nodes":       return false
 			case "cells":       return false
-			case "nodesOfCell": return true // false
+			case "nodesOfCell": return false // true // false
 			default: 	        return true
 		}
 	}

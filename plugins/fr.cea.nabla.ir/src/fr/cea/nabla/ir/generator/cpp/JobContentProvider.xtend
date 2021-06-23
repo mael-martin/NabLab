@@ -77,8 +77,8 @@ abstract class JobContentProvider
 			val WRITE  = outVars.map[ name ].toList
 			val READ   = inVars.filter[ !isOption ].map[ name ].toList
 			val SIZES  = new HashMap<String, String>()
-			// READ.forEach[  name | SIZES.put(name, name.globalVariableSize) ]
-			// WRITE.forEach[ name | SIZES.put(name, name.globalVariableSize) ]
+			READ.forEach[  name | SIZES.put(name, name.globalVariableSize) ]
+			WRITE.forEach[ name | SIZES.put(name, name.globalVariableSize) ]
 
 			/* Remove variables that already are on the GPU and must only be on GPU */
 			READ.removeIf([ vname | getVariableLocality(vname) == TARGET_TAG::GPU ])
@@ -283,13 +283,14 @@ abstract class JobContentProvider
 				«IF task_mode»
 					«FOR copy : copies»
 					std::swap(«copy.source.name»_glb, «copy.destination.name»_glb);
+					«target.update(copy.destination)»
 					«ENDFOR»
 					«FOR v : EcoreUtil2.getContainerOfType(it, IrModule).variables
 						.filter[ !option ]
 						.filter[ !needStaticAllocation ]
 						.filter[ v | !typeContentProvider.isArray(v.type) ]»
 					«v.name»_glb = «v.name»;
-					«target.update(v.name + '_glb')»
+					«target.update(v)»
 					«ENDFOR»
 				«ENDIF»
 			}
