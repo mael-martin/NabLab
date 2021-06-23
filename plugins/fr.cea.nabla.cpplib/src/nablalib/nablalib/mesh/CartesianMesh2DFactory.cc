@@ -108,11 +108,19 @@ CartesianMesh2DFactory::create()
     Id edge_id_(0);
     for(size_t i(0); i < nodes_.size(); ++i)    {
         const size_t right_node_index_(i + 1);
-        if (right_node_index_ % nb_x_nodes_ != 0)
-          edges_[edge_id_++] = move(Edge(static_cast<Id>(i), right_node_index_));
+        if (right_node_index_ % nb_x_nodes_ != 0) {
+          // edges_[edge_id_++] = move(Edge(static_cast<Id>(i), right_node_index_));
+          edges_[edge_id_][0] = static_cast<Id>(i);
+          edges_[edge_id_][1] = right_node_index_;
+          edge_id_++;
+        }
         const size_t above_node_index_(i + nb_x_nodes_);
-        if (above_node_index_ < nodes_.size())
-          edges_[edge_id_++] = Edge(static_cast<Id>(i), above_node_index_);
+        if (above_node_index_ < nodes_.size()) {
+          // edges_[edge_id_++] = Edge(static_cast<Id>(i), above_node_index_);
+          edges_[edge_id_][0] = static_cast<Id>(i);
+          edges_[edge_id_][1] = above_node_index_;
+          edge_id_++;
+        }
     }
 
     // quad creation
@@ -131,8 +139,13 @@ CartesianMesh2DFactory::create()
             }
             const size_t upper_left_node_index_((j * static_cast<size_t>(nb_x_nodes_)) + i);
             const size_t lower_left_node_index_(upper_left_node_index_ + static_cast<size_t>(nb_x_nodes_));
-            quads_[quad_id_++] = move(Quad(upper_left_node_index_, upper_left_node_index_ + 1,
-                                     lower_left_node_index_ + 1, lower_left_node_index_));
+            // quads_[quad_id_++] = move(Quad(upper_left_node_index_, upper_left_node_index_ + 1,
+            //                          lower_left_node_index_ + 1, lower_left_node_index_));
+            quads_[quad_id_][0] = upper_left_node_index_;
+            quads_[quad_id_][1] = upper_left_node_index_ + 1;
+            quads_[quad_id_][2] = lower_left_node_index_ + 1;
+            quads_[quad_id_][3] = lower_left_node_index_;
+            quad_id_++;
         }
     }
 

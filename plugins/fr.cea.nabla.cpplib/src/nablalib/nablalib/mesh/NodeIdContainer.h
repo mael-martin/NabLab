@@ -23,21 +23,14 @@ namespace nablalib::mesh
 
 // Template class for node IDs collection. Restricted usage of integral types.
 template <typename T, size_t N, typename enable_if<is_integral<T>::value>::type* = nullptr>
-class NodeIdContainer
+struct NodeIdContainer : public array<T, N>
 {
-public:
-    template <typename... Args, typename enable_if<(is_integral<Args>::value && ...)>::type* = nullptr>
-    explicit NodeIdContainer(Args... args) : m_nodeIds{args...} {}
-
-    // Copy: Make it trivially copyable
-    // explicit NodeIdContainer(const NodeIdContainer<T, N>& nc) : m_nodeIds(nc.m_nodeIds) {}
-
-    ~NodeIdContainer() = default;
-
-    const array<T, N>& getNodeIds() const noexcept { return m_nodeIds; }
-
-private:
-    array<T, N> m_nodeIds;
+    const array<T, N>&
+    getNodeIds() const noexcept
+    {
+        static_assert(std::is_trivial<NodeIdContainer<T, N>>::value, "Must be trivial");
+        return *this;
+    }
 };
 
 template <typename T, size_t N>
