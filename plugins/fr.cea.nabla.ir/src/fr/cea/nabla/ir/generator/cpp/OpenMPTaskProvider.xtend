@@ -537,16 +537,20 @@ class OpenMPTargetProvider
 	def CharSequence
 	declare_gpu_functions(List<CharSequence> funcs)
 	'''
+	#pragma omp declare target
 	«FOR f : funcs»
 		«f»;
 	«ENDFOR»
+	#pragma omp end declare target
 	'''
 
 	def CharSequence
 	implement_gpu_functions(List<CharSequence> funcs)
 	'''
+	#pragma omp declare target
 	«FOR f : funcs»
 		«f»
 	«ENDFOR»
+	#pragma omp end declare target
 	 '''
 }

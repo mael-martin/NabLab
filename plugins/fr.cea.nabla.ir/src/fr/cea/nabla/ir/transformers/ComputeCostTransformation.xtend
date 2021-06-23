@@ -170,6 +170,9 @@ class ComputeCostTransformation extends IrTransformationStep
 	/* A default cost, for external functions */
 	static final int    defaultUnknownCost          = 10
 
+	/* Some extern functions are available on GPU, but with a different implementation */
+	static val externFunctionGPUWhitelist           = #[ 'sqrt', 'min' ];
+
 	/* HashMaps to store cost of functions, jobs, etc */
 	static Map<String, Integer> functionCostMap           = new HashMap();
 	static Map<String, Integer> jobCostMap                = new HashMap();
@@ -227,10 +230,9 @@ class ComputeCostTransformation extends IrTransformationStep
 	isFunctionGPUBlacklisted(Function it)
 	{
 		switch it {
-			case null:      throw new Exception("Invalid parameter, passing 'null' as a Function")
-			ExternFunction: return true
-			InternFunction: return functionCantBePlacedOnGPU.getOrDefault(name, false)
-			default:        throw new Exception("Unknown Function type for " + it.toString)
+			case null: throw new Exception("Invalid parameter, passing 'null' as a Function")
+			Function:  return functionCantBePlacedOnGPU.getOrDefault(name, false)
+			default:   throw new Exception("Unknown Function type for " + it.toString)
 		}
 	}
 	
@@ -268,9 +270,10 @@ class ComputeCostTransformation extends IrTransformationStep
 		trace('    IR -> IR: ' + description + ':DetectGPUAbleJobs')
 		detectGPU(ir)
 
-		reportHashMap('Cost', reverseHashMap(jobCostMap), 'Cost', ': ')
-		reportHashMap('Cost', reverseHashMap(jobContributionMap), 'Contribution', ': ')
-		reportHashMap('GPU-Able-Job-', reverseHashMap(jobCantBePlacedOnGPU), 'Unable state <', ' > for: ')
+		reportHashMap('Cost', 				 reverseHashMap(jobCostMap), 				'Cost', 		  ': ')
+		reportHashMap('Cost', 				 reverseHashMap(jobContributionMap), 		'Contribution',   ': ')
+		reportHashMap('GPU-Able-Job-', 		 reverseHashMap(jobCantBePlacedOnGPU), 		'Unable state <', ' > for: ')
+		reportHashMap('GPU-Able-Functions-', reverseHashMap(functionCantBePlacedOnGPU), 'Unable state <', ' > for: ')
 		return true
 	}
 
@@ -279,12 +282,22 @@ class ComputeCostTransformation extends IrTransformationStep
 	 * on GPU. Don't handle the case where a function call another one.    *
 	 ***********************************************************************/
 	 
-	static private def void
+	private def void
 	detectGPU(IrRoot ir)
 	{
-		ir.eAllContents.filter(ExternFunction).forEach[ func | functionCantBePlacedOnGPU.put(func.name, true) ]
-		ir.eAllContents.filter(InternFunction).forEach[ func | detectGPUFunctions(func) ]
-		ir.eAllContents.filter(Job).forEach[ job | detectGPUJobs(job) ]
+		ir.eAllContents.filter(ExternFunction).forEach[ func |
+			msg("Detect GPU state for function " + func.name)
+			functionCantBePlacedOnGPU.put(
+				func.name,
+				!externFunctionGPUWhitelist.contains(func.name)
+			)
+		]
+		ir.eAllContents.filter(InternFunction).forEach[ func |
+			detectGPUFunctions(func)
+		]
+		ir.eAllContents.filter(Job).forEach[ job |
+			detectGPUJobs(job)
+		]
 	}
 	
 	static private def void

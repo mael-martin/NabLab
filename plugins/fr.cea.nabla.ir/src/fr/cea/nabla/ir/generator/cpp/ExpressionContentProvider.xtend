@@ -123,9 +123,8 @@ class ExpressionContentProvider
 	def dispatch CharSequence
 	getContent(FunctionCall it)
 	{
-		if (function.name == 'solveLinearSystem')
-			switch (args.length)
-			{
+		if (function.name == 'solveLinearSystem') {
+			switch (args.length) {
 				// 2 args means no precond, everything default
 				case 2: '''«function.codeName»(«args.get(0).content», «args.get(1).content»)'''
 				// 3 args either means no precond with x0, or precond without x0
@@ -138,6 +137,18 @@ class ExpressionContentProvider
 				case 6: '''«function.codeName»(«args.get(0).content», «args.get(1).content», «args.get(2).content», «args.get(3).cppLinearAlgebraHelper», «args.get(4).content», «args.get(5).content»)'''
 				default: throw new RuntimeException("Wrong numbers of arguments for solveLinearSystem")
 			}
+		}
+
+		else if (JobContentProvider::task_mode && IsInsideGPUJob) {
+			/* Replace CodeName for builtin or special GPU functions if needed */
+			var codeName = function.codeName + ''
+			if 		(codeName == 'std::sqrt') codeName = 'sqrt'
+			else if (codeName == 'std::min')  codeName = 'min'
+			else if (codeName == 'std::max')  codeName = 'max'
+			
+			'''«codeName»(«FOR a:args SEPARATOR ', '»«a.content»«ENDFOR»)'''
+		}
+
 		else
 			'''«function.codeName»(«FOR a:args SEPARATOR ', '»«a.content»«ENDFOR»)'''
 	}
