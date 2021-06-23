@@ -198,9 +198,10 @@ class OpenMpTargetCMakeContentProvider extends CMakeContentProvider
 	override CharSequence
 	getFindPackageContent()
 	'''
-		# add_compile_options("-stdlib=libc++ -fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target -march=sm_70 -gline-tables-only")
-		# link_libraries("-fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target -march=sm_70 -gline-tables-only")
 		find_package(OpenMP REQUIRED)
+		find_package(CUDA 10.0 REQUIRED)
+		link_libraries(${CUDA_LIBRARIES} -fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target -march=sm_70 -gline-tables-only)
+		add_compile_options(-stdlib=libc++ -fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target -march=sm_70 -gline-tables-only)
 	'''
 
 	override Iterable<String>
