@@ -318,7 +318,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	{
 	«target.implement_gpu_functions(internFunctions
 		.filter[ f | ! isFunctionGPUBlacklisted(f) ]
-		.map[ f | functionContentProvider.getDefinitionContent(f) ]
+		.map[ f | functionContentProvider.getGPUDefinitionContent(f) ]
 		.toList
 	)»
 	}

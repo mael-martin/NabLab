@@ -23,6 +23,7 @@ import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.PrimitiveType
 import org.eclipse.xtend.lib.annotations.Data
 
+import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.ExtensionProviderExtensions.*
 
 @Data
@@ -40,13 +41,28 @@ class FunctionContentProvider
 	«IF macro !== null»«macro»«ENDIF»
 	«returnType.cppType» «name»(«FOR a : inArgs SEPARATOR ', '»«a.type.cppType» «a.name»«ENDFOR»)'''
 
-	def getDefinitionContent(InternFunction it)
+	def CharSequence
+	getDefinitionContent(InternFunction it)
 	'''
 		«getDeclarationContent»
 		{
 			«body.innerContent»
 		}
 	'''
+
+	def CharSequence
+	getGPUDefinitionContent(InternFunction it)
+	{
+		IsInsideGPUJob = true
+		val ret = '''
+			«getDeclarationContent»
+			{
+				«body.innerContent»
+			}
+		'''
+		IsInsideGPUJob = false
+		return ret
+	}
 
 	def getJniDefinitionContent(ExternFunction it, ExtensionProvider provider)
 	'''
