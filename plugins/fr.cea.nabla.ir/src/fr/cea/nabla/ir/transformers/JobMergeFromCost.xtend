@@ -29,7 +29,6 @@ import fr.cea.nabla.ir.ir.Variable
 import java.util.HashMap
 import java.util.HashSet
 import java.util.List
-import java.util.Map
 import java.util.Set
 import org.eclipse.xtend.lib.annotations.Data
 
@@ -90,8 +89,6 @@ class JobMergeFromCost extends IrTransformationStep
 	static final double priority_coefficient_task_granularity     = 10.0   // Granularity is not really important here, and it is already the greatest number
 	static final double priority_coefficient_task_synchronization = 30.0   // We mostly care about the synchronicity of the task
 	static final double priority_coefficient_task_at              = 40.0   // The @ influence the scheduling
-	
-	static val double lambda = 10
 
 	override boolean
 	transform(IrRoot ir) 
@@ -125,55 +122,10 @@ class JobMergeFromCost extends IrTransformationStep
 		ir.eAllContents.filter(JobCaller).forEach[
 			calls.forEach[ j |
 				JobCostByName.put(j.name, j.jobCost)
+				JobPlacedOnGPU.put(j.name, !isJobGPUBlacklisted(j))
 			]
 		]
 		
-		ir.eAllContents.filter(Job).forEach[ j |
-			JobPlacedOnGPU.put(j.name, !isJobGPUBlacklisted(j))
-		]
-
-		/* Try to offload parts of the computation to the GPU */
-		/*
-		ir.eAllContents.filter(JobCaller).forEach[ jc |
-			val DAGs = jc.computePossibleTaggedDAG_TREESEARCH
-			msg("Got " + DAGs.size + " DAGs to test")
-			// Map
-			val List<Pair<Integer, Map<String, TARGET_TAG>>> ALL_DAGS = DAGs.map[ DAG |
-				val taggedAccIn  = computeEnsuredDependency(DAG, false)
-				val double crit  = rankGPUPartition(DAG, taggedAccIn, lambda)
-				val int crit_int = crit.intValue
-				if (crit_int != 0) {
-					return new Pair<Integer, Map<String, TARGET_TAG>>(crit_int, DAG)
-				} else {
-					msg("(╯°□°)╯  ┻━┻")
-					return new Pair<Integer, Map<String, TARGET_TAG>>(0, null)
-				}
-			].toList
-			// Reduce
-			var Map<String, TARGET_TAG> min = null
-			var int min_rank                = 0
-			for (var int i = 0; i < ALL_DAGS.size; i += 1) {
-				val Pair<Integer, Map<String, TARGET_TAG>> pair = ALL_DAGS.get(i)
-				if (pair.key <= min_rank) {
-					min = pair.value
-				}
-			}
-			// Register
-			if (min !== null) {
-				min.filter[ p1, p2 | p2 == TARGET_TAG::GPU ].keySet.forEach[ job | JobPlacedOnGPU.put(job, true)  ]
-				min.filter[ p1, p2 | p2 == TARGET_TAG::CPU ].keySet.forEach[ job | JobPlacedOnGPU.put(job, false) ]
-				jc.calls.filter(ExecuteTimeLoopJob).forEach[ JobPlacedOnGPU.put(name, false) ]
-				jc.calls.filter(TimeLoopJob).forEach[ JobPlacedOnGPU.put(name, false) ]
-				JobPlacedOnGPU.forEach[ jname, isGPU |
-					msg("Run " + jname + (isGPU ? " on GPU!" : " on CPU"))
-				]
-			} else {
-				msg("(╯°□°)╯ Run everything on CPU")
-				jc.calls.forEach[ JobPlacedOnGPU.put(name, false) ]
-			}
-		]
-		 */
-
 		trace('    IR -> IR: ' + description + ':ComputeVarMovements')
 		VariableRegionLocality.clear
 		computeVariableRegionLocality(ir)
@@ -311,220 +263,6 @@ class JobMergeFromCost extends IrTransformationStep
 		return calls.reject[ j | j instanceof TimeLoopJob || j instanceof ExecuteTimeLoopJob ].toList
 	}
 	
-	/*********************************
-	 * Rank a bipartition of the DAG *
-	 *********************************/
-	 
-	private def double
-	rankGPUPartition(Map<String, TARGET_TAG> DAG_VERTICIES, Map<String, EnsuredDependency> DAG_EDGES, double lambda)
-	{
-		var critere = 0.0
-		val P_GPU   = DAG_VERTICIES.filter[ jname, jtag | jtag == TARGET_TAG::GPU ].keySet.toList
-		val P_CPU   = DAG_VERTICIES.filter[ jname, jtag | jtag == TARGET_TAG::CPU ].keySet.toList
-
-		/* C(lambda, P) = Sum_{i in P, j in Pred(i)}(e_{j,i} * x_i * x_j) /// (1)
-		 *              + Sum_{i in P, j in Succ(i)}(e_{i,j} * x_i * x_j) /// (2)
-		 *              - lambda Sum_{i in P}(u_i)                        /// (3)
-		 */
-		
-		/****************************************\
-		|  XXX: (╯°□°)╯__┻━┻ C'EST TOUT CASSÉ !  |
-		\****************************************/
-
-		/* (1) */
-		val all1 = new HashSet<Double>().toList
-		all1 += #[0.0]
-		all1 += P_GPU.map[ i |
-			val all2   = new HashSet<Double>().toList
-			val i_deps = DAG_EDGES.getOrDefault(i, new EnsuredDependency).CPU.toList
-			all2 += #[0.0]
-			all2 += i_deps.map[ e_ji |
-				switch GlobalVariableIndexTypes.getOrDefault(e_ji, INDEX_TYPE::NULL) {
-					case INDEX_TYPE::CELLS: return 1.0
-					case INDEX_TYPE::NODES: return 4.0
-					case INDEX_TYPE::FACES: return 2.0
-					case INDEX_TYPE::NULL:  return 0.0
-				}
-			].toList
-			return all2.reduce[ p1, p2 | p1 + p2 ]
-		].toList
-		critere += all1.reduce[ p1, p2 | p1 + p2 ] * getGeometry_domain_size
-
-		/* (2) */
-		val all3 = new HashSet<Double>().toList
-		all3 += #[0.0]
-		all3 += P_CPU.map[ i |
-			val all2 = new HashSet<Double>().toList
-			all2 += #[0.0]
-			all2 += DAG_EDGES.getOrDefault(i, new EnsuredDependency).GPU.toList.map[ e_ji |
-				switch GlobalVariableIndexTypes.getOrDefault(e_ji, INDEX_TYPE::NULL) {
-					case INDEX_TYPE::CELLS: return 1.0
-					case INDEX_TYPE::NODES: return 4.0
-					case INDEX_TYPE::FACES: return 2.0
-					case INDEX_TYPE::NULL:  return 0.0
-				}
-			].toList
-			return all2.reduce[ p1, p2 | p1 + p2 ]
-		].toList
-		critere += all3.reduce[ p1, p2 | p1 + p2 ] * getGeometry_domain_size
-
-		/* (3) */
-		val all4 = new HashSet<Double>().toList
-		all4 += #[0.0]
-		all4 += P_GPU.map[ i |
-			JobCostByName.getOrDefault(i, 0).doubleValue
-		]
-
-		/* The sum */
-		return critere - lambda * all4.reduce[ p1, p2 | p1 + p2 ]
-	}
-	
-	/*************************************************************************
-	 * Compute the AccumulatedIn but with variable localization, i.e. on CPU *
-	 * or on GPU.                                                            *
-	 *************************************************************************/
-
-	private def Map<String, EnsuredDependency>
-	computeEnsuredDependency(Map<String, TARGET_TAG> DAG_TAG, boolean BOTH_is_CPU)
-	{
-		val JobEnsuredDependencies = new HashMap<String, EnsuredDependency>();
-		val VariableTags           = new EnsuredDependency;
-		
-		DAG_TAG.forEach[ jname, TAG |
-			val In = MinimalInVariablesPerJobs.get(jname)
-			if (In !== null) {
-				if      (TAG == TARGET_TAG::CPU) { VariableTags.CPU.addAll(In.map[ name ]) }
-				else if (TAG == TARGET_TAG::GPU) { VariableTags.GPU.addAll(In.map[ name ]) }
-				else if (BOTH_is_CPU)            { VariableTags.CPU.addAll(In.map[ name ]) }
-				else {
-					VariableTags.GPU.addAll(In.map[ name ])
-					VariableTags.CPU.addAll(In.map[ name ])
-				}
-			}
-		]
-
-		for (jname : DAG_TAG.keySet.toList) {
-			val jtag  = DAG_TAG.get(jname)
-			val AccIn = AccumulatedInVariablesPerJobs.get(jname)
-			if (AccIn !== null) {
-				val AccTagedIn = new EnsuredDependency
-				AccTagedIn.CPU += AccIn.filter[ v | VariableTags.CPU.contains(v) ]
-				AccTagedIn.GPU += AccIn.filter[ v | VariableTags.GPU.contains(v) ]
-
-				/* If a variable is present on both CPU and GPU, it doesn't need to
-				 * be moved to the job location. */
-				if      (jtag == TARGET_TAG::CPU) { AccTagedIn.GPU.removeAll(AccTagedIn.CPU) }
-				else if (jtag == TARGET_TAG::GPU) { AccTagedIn.CPU.removeAll(AccTagedIn.GPU) }
-				else if (BOTH_is_CPU)             { AccTagedIn.GPU.removeAll(AccTagedIn.CPU) }
-				else { throw new Exception("A job should not be present on both CPU and GPU") }
-
-				// msg("Job " + jname)
-				// msgItem("CPU: " + AccTagedIn.CPU.size)
-				// msgItem("GPU: " + AccTagedIn.GPU.size)
-				JobEnsuredDependencies.put(jname, AccTagedIn)
-			}
-		}
-
-		/* JobEnsuredDependencies := [
-		 * ... ... ...
-		 * { CPU: Needed variables on CPU, if this job is on GPU, need data move
-		 * , GPU: Needed variables on GPU, if this job is on CPU, need data move
-		 * }
-		 * ... ... ...
-		 * ] */
-		return JobEnsuredDependencies
-	}
-	
-	/*********************************************************************
-	 * Generate a list of possible DAG with jobs assigned to CPU or GPU. *
-	 * Will generate N different DAGs and will iter on them while the    *
-	 * computed cost decrease.                                           *
-	 *********************************************************************/
-	
-	private def List<Map<String, TARGET_TAG>>
-	computePossibleTaggedDAG_TREESEARCH(JobCaller it)
-	{
-		return calls.map[ job |
-			val map = new HashMap<String, TARGET_TAG>()
-
-			calls.filter[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, TARGET_TAG::CPU)  ] // Forced
-			calls.reject[ isJobGPUBlacklisted ].forEach[ j | map.put(j.name, TARGET_TAG::BOTH) ] // Will vary
-
-			if (job.isJobGPUBlacklisted) {
-				msg("Can't set a GPU-blacklisted job " + job.name + " as GPU job!")
-				map.put(job.name, TARGET_TAG::CPU)
-			} else {
-				map.put(job.name, TARGET_TAG::GPU)
-			}
-
-			return computePossibleTaggedDAG_TREESEARCH_REC(map)
-		]
-	}
-
-	private def Map<String, TARGET_TAG>
-	computePossibleTaggedDAG_TREESEARCH_REC(Map<String, TARGET_TAG> all_jobs)
-	{
-		var boolean continue_rec_calls = false
-		var int rec_calls_counter      = 0
-
-		/* While including a job into the GPU partition is a good thing,
-		 * we continue. */
-		do {
-			var CPU_jobs = all_jobs.filter[ p1, p2 | p2 == TARGET_TAG::BOTH ].keySet.toList
-
-			/* Can't find any new job to place on the GPU */
-			if (CPU_jobs.size == 0) {
-				continue_rec_calls = false
-			}
-
-			/* Try to find a job to place on GPU */
-			else {
-				var boolean continue_find_pivot = false
-				do {
-					// msg("(╯°□°)╯__┻━┻")
-					val double current_rank   = rankGPUPartition(all_jobs, computeEnsuredDependency(all_jobs, true), lambda)
-					val String pivot_job      = CPU_jobs.get(0)
-					val TARGET_TAG old_target = all_jobs.get(pivot_job)
-					CPU_jobs.remove(0)
-
-					/* Flip the job */
-					all_jobs.put(pivot_job, TARGET_TAG::GPU)
-					val double new_rank = rankGPUPartition(all_jobs, computeEnsuredDependency(all_jobs, true), lambda)
-
-					/* Found the pivot for that iteration, go to next one */
-					if (new_rank <= current_rank) {
-						continue_find_pivot = false
-						continue_rec_calls  = true
-					}
-
-					/* Restore and continue to search pivot */
-					else {
-						all_jobs.put(pivot_job, old_target)
-						continue_find_pivot = true
-						continue_rec_calls  = true
-					}
-
-					/* We didn't found the pivot but we have no more jobs to
-					 * flip around, we exit. */
-					if (CPU_jobs.size == 0) {
-						continue_find_pivot = false
-						continue_rec_calls  = false
-					}
-				}
-				while (continue_find_pivot)
-			}
-
-			rec_calls_counter += 1
-		}
-		while (continue_rec_calls);
-
-		/* Remaining jobs will be CPU jobs */
-		val remaining_jobs = all_jobs.filter[ p1, p2 | p2 == TARGET_TAG::BOTH ].keySet
-		remaining_jobs.forEach[ jname | all_jobs.put(jname, TARGET_TAG::CPU) ]
-		msg("Ended recursion with " + rec_calls_counter + " calls")
-		return all_jobs
-	}
-
 	/**************************************************************************
 	 * Synchronization coefficients => like a barrier, take also into account *
 	 * the 'sequenciality' of a job                                           *
