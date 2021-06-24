@@ -173,7 +173,7 @@ class ComputeCostTransformation extends IrTransformationStep
 	/* Some extern functions are available on GPU, but with a different implementation */
 	static val          externFunctionGPUWhitelist  = #[ /* 'sqrt', 'min' */ ];
 	static val 			GPUConnectivitiyCalls       = #[
-		'nodes', 'cells', 'nodesOfCell',
+		'nodes', 'cells', 'nodesOfCell', 'cellsOfNode',
 		'topNodes', 'bottomNodes', 'leftNodes', 'rightNodes', 'innerNodes',
 		'topCells', 'bottomCells', 'leftCells', 'rightCells', 'innerCells', 'outerCells'
 	]
