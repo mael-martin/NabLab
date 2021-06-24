@@ -480,7 +480,10 @@ class OpenMPTargetProvider
 			«ENDFOR»
 			{
 				#pragma omp target
-				«body»
+				#pragma omp teams num_teams(1)
+				{
+					«body»
+				}
 				#pragma omp taskwait
 			}
 			«FOR w : WRITE»
@@ -495,7 +498,7 @@ class OpenMPTargetProvider
 		flipTaskModeFromJob
 
 		if (current_task_mode == TASK_MODE::GPU) '''
-			#pragma omp teams distribute parallel for reduction(min: «result») map(tofrom: «result») schedule(static,1)
+			#pragma omp distribute parallel for reduction(min: «result») map(tofrom: «result») schedule(static,1)
 			«body»
 		'''
 		
@@ -514,7 +517,7 @@ class OpenMPTargetProvider
 		flipTaskModeFromJob
 
 		if (current_task_mode == TASK_MODE::GPU) '''
-			#pragma omp teams distribute parallel for schedule(static,1)
+			#pragma omp distribute parallel for schedule(static,1)
 			«body»
 		'''
 
