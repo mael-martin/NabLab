@@ -590,6 +590,18 @@ private:
     {
         return isInnerEdge(e) && isHorizontalEdge(e);
     }
+
+    inline bool
+    isInnerEdge(const Edge& e) const noexcept
+    {
+        auto [i1, j1] = id2IndexNode(e.getNodeIds()[0]);
+        auto [i2, j2] = id2IndexNode(e.getNodeIds()[1]);
+
+        // If nodes are located on the same boundary, then the face is an outer
+        // one, else it's an inner one.
+        return !((i1 == 0 && i2 == 0) || (i1 == nb_y_quads && i2 == nb_y_quads) ||
+                 (j1 == 0 && j2 == 0) || (j1 == nb_x_quads && j2 == nb_x_quads));
+    }
 };
 #pragma omp end declare target
 
