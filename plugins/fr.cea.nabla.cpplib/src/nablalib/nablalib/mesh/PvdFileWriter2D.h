@@ -13,6 +13,7 @@
 #include <string>
 #include <map>
 #include <fstream>
+#include <sstream>
 
 #include "nablalib/types/Types.h"
 #include "nablalib/mesh/NodeIdContainer.h"

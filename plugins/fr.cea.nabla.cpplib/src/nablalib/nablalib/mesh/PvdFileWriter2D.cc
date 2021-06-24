@@ -8,6 +8,7 @@
  * Contributors: see AUTHORS file
  *******************************************************************************/
 #include <filesystem>
+#include <sstream>
 
 #include "PvdFileWriter2D.h"
 
