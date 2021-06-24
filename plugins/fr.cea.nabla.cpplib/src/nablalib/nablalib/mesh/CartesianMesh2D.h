@@ -219,6 +219,7 @@ constexpr int GPU_CartesianMesh2D_MaxNbNodesOfFace    = 2;
 constexpr int GPU_CartesianMesh2D_MaxNbCellsOfNode    = 4;
 constexpr int GPU_CartesianMesh2D_MaxNbCellsOfFace    = 2;
 constexpr int GPU_CartesianMesh2D_MaxNbNeighbourCells = 4;
+constexpr int GPU_CartesianMesh2D_MaxNbFacesOfCell    = 4;
 
 struct GPU_CartesianMesh2D {
 	GPU_MeshGeometry<2> geometry;
@@ -264,6 +265,7 @@ struct GPU_CartesianMesh2D {
 
     /* faces */
 	size_t inner_faces_count;
+	size_t outer_faces_count;
 	size_t top_faces_count;
 	size_t bottom_faces_count;
 	size_t left_faces_count;
@@ -272,6 +274,7 @@ struct GPU_CartesianMesh2D {
 	size_t inner_horizontal_faces_count;
 
 	const Id *inner_faces;
+	const Id *outer_faces;
 	const Id *top_faces;
 	const Id *bottom_faces;
 	const Id *left_faces;
@@ -325,10 +328,10 @@ public:
 	const Id* getLeftFaces()    const noexcept { return left_faces; }
 	const Id* getRightFaces()   const noexcept { return right_faces; }
 
-	size_t getNbTopFaces()      const noexcept { return m_top_faces_count;    }
-	size_t getNbBottomFaces()   const noexcept { return m_bottom_faces_count; }
-	size_t getNbLeftFaces()     const noexcept { return m_left_faces_count;   }
-	size_t getNbRightFaces()    const noexcept { return m_right_faces_count;  }
+	size_t getNbTopFaces()      const noexcept { return top_faces_count;    }
+	size_t getNbBottomFaces()   const noexcept { return bottom_faces_count; }
+	size_t getNbLeftFaces()     const noexcept { return left_faces_count;   }
+	size_t getNbRightFaces()    const noexcept { return right_faces_count;  }
 
 	size_t getNbOuterFaces()            const noexcept { return outer_faces_count; }
 	size_t getNbInnerFaces()            const noexcept { return inner_faces_count; }
@@ -388,19 +391,19 @@ public:
 	Id getFirstNodeOfFace(const Id& faceId)  const noexcept { return getNodesOfFace(faceId)[0]; }
 	Id getSecondNodeOfFace(const Id& faceId) const noexcept { return getNodesOfFace(faceId)[1]; }
 
-	BoundedArray<Id, MaxNbCellsOfFace>
+	BoundedArray<Id, GPU_CartesianMesh2D_MaxNbCellsOfFace>
     getCellsOfFace(const Id& faceId) const noexcept
     {
-	    BoundedArray<Id, MaxNbCellsOfFace> ret;
-        size_t inex = 0;
-        size_t i_f  = static_cast<size_t>(faceId) / (2 * m_nb_x_quads + 1);
-        size_t k_f  = static_cast<size_t>(faceId) - i_f * (2 * m_nb_x_quads + 1);
+	    BoundedArray<Id, GPU_CartesianMesh2D_MaxNbCellsOfFace> ret;
+        size_t index = 0;
+        size_t i_f   = static_cast<size_t>(faceId) / (2 * nb_x_quads + 1);
+        size_t k_f   = static_cast<size_t>(faceId) - i_f * (2 * nb_x_quads + 1);
 
         // all except upper bound faces
-        if (i_f < m_nb_y_quads) {
+        if (i_f < nb_y_quads) {
             // right bound edge
-            if (k_f == 2 * m_nb_x_quads) {
-                ret[index++] = index2IdCell(i_f, m_nb_x_quads-1);
+            if (k_f == 2 * nb_x_quads) {
+                ret[index++] = index2IdCell(i_f, nb_x_quads-1);
             }
 
             // left bound edge
@@ -433,17 +436,21 @@ public:
         return ret;
     }
 
-	BoundedArray<Id, MaxNbFacesOfCell>
+	BoundedArray<Id, GPU_CartesianMesh2D_MaxNbFacesOfCell>
     getFacesOfCell(const Id& cellId) const noexcept
     {
+        BoundedArray<Id, GPU_CartesianMesh2D_MaxNbFacesOfCell> ret;
         auto [i, j] = id2IndexCell(cellId);
 
-        Id bottom_face = static_cast<Id>(2 * j + i * (2 * m_nb_x_quads + 1));
+        Id bottom_face = static_cast<Id>(2 * j + i * (2 * nb_x_quads + 1));
         Id left_face   = bottom_face + 1;
-        Id right_face  = bottom_face + static_cast<Id>(j == m_nb_x_quads-1 ? 2 : 3);
-        Id top_face    = bottom_face + static_cast<Id>(i < m_nb_y_quads-1 ? 2 * m_nb_x_quads + 1 : 2 * m_nb_x_quads + 1 - j);
+        Id right_face  = bottom_face + static_cast<Id>(j == nb_x_quads-1 ? 2 : 3);
+        Id top_face    = bottom_face + static_cast<Id>(i < nb_y_quads-1 ? 2 * nb_x_quads + 1 : 2 * nb_x_quads + 1 - j);
 
-        BoundedArray<Id, MaxNbFacesOfCell> ret = {bottom_face, left_face, right_face, top_face};
+        ret[0] = bottom_face;
+        ret[1] = left_face;
+        ret[2] = right_face;
+        ret[3] = top_face;
         return ret;
     }
 
@@ -465,8 +472,8 @@ public:
     Id
     getTopFaceOfCell(const Id& cellId) const noexcept {
         auto [i, j] = id2IndexCell(cellId);
-        Id bottom_face(static_cast<Id>(2 * j + i * (2 * m_nb_x_quads + 1)));
-        Id top_face(bottom_face + static_cast<Id>(i < m_nb_y_quads - 1 ? 2 * m_nb_x_quads + 1 : 2 * m_nb_x_quads + 1 - j));
+        Id bottom_face(static_cast<Id>(2 * j + i * (2 * nb_x_quads + 1)));
+        Id top_face(bottom_face + static_cast<Id>(i < nb_y_quads - 1 ? 2 * nb_x_quads + 1 : 2 * nb_x_quads + 1 - j));
         return top_face;
     }
 
@@ -474,36 +481,66 @@ public:
     getBottomFaceOfCell(const Id& cellId) const noexcept
     {
         auto [i, j] = id2IndexCell(cellId);
-        Id bottom_face(static_cast<Id>(2 * j + i * (2 * m_nb_x_quads + 1)));
+        Id bottom_face(static_cast<Id>(2 * j + i * (2 * nb_x_quads + 1)));
         return bottom_face;
     }
 
-	Id
-    getLeftFaceOfCell(const Id& cellId) const noexcept
-    {
-        Id left_face(getBottomFaceOfCell(cellId) + 1);
-        return left_face;
-    }
+	Id getLeftFaceOfCell(const Id& cellId) const noexcept { return getBottomFaceOfCell(cellId) + 1; }
 
 	Id
     getRightFaceOfCell(const Id& cellId) const noexcept
     {
         auto [i, j] = id2IndexCell(cellId);
-        Id bottom_face(static_cast<Id>(2 * j + i * (2 * m_nb_x_quads + 1)));
-        Id right_face(bottom_face + static_cast<Id>(j == m_nb_x_quads - 1 ? 2 : 3));
+        Id bottom_face(static_cast<Id>(2 * j + i * (2 * nb_x_quads + 1)));
+        Id right_face(bottom_face + static_cast<Id>(j == nb_x_quads - 1 ? 2 : 3));
         return right_face;
     }
 
-	Id getBottomFaceNeighbour(const Id& faceId) const;
-	Id getBottomLeftFaceNeighbour(const Id& faceId) const;
-	Id getBottomRightFaceNeighbour(const Id& faceId) const;
+	Id getBottomFaceNeighbour(const Id& faceId) const noexcept { return (faceId - (2 * nb_x_quads + 1)); }
+	Id getTopFaceNeighbour(const Id& faceId)    const noexcept { return (faceId + (2 * nb_x_quads + 1)); }
 
-	Id getTopFaceNeighbour(const Id& faceId) const;
-	Id getTopLeftFaceNeighbour(const Id& faceId) const;
-	Id getTopRightFaceNeighbour(const Id& faceId) const;
+	Id
+    getBottomLeftFaceNeighbour(const Id& faceId) const noexcept
+    {
+        const Edge& face(geometry.edges[faceId]);
+        if (isVerticalEdge(face))
+            return (faceId - 3);
+        else  // horizontal
+            return ((faceId + 1) - (2 * nb_x_quads + 1));
+    }
 
-	Id getRightFaceNeighbour(const Id& faceId) const;
-	Id getLeftFaceNeighbour(const Id& faceId) const;
+	Id
+    getBottomRightFaceNeighbour(const Id& faceId) const noexcept
+    {
+        const Edge& face(geometry.edges[faceId]);
+        if (isVerticalEdge(face))
+            return (faceId - 1);
+        else  // horizontal
+            return ((faceId + 3) - (2 * nb_x_quads + 1));
+    }
+
+	Id
+    getTopLeftFaceNeighbour(const Id& faceId) const noexcept
+    {
+        const Edge& face(geometry.edges[faceId]);
+        if (isVerticalEdge(face))
+            return ((faceId - 3) + (2 * nb_x_quads + 1));
+        else  // horizontal
+            return (faceId + 1);
+    }
+
+	Id
+    getTopRightFaceNeighbour(const Id& faceId) const noexcept
+    {
+        const Edge& face(geometry.edges[faceId]);
+        if (isVerticalEdge(face))
+            return ((faceId - 1) + (2 * nb_x_quads + 1));
+        else  // horizontal
+            return (faceId + 3);
+    }
+
+	Id getRightFaceNeighbour(const Id& faceId) const noexcept { return (faceId + 2); }
+	Id getLeftFaceNeighbour(const Id& faceId)  const noexcept { return (faceId - 2); }
 
 private:
     inline std::pair<size_t, size_t>
@@ -514,10 +551,44 @@ private:
         return std::pair<size_t, size_t>{ i, j };
     }
 
+	inline std::pair<size_t, size_t>
+    id2IndexCell(const Id& k) const noexcept
+    {
+        size_t i(static_cast<size_t>(k) / nb_x_quads);
+        size_t j(static_cast<size_t>(k) - i * nb_x_quads);
+        return std::pair<size_t, size_t>(i, j);
+    }
+
     inline Id
     index2IdCell(const size_t i, const size_t j) const noexcept
     {
         return static_cast<Id>(i * nb_x_quads + j);
+    }
+
+    inline bool
+    isVerticalEdge(const Edge &e) const noexcept
+    {
+        return (e.getNodeIds()[0] == e.getNodeIds()[1] + nb_x_quads + 1 ||
+                e.getNodeIds()[1] == e.getNodeIds()[0] + nb_x_quads + 1);
+    }
+
+    inline bool
+    isHorizontalEdge(const Edge& e) const noexcept
+    {
+        return (e.getNodeIds()[0] == e.getNodeIds()[1] + 1 ||
+                e.getNodeIds()[1] == e.getNodeIds()[0] + 1);
+    }
+
+    inline bool
+    isInnerVerticalEdge(const Edge& e) const noexcept
+    {
+        return isInnerEdge(e) && isVerticalEdge(e);
+    }
+
+    inline bool
+    isInnerHorizontalEdge(const Edge& e) const noexcept
+    {
+        return isInnerEdge(e) && isHorizontalEdge(e);
     }
 };
 #pragma omp end declare target
