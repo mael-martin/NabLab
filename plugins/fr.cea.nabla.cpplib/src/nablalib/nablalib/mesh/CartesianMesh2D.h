@@ -362,6 +362,7 @@ private:
 #pragma omp end declare target
 
 #include "nablalib/utils/OMPTarget.h"
+#include <cstdio>
 
 static inline void
 GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)
@@ -418,8 +419,9 @@ GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)
     N_VECTOR_CPU_TO_GPU(local_gpu.inner_cells,  cpu->getInnerCells(),  Id);
     N_VECTOR_CPU_TO_GPU(local_gpu.outer_cells,  cpu->getOuterCells(),  Id);
 
-    omp_target_memcpy(gpu, &local_gpu, sizeof(GPU_CartesianMesh2D),
-                      0, 0, omptarget_device_id, omptarget_host_id);
+    int rc = omp_target_memcpy(gpu, &local_gpu, sizeof(GPU_CartesianMesh2D),
+                               0, 0, omptarget_device_id, omptarget_host_id);
+    fprintf(stderr, "[GPU_CartesianMesh2D_alloc] omp_target_memcpy -> %d\n", rc);
 }
 
 static inline void

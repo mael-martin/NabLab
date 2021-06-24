@@ -61,6 +61,7 @@ struct GPU_MeshGeometry
 #pragma omp end declare target
 
 #include "nablalib/utils/OMPTarget.h"
+#include <cstdio>
 
 template<size_t N> __attribute__((noinline)) static void
 GPU_MeshGeometry_alloc(GPU_MeshGeometry<N> *gpu, MeshGeometry<N> *cpu)
@@ -82,8 +83,9 @@ GPU_MeshGeometry_alloc(GPU_MeshGeometry<N> *gpu, MeshGeometry<N> *cpu)
     N_VECTOR_CPU_TO_GPU(local_gpu.edges, cpu->getEdges(), Edge);
     N_VECTOR_CPU_TO_GPU(local_gpu.quads, cpu->getQuads(), Quad);
 
-    omp_target_memcpy(gpu, &local_gpu, sizeof(GPU_MeshGeometry<N>),
-                      0, 0, omptarget_device_id, omptarget_host_id);
+    int rc = omp_target_memcpy(gpu, &local_gpu, sizeof(GPU_MeshGeometry<N>),
+                               0, 0, omptarget_device_id, omptarget_host_id);
+    fprintf(stderr, "[GPU_MeshGeometry_alloc] omp_target_memcpy -> %d\n", rc);
 }
 
 template<size_t N> static inline void
