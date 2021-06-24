@@ -268,6 +268,9 @@ abstract class JobContentProvider
 					dumpVariables(«itVar»);
 			«ENDIF»
 			«traceContentProvider.getBeginOfLoopTrace(irModule, itVar, caller.main)»
+			«IF task_mode»
+			#error "You need to push yourself used variable to GPU here"
+			«ENDIF»
 
 			«callsContent»
 
