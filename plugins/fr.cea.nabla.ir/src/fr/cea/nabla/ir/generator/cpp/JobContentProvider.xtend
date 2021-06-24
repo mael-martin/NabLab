@@ -81,8 +81,8 @@ abstract class JobContentProvider
 			WRITE.forEach[ name | SIZES.put(name, name.globalVariableSize) ]
 
 			/* Remove variables that already are on the GPU and must only be on GPU */
-			READ.removeIf([ vname | getVariableLocality(vname) == TARGET_TAG::GPU ])
-			WRITE.removeIf([ vname | getVariableLocality(vname) == TARGET_TAG::GPU ])
+			// READ.removeIf([ vname | getVariableLocality(vname) == TARGET_TAG::GPU ])
+			// WRITE.removeIf([ vname | getVariableLocality(vname) == TARGET_TAG::GPU ])
 			// READ.addAll(inVars.filter[ isOption ].map[ 'options_' + name ]) <- options should already be on the GPU
 
 			/* Add the loop count as a READ variable */
@@ -257,6 +257,10 @@ abstract class JobContentProvider
 		bool continueLoop = true;
 		do
 		{
+			«IF task_mode»«FOR copy : copies»
+			«target.update(copy.destination)»
+			«ENDFOR»«ENDIF»
+
 			«IF caller.main»
 			globalTimer.start();
 			cpuTimer.start();
@@ -268,9 +272,6 @@ abstract class JobContentProvider
 					dumpVariables(«itVar»);
 			«ENDIF»
 			«traceContentProvider.getBeginOfLoopTrace(irModule, itVar, caller.main)»
-			«IF task_mode»
-			#error "You need to push yourself used variable to GPU here"
-			«ENDIF»
 
 			«callsContent»
 
