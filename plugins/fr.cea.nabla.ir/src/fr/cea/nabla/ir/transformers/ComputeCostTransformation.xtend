@@ -361,12 +361,7 @@ class ComputeCostTransformation extends IrTransformationStep
 	static private def boolean
 	isConnectivityNotPossibleOnGPU(ConnectivityCall it)
 	{
-		switch it.connectivity.name {
-			case "nodes":       return false
-			case "cells":       return false
-			case "nodesOfCell": return false
-			default: 	        return true
-		}
+		return !GPUConnectivitiyCalls.contains(connectivity.name)
 	}
 
 	static private def boolean
