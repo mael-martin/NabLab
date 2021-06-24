@@ -39,7 +39,7 @@ struct BoundedArray : public std::array<T, DIM>
     inline void
     resize(size_t new_size) noexcept
     {
-        assert(new_size <= boundary_size);
+        // assert(new_size <= boundary_size);
         used_size = new_size;
     }
 

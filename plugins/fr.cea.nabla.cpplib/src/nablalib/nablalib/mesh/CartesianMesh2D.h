@@ -311,18 +311,17 @@ public:
     inline BoundedArray<Id, GPU_CartesianMesh2D_MaxNbCellsOfNode>
 	getCellsOfNode(const Id& nodeId) const noexcept
     {
-        // TODO: Get ride of all the if/else
-        // ((x ^ y) < 0); // true if x and y have opposite signs
+        BoundedArray<Id, GPU_CartesianMesh2D_MaxNbCellsOfNode> ret;
+        auto [i, j]  = id2IndexNode(nodeId);
+        size_t index = 0;
 
-        auto [i, j] = id2IndexNode(nodeId);
-        vector<Id> cells;
+        if (i < nb_y_quads && j < nb_x_quads) ret[index++] = index2IdCell(i,   j  );
+        if (i < nb_y_quads && j > 0)          ret[index++] = index2IdCell(i,   j-1);
+        if (i > 0          && j < nb_x_quads) ret[index++] = index2IdCell(i-1, j  );
+        if (i > 0          && j > 0)          ret[index++] = index2IdCell(i-1, j-1);
 
-        if (i < nb_y_quads && j < nb_x_quads) cells.emplace_back(index2IdCell(i,   j  ));
-        if (i < nb_y_quads && j > 0)          cells.emplace_back(index2IdCell(i,   j-1));
-        if (i > 0          && j < nb_x_quads) cells.emplace_back(index2IdCell(i-1, j  ));
-        if (i > 0          && j > 0)          cells.emplace_back(index2IdCell(i-1, j-1));
-
-        return BoundedArray<Id, GPU_CartesianMesh2D_MaxNbCellsOfNode>::fromVector(cells);
+        ret.resize(index);
+        return ret;
     }
 
     /*
