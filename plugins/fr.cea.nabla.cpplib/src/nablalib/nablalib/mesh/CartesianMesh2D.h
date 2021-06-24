@@ -230,37 +230,54 @@ struct GPU_CartesianMesh2D {
 	const Id *left_nodes;
 	const Id *right_nodes;
 
-	Id inner_nodes_count;
-	Id top_nodes_count;
-	Id bottom_nodes_count;
-	Id left_nodes_count;
-	Id right_nodes_count;
+	size_t inner_nodes_count;
+	size_t top_nodes_count;
+	size_t bottom_nodes_count;
+	size_t left_nodes_count;
+	size_t right_nodes_count;
 
-	Id top_left_node;
-	Id top_right_node;
-	Id bottom_left_node; Id bottom_right_node;
+	size_t top_left_node;
+	size_t top_right_node;
+	size_t bottom_left_node;
+    size_t bottom_right_node;
 
-    /* border cells */
+    /* cells */
 	const Id *top_cells;
 	const Id *bottom_cells;
 	const Id *left_cells;
 	const Id *right_cells;
 
-	Id top_cells_count;
-	Id bottom_cells_count;
-	Id left_cells_count;
-	Id right_cells_count;
+	size_t top_cells_count;
+	size_t bottom_cells_count;
+	size_t left_cells_count;
+	size_t right_cells_count;
+
+	const Id *inner_cells;
+	const Id *outer_cells;
+	size_t inner_cells_count;
+	size_t outer_cells_count;
 
     /**********************************\
     |  faces:                          |
     |  /!\ Ignored for the moment /!\  |
     \**********************************/
 
-    /* cells again */
-	const Id *inner_cells;
-	const Id *outer_cells;
-	Id inner_cells_count;
-	Id outer_cells_count;
+    /* faces */
+	size_t inner_faces_count;
+	size_t top_faces_count;
+	size_t bottom_faces_count;
+	size_t left_faces_count;
+	size_t right_faces_count;
+	size_t inner_vertical_faces_count;
+	size_t inner_horizontal_faces_count;
+
+	const Id *inner_faces;
+	const Id *top_faces;
+	const Id *bottom_faces;
+	const Id *left_faces;
+	const Id *right_faces;
+	const Id *inner_vertical_faces;
+	const Id *inner_horizontal_faces;
 
     /* problem sizes */
 	size_t nb_x_quads;
@@ -269,44 +286,82 @@ struct GPU_CartesianMesh2D {
 public:
     /* Methods */
 	size_t getNbNodes() const noexcept { return geometry.nodes_count; }
+	size_t getNbFaces() const noexcept { return geometry.edges_count; }
 	size_t getNbCells() const noexcept { return geometry.quads_count; }
 
-	size_t getNbInnerNodes()  const noexcept { return inner_nodes_count;  }
-	size_t getNbTopNodes()    const noexcept { return top_nodes_count;    }
-	size_t getNbBottomNodes() const noexcept { return bottom_nodes_count; }
-	size_t getNbLeftNodes()   const noexcept { return left_nodes_count;   }
-	size_t getNbRightNodes()  const noexcept { return right_nodes_count;  }
+	size_t getNbInnerNodes()    const noexcept { return inner_nodes_count;  }
+	size_t getNbTopNodes()      const noexcept { return top_nodes_count;    }
+	size_t getNbBottomNodes()   const noexcept { return bottom_nodes_count; }
+	size_t getNbLeftNodes()     const noexcept { return left_nodes_count;   }
+	size_t getNbRightNodes()    const noexcept { return right_nodes_count;  }
 
-	const Id *getInnerNodes()  const noexcept { return inner_nodes;  }
-	const Id *getTopNodes()    const noexcept { return top_nodes;    }
-	const Id *getBottomNodes() const noexcept { return bottom_nodes; }
-	const Id *getLeftNodes()   const noexcept { return left_nodes;   }
-	const Id *getRightNodes()  const noexcept { return right_nodes;  }
+	const Id *getInnerNodes()   const noexcept { return inner_nodes;  }
+	const Id *getTopNodes()     const noexcept { return top_nodes;    }
+	const Id *getBottomNodes()  const noexcept { return bottom_nodes; }
+	const Id *getLeftNodes()    const noexcept { return left_nodes;   }
+	const Id *getRightNodes()   const noexcept { return right_nodes;  }
 
-	size_t getNbInnerCells()  const noexcept { return inner_cells_count;  }
-	size_t getNbOuterCells()  const noexcept { return outer_cells_count;  }
-	size_t getNbTopCells()    const noexcept { return top_cells_count;    }
-	size_t getNbBottomCells() const noexcept { return bottom_cells_count; }
-	size_t getNbLeftCells()   const noexcept { return left_cells_count;   }
-	size_t getNbRightCells()  const noexcept { return right_cells_count;  }
+	size_t getNbInnerCells()    const noexcept { return inner_cells_count;  }
+	size_t getNbOuterCells()    const noexcept { return outer_cells_count;  }
+	size_t getNbTopCells()      const noexcept { return top_cells_count;    }
+	size_t getNbBottomCells()   const noexcept { return bottom_cells_count; }
+	size_t getNbLeftCells()     const noexcept { return left_cells_count;   }
+	size_t getNbRightCells()    const noexcept { return right_cells_count;  }
 
-	const Id *getInnerCells()  const noexcept { return inner_cells;  }
-	const Id *getOuterCells()  const noexcept { return outer_cells;  }
-	const Id *getTopCells()    const noexcept { return top_cells;    }
-	const Id *getBottomCells() const noexcept { return bottom_cells; }
-	const Id *getLeftCells()   const noexcept { return left_cells;   }
-	const Id *getRightCells()  const noexcept { return right_cells;  }
+	const Id *getInnerCells()   const noexcept { return inner_cells;  }
+	const Id *getOuterCells()   const noexcept { return outer_cells;  }
+	const Id *getTopCells()     const noexcept { return top_cells;    }
+	const Id *getBottomCells()  const noexcept { return bottom_cells; }
+	const Id *getLeftCells()    const noexcept { return left_cells;   }
+	const Id *getRightCells()   const noexcept { return right_cells;  }
 
-	Id getTopLeftNode()     const noexcept { return top_left_node;     }
-	Id getTopRightNode()    const noexcept { return top_right_node;    }
-	Id getBottomLeftNode()  const noexcept { return bottom_left_node;  }
-	Id getBottomRightNode() const noexcept { return bottom_right_node; }
+	Id getTopLeftNode()         const noexcept { return top_left_node;     }
+	Id getTopRightNode()        const noexcept { return top_right_node;    }
+	Id getBottomLeftNode()      const noexcept { return bottom_left_node;  }
+	Id getBottomRightNode()     const noexcept { return bottom_right_node; }
+
+	const Id* getTopFaces()     const noexcept { return top_faces; }
+	const Id* getBottomFaces()  const noexcept { return bottom_faces; }
+	const Id* getLeftFaces()    const noexcept { return left_faces; }
+	const Id* getRightFaces()   const noexcept { return right_faces; }
+
+	size_t getNbTopFaces()      const noexcept { return m_top_faces_count;    }
+	size_t getNbBottomFaces()   const noexcept { return m_bottom_faces_count; }
+	size_t getNbLeftFaces()     const noexcept { return m_left_faces_count;   }
+	size_t getNbRightFaces()    const noexcept { return m_right_faces_count;  }
+
+	size_t getNbOuterFaces()            const noexcept { return outer_faces_count; }
+	size_t getNbInnerFaces()            const noexcept { return inner_faces_count; }
+	size_t getNbInnerHorizontalFaces()  const noexcept { return inner_horizontal_faces_count; }
+	size_t getNbInnerVerticalFaces()    const noexcept { return inner_vertical_faces_count; }
+
+	const Id* getOuterFaces()           const noexcept { return outer_faces; }
+	const Id* getInnerFaces()           const noexcept { return inner_faces; }
+	const Id* getInnerHorizontalFaces() const noexcept { return inner_horizontal_faces; }
+	const Id* getInnerVerticalFaces()   const noexcept { return inner_vertical_faces; }
+
 
     inline const std::array<Id, 4>&
 	getNodesOfCell(const Id& cellId) const noexcept
     {
         return geometry.quads[cellId].getNodeIds();
     }
+
+    inline const std::array<Id, GPU_CartesianMesh2D_MaxNbNeighbourCells>
+	getNeighbourCells(const Id& cellId) const noexcept
+    {
+        BoundedArray<Id, GPU_CartesianMesh2D_MaxNbNeighbourCells> ret;
+        auto [i, j]  = id2IndexNode(cellId);
+        size_t index = 0;
+
+        if (i >= 1)             ret[index++] = index2IdCell(i-1, j  );
+        if (i < nb_y_quads - 1) ret[index++] = index2IdCell(i+1, j  );
+        if (j >= 1)             ret[index++] = index2IdCell(i,   j-1);
+        if (j < nb_x_quads - 1) ret[index++] = index2IdCell(i,   j+1);
+
+        return ret;
+    }
+
 
     inline BoundedArray<Id, GPU_CartesianMesh2D_MaxNbCellsOfNode>
 	getCellsOfNode(const Id& nodeId) const noexcept
@@ -324,24 +379,131 @@ public:
         return ret;
     }
 
-    /*
-    inline const std::array<Id, GPU_CartesianMesh2D_MaxNbNeighbourCells>
-	getNeighbourCells(const Id& cellId) const noexcept
+	const array<Id, 2>&
+    getNodesOfFace(const Id& faceId) const noexcept
     {
-        // TODO: Get ride of all the if/else
-        // ((x ^ y) < 0); // true if x and y have opposite signs
-
-        auto [i, j] = id2IndexNode(cellId);
-        vector<Id> neighbors;
-
-        if (i >= 1)             neighbors.emplace_back(index2IdCell(i-1, j  ));
-        if (i < nb_y_quads - 1) neighbors.emplace_back(index2IdCell(i+1, j  ));
-        if (j >= 1)             neighbors.emplace_back(index2IdCell(i,   j-1));
-        if (j < nb_x_quads - 1) neighbors.emplace_back(index2IdCell(i,   j+1));
-
-        return BoundedArray<Id, GPU_CartesianMesh2D_MaxNbNeighbourCells>::fromVector(neighbors);
+	    return geometry.edges[faceId].getNodeIds();
     }
-    */
+
+	Id getFirstNodeOfFace(const Id& faceId)  const noexcept { return getNodesOfFace(faceId)[0]; }
+	Id getSecondNodeOfFace(const Id& faceId) const noexcept { return getNodesOfFace(faceId)[1]; }
+
+	BoundedArray<Id, MaxNbCellsOfFace>
+    getCellsOfFace(const Id& faceId) const noexcept
+    {
+	    BoundedArray<Id, MaxNbCellsOfFace> ret;
+        size_t inex = 0;
+        size_t i_f  = static_cast<size_t>(faceId) / (2 * m_nb_x_quads + 1);
+        size_t k_f  = static_cast<size_t>(faceId) - i_f * (2 * m_nb_x_quads + 1);
+
+        // all except upper bound faces
+        if (i_f < m_nb_y_quads) {
+            // right bound edge
+            if (k_f == 2 * m_nb_x_quads) {
+                ret[index++] = index2IdCell(i_f, m_nb_x_quads-1);
+            }
+
+            // left bound edge
+            else if (k_f == 1) {
+                ret[index++] = index2IdCell(i_f, 0);
+            }
+
+            // horizontal edge
+            else if (k_f % 2 == 0) {
+                // Not bottom bound edge
+                if (i_f > 0)
+                    ret[index++] = index2IdCell(i_f-1, k_f/2);
+
+                ret[index++] = index2IdCell(i_f, k_f/2);
+            }
+
+            // vertical edge (neither left bound nor right bound)
+            else {
+                ret[index++] = index2IdCell(i_f, (k_f-1)/2 - 1);
+                ret[index++] = index2IdCell(i_f, (k_f-1)/2);
+            }
+        }
+
+        // upper bound faces
+        else {
+            ret[index++] = index2IdCell(i_f-1, k_f);
+        }
+
+        ret.resize(index);
+        return ret;
+    }
+
+	BoundedArray<Id, MaxNbFacesOfCell>
+    getFacesOfCell(const Id& cellId) const noexcept
+    {
+        auto [i, j] = id2IndexCell(cellId);
+
+        Id bottom_face = static_cast<Id>(2 * j + i * (2 * m_nb_x_quads + 1));
+        Id left_face   = bottom_face + 1;
+        Id right_face  = bottom_face + static_cast<Id>(j == m_nb_x_quads-1 ? 2 : 3);
+        Id top_face    = bottom_face + static_cast<Id>(i < m_nb_y_quads-1 ? 2 * m_nb_x_quads + 1 : 2 * m_nb_x_quads + 1 - j);
+
+        BoundedArray<Id, MaxNbFacesOfCell> ret = {bottom_face, left_face, right_face, top_face};
+        return ret;
+    }
+
+	Id
+    getCommonFace(const Id& cellId1, const Id& cellId2) const noexcept
+    {
+        auto cell1Faces{getFacesOfCell(cellId1)};
+        auto cell2Faces{getFacesOfCell(cellId2)};
+        auto result = find_first_of(
+                cell1Faces.begin(), cell1Faces.end(),
+                cell2Faces.begin(), cell2Faces.end()
+        );
+        return *result; // Will segv on GPU
+    }
+
+	Id getBackCell(const Id& faceId)    const noexcept { return getCellsOfFace(faceId)[0]; }
+	Id getFrontCell(const Id& faceId)   const noexcept { return getCellsOfFace(faceId)[1]; }
+
+    Id
+    getTopFaceOfCell(const Id& cellId) const noexcept {
+        auto [i, j] = id2IndexCell(cellId);
+        Id bottom_face(static_cast<Id>(2 * j + i * (2 * m_nb_x_quads + 1)));
+        Id top_face(bottom_face + static_cast<Id>(i < m_nb_y_quads - 1 ? 2 * m_nb_x_quads + 1 : 2 * m_nb_x_quads + 1 - j));
+        return top_face;
+    }
+
+	Id
+    getBottomFaceOfCell(const Id& cellId) const noexcept
+    {
+        auto [i, j] = id2IndexCell(cellId);
+        Id bottom_face(static_cast<Id>(2 * j + i * (2 * m_nb_x_quads + 1)));
+        return bottom_face;
+    }
+
+	Id
+    getLeftFaceOfCell(const Id& cellId) const noexcept
+    {
+        Id left_face(getBottomFaceOfCell(cellId) + 1);
+        return left_face;
+    }
+
+	Id
+    getRightFaceOfCell(const Id& cellId) const noexcept
+    {
+        auto [i, j] = id2IndexCell(cellId);
+        Id bottom_face(static_cast<Id>(2 * j + i * (2 * m_nb_x_quads + 1)));
+        Id right_face(bottom_face + static_cast<Id>(j == m_nb_x_quads - 1 ? 2 : 3));
+        return right_face;
+    }
+
+	Id getBottomFaceNeighbour(const Id& faceId) const;
+	Id getBottomLeftFaceNeighbour(const Id& faceId) const;
+	Id getBottomRightFaceNeighbour(const Id& faceId) const;
+
+	Id getTopFaceNeighbour(const Id& faceId) const;
+	Id getTopLeftFaceNeighbour(const Id& faceId) const;
+	Id getTopRightFaceNeighbour(const Id& faceId) const;
+
+	Id getRightFaceNeighbour(const Id& faceId) const;
+	Id getLeftFaceNeighbour(const Id& faceId) const;
 
 private:
     inline std::pair<size_t, size_t>
