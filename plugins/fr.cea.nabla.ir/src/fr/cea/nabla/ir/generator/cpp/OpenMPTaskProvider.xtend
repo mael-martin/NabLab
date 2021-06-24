@@ -478,14 +478,12 @@ class OpenMPTargetProvider
 			«FOR r : READ»
 			#pragma omp target update to («r»«getSizeIndicationForVariable(r, RW_VAR_SIZES)»)
 			«ENDFOR»
+			#pragma omp target
+			#pragma omp teams // num_teams(1)
 			{
-				#pragma omp target
-				#pragma omp teams num_teams(1)
-				{
-					«body»
-				}
-				#pragma omp taskwait
+				«body»
 			}
+			#pragma omp taskwait
 			«FOR w : WRITE»
 			#pragma omp target update from («w»«getSizeIndicationForVariable(w, RW_VAR_SIZES)»)
 			«ENDFOR»
