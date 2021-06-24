@@ -127,12 +127,17 @@ class JobMergeFromCost extends IrTransformationStep
 				JobCostByName.put(j.name, j.jobCost)
 			]
 		]
+		
+		ir.eAllContents.filter(Job).forEach[ j |
+			JobPlacedOnGPU.put(j.name, !isJobGPUBlacklisted(j))
+		]
 
 		/* Try to offload parts of the computation to the GPU */
+		/*
 		ir.eAllContents.filter(JobCaller).forEach[ jc |
 			val DAGs = jc.computePossibleTaggedDAG_TREESEARCH
 			msg("Got " + DAGs.size + " DAGs to test")
-			/* Map */
+			// Map
 			val List<Pair<Integer, Map<String, TARGET_TAG>>> ALL_DAGS = DAGs.map[ DAG |
 				val taggedAccIn  = computeEnsuredDependency(DAG, false)
 				val double crit  = rankGPUPartition(DAG, taggedAccIn, lambda)
@@ -144,7 +149,7 @@ class JobMergeFromCost extends IrTransformationStep
 					return new Pair<Integer, Map<String, TARGET_TAG>>(0, null)
 				}
 			].toList
-			/* Reduce */
+			// Reduce
 			var Map<String, TARGET_TAG> min = null
 			var int min_rank                = 0
 			for (var int i = 0; i < ALL_DAGS.size; i += 1) {
@@ -153,7 +158,7 @@ class JobMergeFromCost extends IrTransformationStep
 					min = pair.value
 				}
 			}
-			/* Register */
+			// Register
 			if (min !== null) {
 				min.filter[ p1, p2 | p2 == TARGET_TAG::GPU ].keySet.forEach[ job | JobPlacedOnGPU.put(job, true)  ]
 				min.filter[ p1, p2 | p2 == TARGET_TAG::CPU ].keySet.forEach[ job | JobPlacedOnGPU.put(job, false) ]
@@ -167,6 +172,7 @@ class JobMergeFromCost extends IrTransformationStep
 				jc.calls.forEach[ JobPlacedOnGPU.put(name, false) ]
 			}
 		]
+		 */
 
 		trace('    IR -> IR: ' + description + ':ComputeVarMovements')
 		VariableRegionLocality.clear

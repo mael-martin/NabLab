@@ -172,6 +172,11 @@ class ComputeCostTransformation extends IrTransformationStep
 
 	/* Some extern functions are available on GPU, but with a different implementation */
 	static val          externFunctionGPUWhitelist  = #[ /* 'sqrt', 'min' */ ];
+	static val 			GPUConnectivitiyCalls       = #[
+		'nodes', 'cells', 'nodesOfCell',
+		'topNodes', 'bottomNodes', 'leftNodes', 'rightNodes', 'innerNodes',
+		'topCells', 'bottomCells', 'leftCells', 'rightCells', 'innerCells', 'outerCells'
+	]
 
 	/* HashMaps to store cost of functions, jobs, etc */
 	static Map<String, Integer> functionCostMap           = new HashMap();
@@ -281,7 +286,7 @@ class ComputeCostTransformation extends IrTransformationStep
 	 * Analize the AST and detect function and jobs that can't be executed *
 	 * on GPU. Don't handle the case where a function call another one.    *
 	 ***********************************************************************/
-	 
+
 	private def void
 	detectGPU(IrRoot ir)
 	{
@@ -299,7 +304,7 @@ class ComputeCostTransformation extends IrTransformationStep
 			detectGPUJobs(job)
 		]
 	}
-	
+
 	static private def void
 	detectGPUJobs(Job it)
 	{
@@ -359,7 +364,7 @@ class ComputeCostTransformation extends IrTransformationStep
 		switch it.connectivity.name {
 			case "nodes":       return false
 			case "cells":       return false
-			case "nodesOfCell": return false // true // false
+			case "nodesOfCell": return false
 			default: 	        return true
 		}
 	}
