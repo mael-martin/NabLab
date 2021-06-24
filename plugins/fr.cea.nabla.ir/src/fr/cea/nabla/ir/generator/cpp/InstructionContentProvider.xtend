@@ -111,7 +111,7 @@ abstract class InstructionContentProvider
 			val ret = '''
 			const size_t «index.name»(«value.content»);
 			'''
-			return (ret + '').replace('mesh->', 'mesh_glb->')
+			return (ret + '').replace('mesh->', 'mesh_glb.')
 		}
 
 		else
@@ -127,7 +127,7 @@ abstract class InstructionContentProvider
 			val ret = '''
 			const Id «id.name»(«value.content»);
 			'''
-			return (ret + '').replace('mesh->', 'mesh_glb->')
+			return (ret + '').replace('mesh->', 'mesh_glb.')
 		}
 		else
 		'''
@@ -203,7 +203,7 @@ abstract class InstructionContentProvider
 			«IF container instanceof ConnectivityCall»«getSetDefinitionContent(container.uniqueName, container as ConnectivityCall)»«ENDIF»
 			«IF IsInsideGPUJob && JobContentProvider::task_mode»
 				«IF CountVars.contains(nbElems)»
-				const size_t «nbElems» = mesh_glb->getNb«(container.uniqueName + '').toFirstUpper»();
+				const size_t «nbElems» = mesh_glb.getNb«(container.uniqueName + '').toFirstUpper»();
 				«ELSE»
 				const size_t «nbElems» = «container.uniqueName».size();
 				«ENDIF»
@@ -231,9 +231,9 @@ abstract class InstructionContentProvider
 	{
 		if (IsInsideGPUJob && JobContentProvider::task_mode) {
 			val ret = '''
-			const auto «setName» = mesh_glb->«call.accessor»;
+			const auto «setName» = mesh_glb.«call.accessor»;
 			'''
-			return (ret + '').replace('mesh->', 'mesh_glb->')
+			return (ret + '').replace('mesh->', 'mesh_glb.')
 		}
 
 		else

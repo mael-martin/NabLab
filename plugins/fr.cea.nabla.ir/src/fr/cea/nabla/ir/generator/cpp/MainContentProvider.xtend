@@ -66,12 +66,11 @@ class MainContentProvider
 		#if defined(NABLA_GPU) && (NABLA_GPU == 1)
 		omptarget_device_id = omp_get_default_device();
 		omptarget_host_id   = omp_get_initial_device();
-		mesh_glb            = N_GPU_ALLOC(GPU_CartesianMesh2D);
 		if (omp_get_num_devices() < 1 || omptarget_device_id < 0) {
 			puts("ERROR: No device found ¯\\(º_o)/¯");
 			exit(1);
 		}
-		GPU_«meshClassName»_alloc(mesh_glb, mesh);
+		GPU_«meshClassName»_alloc(mesh);
 		#endif
 		«ENDIF»
 
@@ -98,12 +97,6 @@ class MainContentProvider
 		«FOR m : irRoot.modules.reverseView»
 			delete «m.name»;
 		«ENDFOR»
-		«IF isGPU»
-		#if defined(NABLA_GPU) && (NABLA_GPU == 1)
-		GPU_«meshClassName»_free(mesh_glb);
-		N_GPU_FREE(mesh_glb);
-		#endif
-		«ENDIF»
 		delete mesh;
 	'''
 

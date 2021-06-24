@@ -221,7 +221,7 @@ constexpr int GPU_CartesianMesh2D_MaxNbCellsOfFace    = 2;
 constexpr int GPU_CartesianMesh2D_MaxNbNeighbourCells = 4;
 
 struct GPU_CartesianMesh2D {
-	GPU_MeshGeometry<2>* geometry;
+	GPU_MeshGeometry<2> geometry;
 
     /* nodes */
 	const Id *inner_nodes;
@@ -268,8 +268,8 @@ struct GPU_CartesianMesh2D {
 
 public:
     /* Methods */
-	size_t getNbNodes() const noexcept { return geometry->nodes_count; }
-	size_t getNbCells() const noexcept { return geometry->quads_count; }
+	size_t getNbNodes() const noexcept { return geometry.nodes_count; }
+	size_t getNbCells() const noexcept { return geometry.quads_count; }
 
 	size_t getNbInnerNodes()  const noexcept { return inner_nodes_count;  }
 	size_t getNbTopNodes()    const noexcept { return top_nodes_count;    }
@@ -305,7 +305,7 @@ public:
     inline const std::array<Id, 4>&
 	getNodesOfCell(const Id& cellId) const noexcept
     {
-        return geometry->quads[cellId].getNodeIds();
+        return geometry.quads[cellId].getNodeIds();
     }
 
     /*
@@ -364,87 +364,65 @@ private:
 #include "nablalib/utils/OMPTarget.h"
 #include <cstdio>
 
+namespace {
+extern "C" {
 static inline void
-GPU_CartesianMesh2D_alloc(GPU_CartesianMesh2D *gpu, CartesianMesh2D *cpu)
+GPU_CartesianMesh2D_alloc(CartesianMesh2D *cpu)
 {
     static_assert(std::is_trivial<GPU_CartesianMesh2D>::value, "Must be trivial");
-    GPU_CartesianMesh2D local_gpu;
+    extern GPU_CartesianMesh2D mesh_glb;
+
 
     /* The geometry */
-    local_gpu.geometry = N_GPU_ALLOC(GPU_MeshGeometry<2>);
-    GPU_MeshGeometry_alloc<2>(local_gpu.geometry, cpu->getGeometry());
+    mesh_glb.geometry.nodes_count = cpu->getGeometry()->getNodes().size();
+    mesh_glb.geometry.edges_count = cpu->getGeometry()->getEdges().size();
+    mesh_glb.geometry.quads_count = cpu->getGeometry()->getQuads().size();
+    mesh_glb.geometry.nodes       = cpu->getGeometry()->getNodes().data();
+    mesh_glb.geometry.edges       = cpu->getGeometry()->getEdges().data();
+    mesh_glb.geometry.quads       = cpu->getGeometry()->getQuads().data();
 
     /* problem sizes -> don't need deep copy */
-	local_gpu.inner_cells_count  = cpu->getNbInnerCells();
-	local_gpu.outer_cells_count  = cpu->getNbOuterCells();
-	local_gpu.nb_x_quads         = cpu->m_nb_x_quads;
-	local_gpu.nb_y_quads         = cpu->m_nb_y_quads;
-	local_gpu.top_cells_count    = cpu->getNbTopCells();
-	local_gpu.bottom_cells_count = cpu->getNbBottomCells();
-	local_gpu.left_cells_count   = cpu->getNbLeftCells();
-	local_gpu.right_cells_count  = cpu->getNbRightCells();
-	local_gpu.inner_nodes_count  = cpu->getNbInnerNodes();
-	local_gpu.top_nodes_count    = cpu->getNbTopNodes();
-	local_gpu.bottom_nodes_count = cpu->getNbBottomNodes();
-	local_gpu.left_nodes_count   = cpu->getNbLeftNodes();
-	local_gpu.right_nodes_count  = cpu->getNbRightNodes();
-	local_gpu.top_left_node      = cpu->getTopLeftNode();
-	local_gpu.top_right_node     = cpu->getTopRightNode();
-	local_gpu.bottom_left_node   = cpu->getBottomLeftNode();
-	local_gpu.bottom_right_node  = cpu->getBottomRightNode();
+	mesh_glb.inner_cells_count  = cpu->getNbInnerCells();
+	mesh_glb.outer_cells_count  = cpu->getNbOuterCells();
+	mesh_glb.nb_x_quads         = cpu->m_nb_x_quads;
+	mesh_glb.nb_y_quads         = cpu->m_nb_y_quads;
+	mesh_glb.top_cells_count    = cpu->getNbTopCells();
+	mesh_glb.bottom_cells_count = cpu->getNbBottomCells();
+	mesh_glb.left_cells_count   = cpu->getNbLeftCells();
+	mesh_glb.right_cells_count  = cpu->getNbRightCells();
+	mesh_glb.inner_nodes_count  = cpu->getNbInnerNodes();
+	mesh_glb.top_nodes_count    = cpu->getNbTopNodes();
+	mesh_glb.bottom_nodes_count = cpu->getNbBottomNodes();
+	mesh_glb.left_nodes_count   = cpu->getNbLeftNodes();
+	mesh_glb.right_nodes_count  = cpu->getNbRightNodes();
+	mesh_glb.top_left_node      = cpu->getTopLeftNode();
+	mesh_glb.top_right_node     = cpu->getTopRightNode();
+	mesh_glb.bottom_left_node   = cpu->getBottomLeftNode();
+	mesh_glb.bottom_right_node  = cpu->getBottomRightNode();
 
     /* nodes -> need deep copy */
-	local_gpu.inner_nodes  = N_GPU_ALLOC_VECTOR(Id, cpu->getInnerNodes() .size());
-	local_gpu.top_nodes    = N_GPU_ALLOC_VECTOR(Id, cpu->getTopNodes()   .size());
-	local_gpu.bottom_nodes = N_GPU_ALLOC_VECTOR(Id, cpu->getBottomNodes().size());
-	local_gpu.left_nodes   = N_GPU_ALLOC_VECTOR(Id, cpu->getLeftNodes()  .size());
-	local_gpu.right_nodes  = N_GPU_ALLOC_VECTOR(Id, cpu->getRightNodes() .size());
-	local_gpu.top_cells    = N_GPU_ALLOC_VECTOR(Id, cpu->getTopCells()   .size());
-	local_gpu.bottom_cells = N_GPU_ALLOC_VECTOR(Id, cpu->getBottomCells().size());
-	local_gpu.left_cells   = N_GPU_ALLOC_VECTOR(Id, cpu->getLeftCells()  .size());
-	local_gpu.right_cells  = N_GPU_ALLOC_VECTOR(Id, cpu->getRightCells() .size());
-	local_gpu.inner_cells  = N_GPU_ALLOC_VECTOR(Id, cpu->getInnerCells() .size());
-	local_gpu.outer_cells  = N_GPU_ALLOC_VECTOR(Id, cpu->getOuterCells() .size());
+	mesh_glb.inner_nodes  = cpu->getInnerNodes().data();
+	mesh_glb.top_nodes    = cpu->getTopNodes().data();
+	mesh_glb.bottom_nodes = cpu->getBottomNodes().data();
+	mesh_glb.left_nodes   = cpu->getLeftNodes().data();
+	mesh_glb.right_nodes  = cpu->getRightNodes().data();
+	mesh_glb.top_cells    = cpu->getTopCells().data();
+	mesh_glb.bottom_cells = cpu->getBottomCells().data();
+	mesh_glb.left_cells   = cpu->getLeftCells().data();
+	mesh_glb.right_cells  = cpu->getRightCells().data();
+	mesh_glb.inner_cells  = cpu->getInnerCells().data();
+	mesh_glb.outer_cells  = cpu->getOuterCells().data();
+
+    /* Copy top level data */
+    #pragma omp target enter data map(alloc: mesh_glb)
+    #pragma omp target update to (mesh_glb)
 
     /* Deep copy part */
-    N_VECTOR_CPU_TO_GPU(local_gpu.inner_nodes,  cpu->getInnerNodes(),  Id);
-    N_VECTOR_CPU_TO_GPU(local_gpu.top_nodes,    cpu->getTopNodes(),    Id);
-    N_VECTOR_CPU_TO_GPU(local_gpu.bottom_nodes, cpu->getBottomNodes(), Id);
-    N_VECTOR_CPU_TO_GPU(local_gpu.left_nodes,   cpu->getLeftNodes(),   Id);
-    N_VECTOR_CPU_TO_GPU(local_gpu.right_nodes,  cpu->getRightNodes(),  Id);
-    N_VECTOR_CPU_TO_GPU(local_gpu.top_cells,    cpu->getTopCells(),    Id);
-    N_VECTOR_CPU_TO_GPU(local_gpu.bottom_cells, cpu->getBottomCells(), Id);
-    N_VECTOR_CPU_TO_GPU(local_gpu.right_cells,  cpu->getRightCells(),  Id);
-    N_VECTOR_CPU_TO_GPU(local_gpu.left_cells,   cpu->getLeftCells(),   Id);
-    N_VECTOR_CPU_TO_GPU(local_gpu.inner_cells,  cpu->getInnerCells(),  Id);
-    N_VECTOR_CPU_TO_GPU(local_gpu.outer_cells,  cpu->getOuterCells(),  Id);
+    #pragma omp target enter data map(alloc: (mesh_glb.geometry.nodes)[:mesh_glb.geometry.nodes_count])
+    #pragma omp target update to ((mesh_glb.geometry.nodes)[:mesh_glb.geometry.nodes_count])
 
-    int rc = omp_target_memcpy(gpu, &local_gpu, sizeof(GPU_CartesianMesh2D),
-                               0, 0, omptarget_device_id, omptarget_host_id);
-    fprintf(stderr, "[GPU_CartesianMesh2D_alloc] omp_target_memcpy -> %d\n", rc);
 }
-
-static inline void
-GPU_CartesianMesh2D_free(GPU_CartesianMesh2D *gpu)
-{
-    GPU_CartesianMesh2D local_gpu;
-    omp_target_memcpy(&local_gpu, gpu, sizeof(GPU_CartesianMesh2D),
-                      0, 0, omptarget_host_id, omptarget_device_id);
-
-    GPU_MeshGeometry_free<2>(local_gpu.geometry);
-    N_GPU_FREE(local_gpu.geometry);
-
-    N_GPU_FREE(local_gpu.inner_nodes);
-    N_GPU_FREE(local_gpu.top_nodes);
-    N_GPU_FREE(local_gpu.bottom_nodes);
-    N_GPU_FREE(local_gpu.left_nodes);
-    N_GPU_FREE(local_gpu.right_nodes);
-    N_GPU_FREE(local_gpu.top_cells);
-    N_GPU_FREE(local_gpu.bottom_cells);
-    N_GPU_FREE(local_gpu.left_cells);
-    N_GPU_FREE(local_gpu.right_cells);
-    N_GPU_FREE(local_gpu.inner_cells);
-    N_GPU_FREE(local_gpu.outer_cells);
+}
 }
 
 #endif /* NABLALIB_GPU */
