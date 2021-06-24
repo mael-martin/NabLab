@@ -369,7 +369,7 @@ class ComputeCostTransformation extends IrTransformationStep
 	{
 		switch it {
 			If | While | Exit:    return true
-			ReductionInstruction: return true
+			// ReductionInstruction: return true // <- permit reductions for now
 			default:              return false
 		}
 	}
