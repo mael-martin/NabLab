@@ -370,6 +370,36 @@ abstract class JobContentProvider
 }
 
 @Data
+class OpenMPGPUJobContentProvider extends JobContentProvider
+{
+	override protected CharSequence
+	copyConnectivityType(String leftName, String rightName, int dimension, List<CharSequence> indexNames)
+	{
+		copyBaseType(leftName, rightName, dimension, indexNames)
+	}
+
+	override CharSequence
+	getDefinitionContent(Job it)
+	'''
+		«comment»
+		void «irModule.className»::«codeName»() noexcept
+		{
+			«IF GPUJob && (it instanceof InstructionJob)»
+				// GPU Job
+				#pragma omp target
+				#pragma omp teams num_teams(1)
+				{
+					«innerContent»
+				}
+			«ELSE»
+				// CPU Job
+				«innerContent»
+			«ENDIF»
+		}
+	'''
+}
+
+@Data
 class StlThreadJobContentProvider extends JobContentProvider
 {
 	override protected copyConnectivityType(String leftName, String rightName, int dimension, List<CharSequence> indexNames)
