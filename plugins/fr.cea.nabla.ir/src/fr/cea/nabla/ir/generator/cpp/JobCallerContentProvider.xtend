@@ -38,6 +38,23 @@ class JobCallerContentProvider
 	'''
 }
 
+class OpenMPGPUJobCallerContentProvider extends JobCallerContentProvider
+{
+	override getCallsContent(JobCaller it)
+	'''
+		#error "You need to set yourself the variables that must be placed on GPU," \
+			"they are the cycle variables and variables that where calculated on" \
+			"CPU on the last jobCaller and are now needed on the CPU"
+		// #pragma omp target update to (var_glb[:var_count])
+		«FOR j : calls»
+		«j.callName.replace('.', '->')»(); // @«j.at»
+		«ENDFOR»
+		#error "Same thing, but for variables that where calculated on GPU and" \
+			"are now needed on CPU"
+
+	'''
+}
+
 class OpenMpTaskV2JobCallerContentProvider extends JobCallerContentProvider
 {
 	var boolean OMPRegion = false

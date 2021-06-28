@@ -224,7 +224,7 @@ class OpenMpGPUBackend extends Backend
 		traceContentProvider       = new TraceContentProvider
 		includesContentProvider    = new OpenMpIncludesContentProvider
 		jsonContentProvider        = new JsonContentProvider(expressionContentProvider)
-		jobCallerContentProvider   = new JobCallerContentProvider
+		jobCallerContentProvider   = new OpenMPGPUJobCallerContentProvider
 		jobContentProvider         = new OpenMPGPUJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
 		mainContentProvider        = new OpenMpTaskMainContentProvider(jsonContentProvider)
 		registerTypeContentProvider(typeContentProvider)
