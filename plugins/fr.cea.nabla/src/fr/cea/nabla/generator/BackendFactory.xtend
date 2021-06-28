@@ -9,6 +9,7 @@ import fr.cea.nabla.ir.generator.cpp.StlThreadBackend
 import fr.cea.nabla.ir.generator.cpp.OpenMpTaskBackend
 import fr.cea.nabla.ir.generator.cpp.OpenMpTaskV2Backend
 import fr.cea.nabla.ir.generator.cpp.OpenMpTargetBackend
+import fr.cea.nabla.ir.generator.cpp.OpenMpGPUBackend
 import fr.cea.nabla.nablagen.TargetType
 
 class BackendFactory
@@ -23,6 +24,7 @@ class BackendFactory
 			case OPEN_MP_TASK: new OpenMpTaskBackend
 			case OPEN_MP_TASK_V2: new OpenMpTaskV2Backend
 			case OPEN_MP_TARGET: new OpenMpTargetBackend
+			case OPEN_MP_GPU: new OpenMpGPUBackend
 			case KOKKOS: new KokkosBackend
 			case KOKKOS_TEAM_THREAD: new KokkosTeamThreadBackend
 			default: throw new RuntimeException("No backend for type: " + type.literal)

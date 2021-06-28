@@ -835,7 +835,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 	private def isGPU()
 	{
-		backend instanceof OpenMpTargetBackend
+		backend instanceof OpenMpTargetBackend || backend instanceof OpenMpGPUBackend
 	}
 
 	private def getWriteCallContent(Variable v)

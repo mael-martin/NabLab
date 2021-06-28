@@ -16,6 +16,7 @@
       <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/OpenMPTask"/>
       <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/OpenMPTaskV2"/>
       <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/OpenMPTarget"/>
+      <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/OpenMPGpu"/>
       <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/Kokkos"/>
       <genEnumLiterals ecoreEnumLiteral="Nablagen.ecore#//TargetType/KokkosTeamThread"/>
     </genEnums>

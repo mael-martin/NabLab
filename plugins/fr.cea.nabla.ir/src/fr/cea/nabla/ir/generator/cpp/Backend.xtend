@@ -184,6 +184,7 @@ class OpenMpTaskBackend extends Backend
 		OMPTaskMaxNumber 							 	 = JobMergeFromCost::num_tasks
 		OMPTraces        								 = false
 		CppApplicationGenerator::first_touch    		 = true
+		JobContentProvider::task_mode                    = false
 		name             								 = 'OpenMPTask'
 
 		cmakeContentProvider       = new OpenMpTaskCMakeContentProvider
@@ -195,6 +196,35 @@ class OpenMpTaskBackend extends Backend
 		includesContentProvider    = new OpenMpIncludesContentProvider
 		jsonContentProvider        = new JsonContentProvider(expressionContentProvider)
 		jobCallerContentProvider   = new OpenMpTaskJobCallerContentProvider
+		jobContentProvider         = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
+		mainContentProvider        = new OpenMpTaskMainContentProvider(jsonContentProvider)
+		registerTypeContentProvider(typeContentProvider)
+	}
+}
+
+/** Expected variables: N_CXX_COMPILER, N_C_COMPILER */
+class OpenMpGPUBackend extends Backend
+{
+	new()
+	{
+		OpenMpTaskMainContentProvider::num_threads       = JobMergeFromCost::num_threads
+		OpenMpTaskMainContentProvider::max_active_levels = 1
+		OMPTaskMaxNumber                                 = JobMergeFromCost::num_tasks
+		OMPTraces                                        = false
+		JobContentProvider::task_mode                    = false
+		CppApplicationGenerator::first_touch             = false
+		OpenMPTargetProvider::num_threads                = JobMergeFromCost::num_threads
+		name                                             = 'OpenMPTarget'
+
+		cmakeContentProvider       = new OpenMpTargetCMakeContentProvider
+		typeContentProvider        = new StlThreadTypeContentProvider
+		expressionContentProvider  = new ExpressionContentProvider(typeContentProvider)
+		instructionContentProvider = new OpenMpTargetInstructionContentProvider(typeContentProvider, expressionContentProvider, new OpenMPTargetProvider)
+		functionContentProvider    = new FunctionContentProvider(typeContentProvider, expressionContentProvider, instructionContentProvider)
+		traceContentProvider       = new TraceContentProvider
+		includesContentProvider    = new OpenMpIncludesContentProvider
+		jsonContentProvider        = new JsonContentProvider(expressionContentProvider)
+		jobCallerContentProvider   = new JobCallerContentProvider
 		jobContentProvider         = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
 		mainContentProvider        = new OpenMpTaskMainContentProvider(jsonContentProvider)
 		registerTypeContentProvider(typeContentProvider)
