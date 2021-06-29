@@ -107,7 +107,7 @@ abstract class InstructionContentProvider
 	def dispatch CharSequence
 	getContent(ItemIndexDefinition it)
 	{
-		if (IsInsideGPUJob && JobContentProvider::task_mode) {
+		if (IsInsideGPUJob && (JobContentProvider::task_mode || JobContentProvider::gpu_mode)) {
 			val ret = '''
 			const size_t «index.name»(«value.content»);
 			'''
@@ -123,7 +123,7 @@ abstract class InstructionContentProvider
 	def dispatch CharSequence
 	getContent(ItemIdDefinition it)
 	{
-		if (IsInsideGPUJob && JobContentProvider::task_mode) {
+		if (IsInsideGPUJob && (JobContentProvider::task_mode || JobContentProvider::gpu_mode)) {
 			val ret = '''
 			const Id «id.name»(«value.content»);
 			'''
@@ -201,7 +201,7 @@ abstract class InstructionContentProvider
 		else '''
 		{
 			«IF container instanceof ConnectivityCall»«getSetDefinitionContent(container.uniqueName, container as ConnectivityCall)»«ENDIF»
-			«IF IsInsideGPUJob && JobContentProvider::task_mode»
+			«IF IsInsideGPUJob && (JobContentProvider::task_mode || JobContentProvider::gpu_mode)»
 				«IF CountVars.contains(nbElems)»
 				const size_t «nbElems» = mesh_glb.getNb«(container.uniqueName + '').toFirstUpper»();
 				«ELSE»
@@ -229,7 +229,7 @@ abstract class InstructionContentProvider
 	protected def CharSequence
 	getSetDefinitionContent(String setName, ConnectivityCall call)
 	{
-		if (IsInsideGPUJob && JobContentProvider::task_mode) {
+		if (IsInsideGPUJob && (JobContentProvider::task_mode || JobContentProvider::gpu_mode)) {
 			val ret = '''
 			const auto «setName» = mesh_glb.«call.accessor»;
 			'''

@@ -111,7 +111,7 @@ class ExpressionContentProvider
 		{
 			if (call.args.empty)
 				call.connectivity.nbElemsVar
-			else if (JobContentProvider::task_mode && IsInsideGPUJob)
+			else if ((JobContentProvider::task_mode || JobContentProvider::gpu_mode) && IsInsideGPUJob)
 				'''mesh_glb->«call.accessor».size()'''
 			else
 				'''mesh->«call.accessor».size()'''
@@ -139,7 +139,7 @@ class ExpressionContentProvider
 			}
 		}
 
-		else if (JobContentProvider::task_mode && IsInsideGPUJob) {
+		else if ((JobContentProvider::task_mode || JobContentProvider::gpu_mode) && IsInsideGPUJob) {
 			/* Replace CodeName for builtin or special GPU functions if needed */
 			var codeName = function.codeName + ''
 			if 		(codeName == 'std::sqrt') codeName = 'sqrt'
@@ -157,7 +157,7 @@ class ExpressionContentProvider
 	getContent(ArgOrVarRef it)
 	{
 		var String code_name = codeName + '' // + (IsInsideGPUJob ? '_glb' : '')
-		if (JobContentProvider::task_mode && IsInsideGPUJob) {
+		if ((JobContentProvider::task_mode || JobContentProvider::gpu_mode) && IsInsideGPUJob) {
 			code_name = code_name.replace('.', '_')
 		}
 
@@ -171,7 +171,7 @@ class ExpressionContentProvider
 	getCodeName(ArgOrVarRef it)
 	{
 		/* Inside a GPU region AND a variable that has been aliased */
-		if (JobContentProvider::task_mode && IsInsideGPUJob && (target instanceof Variable) && target.global) {
+		if ((JobContentProvider::task_mode || JobContentProvider::gpu_mode) && IsInsideGPUJob && (target instanceof Variable) && target.global) {
 			'''«target.codeName»_glb'''
 		}
 

@@ -117,7 +117,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	)»
 	}
 	«ENDIF»
-	«IF isOpenMpTask»
+	«IF isGPU»
 	
 	/********************* GPU variable declarations *********************/
 	«GPUDeclaration»

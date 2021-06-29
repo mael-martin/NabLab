@@ -46,8 +46,13 @@ class CppGeneratorUtils
 	def static <T>Iterable<T> iteratorToIterable(Iterator<T> iterator) { [iterator] }
 
 	static def getFreeFunctionNs(IrModule it) { className.toLowerCase + "freefuncs" }
-	static def dispatch getCodeName(InternFunction it) { (IsInsideGPUJob && JobContentProvider::task_mode ? "gpu" : irModule.freeFunctionNs) + '::' + name }
 	static def getHDefineName(String name) { '__' + name.toUpperCase + '_H_' }
+	static def dispatch getCodeName(InternFunction it)
+	{
+		(IsInsideGPUJob && (JobContentProvider::task_mode || JobContentProvider::gpu_mode)
+			? "gpu" : irModule.freeFunctionNs
+		) + '::' + name
+	}
 
 	static TypeContentProvider typeContentProvider = new StlThreadTypeContentProvider();
 	static def void registerTypeContentProvider(TypeContentProvider typeCtxProv) { typeContentProvider = typeCtxProv; }

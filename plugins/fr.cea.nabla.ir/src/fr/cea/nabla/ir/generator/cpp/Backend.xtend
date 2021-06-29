@@ -41,6 +41,7 @@ class SequentialBackend extends Backend
 	{
 		name 									= 'Sequential'
 		JobContentProvider::task_mode 			= false
+		JobContentProvider::gpu_mode 			= false
 		CppApplicationGenerator::first_touch    = false
 		
 		irTransformationStep = new ReplaceReductions(true)
@@ -65,6 +66,7 @@ class StlThreadBackend extends Backend
 	{
 		name 									= 'StlThread'
 		JobContentProvider::task_mode 			= false
+		JobContentProvider::gpu_mode 			= false
 		CppApplicationGenerator::first_touch    = false
 
 		cmakeContentProvider = new StlThreadCMakeContentProvider
@@ -88,6 +90,7 @@ class KokkosBackend extends Backend
 	{
 		name 									= 'Kokkos'
 		JobContentProvider::task_mode 			= false
+		JobContentProvider::gpu_mode 			= false
 		CppApplicationGenerator::first_touch    = false
 
 		cmakeContentProvider = new KokkosCMakeContentProvider
@@ -111,6 +114,7 @@ class KokkosTeamThreadBackend extends Backend
 	{
 		name 									= 'Kokkos Team Thread'
 		JobContentProvider::task_mode 			= false
+		JobContentProvider::gpu_mode 			= false
 		CppApplicationGenerator::first_touch    = false
 
 		cmakeContentProvider = new KokkosCMakeContentProvider
@@ -135,6 +139,7 @@ class OpenMpBackend extends Backend
 		name 									= 'OpenMP'
 		CppApplicationGenerator::first_touch    = false
 		JobContentProvider::task_mode 			= false
+		JobContentProvider::gpu_mode 			= false
 
 		cmakeContentProvider = new OpenMpCMakeContentProvider
 		typeContentProvider = new StlThreadTypeContentProvider
@@ -185,6 +190,7 @@ class OpenMpTaskBackend extends Backend
 		OMPTraces        								 = false
 		CppApplicationGenerator::first_touch    		 = true
 		JobContentProvider::task_mode                    = false
+		JobContentProvider::gpu_mode 			         = false
 		name             								 = 'OpenMPTask'
 
 		cmakeContentProvider       = new OpenMpTaskCMakeContentProvider
@@ -212,6 +218,7 @@ class OpenMpGPUBackend extends Backend
 		OMPTaskMaxNumber                                 = JobMergeFromCost::num_tasks
 		OMPTraces                                        = false
 		JobContentProvider::task_mode                    = false
+		JobContentProvider::gpu_mode 			         = true
 		CppApplicationGenerator::first_touch             = false
 		OpenMPTargetProvider::num_threads                = JobMergeFromCost::num_threads
 		name                                             = 'OpenMPTarget'
@@ -241,6 +248,7 @@ class OpenMpTargetBackend extends Backend
 		OMPTaskMaxNumber                                 = JobMergeFromCost::num_tasks
 		OMPTraces                                        = false
 		JobContentProvider::task_mode                    = true
+		JobContentProvider::gpu_mode 			         = true
 		CppApplicationGenerator::first_touch             = false
 		OpenMPTargetProvider::num_threads                = JobMergeFromCost::num_threads
 		name                                             = 'OpenMPTarget'

@@ -15,13 +15,14 @@ import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.ir.InstructionJob
 import fr.cea.nabla.ir.ir.Interval
 import fr.cea.nabla.ir.ir.IrModule
+import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.Iterator
 import fr.cea.nabla.ir.ir.Job
 import fr.cea.nabla.ir.ir.LinearAlgebraType
+import fr.cea.nabla.ir.ir.Loop
 import fr.cea.nabla.ir.ir.TimeLoopCopy
 import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.Variable
-import fr.cea.nabla.ir.transformers.TARGET_TAG
 import java.util.ArrayList
 import java.util.HashMap
 import java.util.List
@@ -36,8 +37,6 @@ import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
-import fr.cea.nabla.ir.ir.IterableInstruction
-import fr.cea.nabla.ir.ir.Loop
 
 @Data
 abstract class JobContentProvider
@@ -52,6 +51,7 @@ abstract class JobContentProvider
 
 	val OpenMPTargetProvider target = new OpenMPTargetProvider()
 	static public var task_mode     = false
+	static public var gpu_mode      = false
 
 	def getDeclarationContent(Job it)
 	'''
@@ -380,23 +380,29 @@ class OpenMPGPUJobContentProvider extends JobContentProvider
 
 	override CharSequence
 	getDefinitionContent(Job it)
-	'''
-		«comment»
-		void «irModule.className»::«codeName»() noexcept
-		{
-			«IF GPUJob && (it instanceof InstructionJob)»
-				// GPU Job
-				#pragma omp target
-				#pragma omp teams num_teams(1)
-				{
+	{
+		
+		IsInsideGPUJob = GPUJob && (it instanceof InstructionJob) && gpu_mode
+		val ret = '''
+			«comment»
+			void «irModule.className»::«codeName»() noexcept
+			{
+				«IF IsInsideGPUJob»
+					// GPU Job
+					#pragma omp target
+					#pragma omp teams num_teams(1)
+					{
+						«innerContent»
+					}
+				«ELSE»
+					// CPU Job
 					«innerContent»
-				}
-			«ELSE»
-				// CPU Job
-				«innerContent»
-			«ENDIF»
-		}
-	'''
+				«ENDIF»
+			}
+		'''
+		IsInsideGPUJob = false
+		return ret
+	}
 
 	protected override dispatch CharSequence
 	getInnerContent(ExecuteTimeLoopJob it)
