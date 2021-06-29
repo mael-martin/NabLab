@@ -262,7 +262,7 @@ class OpenMpTargetBackend extends Backend
 		includesContentProvider    = new OpenMpIncludesContentProvider
 		jsonContentProvider        = new JsonContentProvider(expressionContentProvider)
 		jobCallerContentProvider   = new OpenMpTargetJobCallerContentProvider
-		jobContentProvider         = new StlThreadJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
+		jobContentProvider         = new OpenMPGPUJobContentProvider(traceContentProvider, expressionContentProvider, instructionContentProvider, jobCallerContentProvider)
 		mainContentProvider        = new OpenMpTaskMainContentProvider(jsonContentProvider)
 		registerTypeContentProvider(typeContentProvider)
 	}
