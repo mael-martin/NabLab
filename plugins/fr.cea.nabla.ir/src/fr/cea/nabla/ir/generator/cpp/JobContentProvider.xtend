@@ -244,7 +244,7 @@ abstract class JobContentProvider
 		«instruction.innerContent»
 	'''
 
-	private def needStaticAllocation(Variable v)
+	protected def needStaticAllocation(Variable v)
 	{
 		!(v.type instanceof BaseType) && typeContentProvider.isBaseTypeStatic(v.type)
 	}
@@ -396,6 +396,65 @@ class OpenMPGPUJobContentProvider extends JobContentProvider
 				«innerContent»
 			«ENDIF»
 		}
+	'''
+
+	protected override dispatch CharSequence
+	getInnerContent(ExecuteTimeLoopJob it)
+	'''
+		«callsHeader»
+		«val itVar = iterationCounter.codeName»
+		«itVar» = 0;
+		bool continueLoop = true;
+		do
+		{
+			«FOR copy : copies»
+			«target.update(copy.destination)»
+			«ENDFOR»
+
+			«IF caller.main»
+			globalTimer.start();
+			cpuTimer.start();
+			«ENDIF»
+			«itVar»++;
+			«val ppInfo = irRoot.postProcessing»
+			«IF caller.main && ppInfo !== null»
+				if (!writer.isDisabled() && «ppInfo.periodReference.codeName» >= «ppInfo.lastDumpVariable.codeName» + «ppInfo.periodValue.codeName»)
+					dumpVariables(«itVar»);
+			«ENDIF»
+			«traceContentProvider.getBeginOfLoopTrace(irModule, itVar, caller.main)»
+
+			«callsContent»
+
+			// Evaluate loop condition with variables at time n
+			continueLoop = («whileCondition.content»);
+
+			if (continueLoop)
+			{
+				// Switch variables to prepare next iteration
+				«FOR copy : copies»
+				«target.updateFrom(copy.source)»
+				std::swap(«copy.source.name», «copy.destination.name»);
+				std::swap(«copy.source.name»_glb, «copy.destination.name»_glb);
+				«target.update(copy.destination)»
+				«ENDFOR»
+			}
+			«IF caller.main»
+
+			cpuTimer.stop();
+			globalTimer.stop();
+			«ENDIF»
+
+			«traceContentProvider.getEndOfLoopTrace(irModule, itVar, caller.main, (ppInfo !== null))»
+
+			«IF caller.main»
+			cpuTimer.reset();
+			ioTimer.reset();
+			«ENDIF»
+		} while (continueLoop);
+		«IF caller.main && irRoot.postProcessing !== null»
+			// force a last output at the end
+			dumpVariables(«itVar», false);
+		«ENDIF»
 	'''
 }
 

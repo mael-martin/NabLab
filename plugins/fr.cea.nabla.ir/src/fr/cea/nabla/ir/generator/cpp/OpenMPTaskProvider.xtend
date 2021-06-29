@@ -388,6 +388,12 @@ class OpenMPTargetProvider
 	'''
 
 	def CharSequence
+	updateFrom(Variable it)
+	'''
+		#pragma omp target update from («variableMapNameAndSize»)
+	'''
+
+	def CharSequence
 	free(Variable it)
 	'''
 		#pragma omp target exit data map(delete: «variableMapNameAndSize»)
