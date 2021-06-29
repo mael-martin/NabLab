@@ -589,6 +589,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 			«irRoot.initNodeCoordVariable.name»«iterator»[0] = gNodes[rNodes][0];
 			«irRoot.initNodeCoordVariable.name»«iterator»[1] = gNodes[rNodes][1];
 		}
+		«IF isGPU»
+		«target.updatte(irRoot.initNodeCoordVariable.name + '_glb', 'nbNodes')»
+		«ENDIF»
 		«ENDIF»
 	}
 
