@@ -547,28 +547,20 @@ class OpenMPTargetProvider
 	def CharSequence
 	declare_gpu_functions(List<CharSequence> funcs)
 	'''
-	#if defined(NABLA_FUNCTIONS_ON_DEVICE)
 	#pragma omp declare target
-	#endif
 	«FOR f : funcs»
 		«f»;
 	«ENDFOR»
-	#if defined(NABLA_FUNCTIONS_ON_DEVICE)
 	#pragma omp end declare target
-	#endif
 	'''
 
 	def CharSequence
 	implement_gpu_functions(List<CharSequence> funcs)
 	'''
-	#if defined(NABLA_FUNCTIONS_ON_DEVICE)
 	#pragma omp declare target
-	#endif
 	«FOR f : funcs»
 		«f»
 	«ENDFOR»
-	#if defined(NABLA_FUNCTIONS_ON_DEVICE)
 	#pragma omp end declare target
-	#endif
 	 '''
 }

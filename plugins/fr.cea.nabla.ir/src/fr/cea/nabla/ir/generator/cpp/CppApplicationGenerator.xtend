@@ -106,12 +106,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDFOR»
 	}
 
-	«IF isOpenMpTask»
+	«IF isGPU»
 	// GPU functions
 	namespace gpu
 	{
 	«target.declare_gpu_functions(internFunctions
-		.filter[ f | ! isFunctionGPUBlacklisted(f) ]
 		.map[ f | functionContentProvider.getDeclarationContent(f) ]
 		.toList
 	)»
@@ -313,12 +312,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	}
 	«ENDIF»
 
-	«IF isOpenMpTask»
+	«IF isGPU»
 	// GPU functions
 	namespace gpu
 	{
 	«target.implement_gpu_functions(internFunctions
-		.filter[ f | ! isFunctionGPUBlacklisted(f) ]
 		.map[ f | functionContentProvider.getGPUDefinitionContent(f) ]
 		.toList
 	)»
