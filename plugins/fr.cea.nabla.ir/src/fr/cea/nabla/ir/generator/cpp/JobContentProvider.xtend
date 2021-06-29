@@ -15,9 +15,11 @@ import fr.cea.nabla.ir.ir.ExecuteTimeLoopJob
 import fr.cea.nabla.ir.ir.InstructionJob
 import fr.cea.nabla.ir.ir.Interval
 import fr.cea.nabla.ir.ir.IrModule
+import fr.cea.nabla.ir.ir.IrRoot
 import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.Iterator
 import fr.cea.nabla.ir.ir.Job
+import fr.cea.nabla.ir.ir.JobCaller
 import fr.cea.nabla.ir.ir.LinearAlgebraType
 import fr.cea.nabla.ir.ir.Loop
 import fr.cea.nabla.ir.ir.TimeLoopCopy
@@ -25,7 +27,9 @@ import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.Variable
 import java.util.ArrayList
 import java.util.HashMap
+import java.util.HashSet
 import java.util.List
+import java.util.Set
 import org.eclipse.xtend.lib.annotations.Data
 import org.eclipse.xtext.EcoreUtil2
 
@@ -37,11 +41,6 @@ import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
-import fr.cea.nabla.ir.ir.JobCaller
-import fr.cea.nabla.ir.ir.IrRoot
-import java.util.Set
-import java.util.HashSet
-import org.eclipse.xtext.common.services.Ecore2XtextTerminalConverters
 
 @Data
 abstract class JobContentProvider
@@ -478,7 +477,8 @@ class OpenMPGPUJobContentProvider extends JobContentProvider
 			if (continueLoop)
 			{
 				// Switch variables to prepare next iteration
-				«FOR copy : copies»
+				«val inCPU = calls.filter[ !GPUJob ].map[ inVars ].toSet.flatten.filter[ !option && !const && !constExpr ]»
+				«FOR copy : copies.reject[ inCPU.contains(source) || inCPU.contains(destination) ]»
 				«target.updateFrom(copy.source)»
 				«ENDFOR»
 
