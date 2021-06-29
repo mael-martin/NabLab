@@ -55,8 +55,6 @@ import java.util.Map
 import org.eclipse.xtend.lib.annotations.Data
 
 import static fr.cea.nabla.ir.transformers.IrTransformationUtils.*
-import fr.cea.nabla.ir.ir.Connectivity
-import fr.cea.nabla.ir.ir.IterationBlock
 
 /* Approximate the number of connectivities' element number on connectivity call.
  * One simple rule: all methods must return a positive integer or zero. */

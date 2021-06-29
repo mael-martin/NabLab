@@ -129,13 +129,16 @@ class JobMergeFromCost extends IrTransformationStep
 		trace('    IR -> IR: ' + description + ':ComputeVarMovements')
 		VariableRegionLocality.clear
 		computeVariableRegionLocality(ir)
-		reportHashMap('VariableLocality', reverseHashMap(VariableRegionLocality), 'Region Locality', ': ')
+		computeVariableWriteRegionLocality(ir)
+		reportHashMap('VariableLocality',      reverseHashMap(VariableRegionLocality),      'Region Locality',       ': ')
+		reportHashMap('VariableWriteLocality', reverseHashMap(VariableWriteRegionLocality), 'Region Write Locality', ': ')
 
 		/* Return OK */
 		return true
 	}
 	
 	static HashMap<String, TARGET_TAG>		  VariableRegionLocality		= new HashMap();
+	static HashMap<String, TARGET_TAG>        VariableWriteRegionLocality   = new HashMap();
 	static HashMap<String, HashSet<String>>   AccumulatedInVariablesPerJobs = new HashMap();
 	static HashMap<String, HashSet<Variable>> MinimalInVariablesPerJobs     = new HashMap();
 	static HashMap<String, Integer>           JobSynchroCoeffs              = new HashMap();
@@ -156,6 +159,29 @@ class JobMergeFromCost extends IrTransformationStep
 	{
 		/* Will throw if the name is not found, should not if everything is fine */
 		return VariableRegionLocality.get(vname)
+	}
+	
+	static def TARGET_TAG
+	getVariableWriteLocality(String vname)
+	{
+		return VariableWriteRegionLocality.get(vname)
+	}
+	
+	private def void
+	computeVariableWriteRegionLocality(IrRoot ir)
+	{
+		ir.eAllContents.filter(Job).forEach[ job |
+			val jtag = job.GPUJob ? TARGET_TAG::GPU : TARGET_TAG::CPU
+			val vars = job.outVars
+			vars.forEach[ v |
+				VariableWriteRegionLocality.put(v.name, jtag)
+			]
+		]
+		ir.eAllContents.filter(Variable).filter[ const || constExpr || option ].reject[ v |
+			VariableWriteRegionLocality.keySet.contains(v.name)
+		].forEach[ v |
+			VariableWriteRegionLocality.put(v.name, TARGET_TAG::BOTH)
+		]
 	}
 	
 	private def void
