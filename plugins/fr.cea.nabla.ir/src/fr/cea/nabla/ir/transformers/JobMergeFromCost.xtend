@@ -1,6 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2020 CEA
- * This program and the accompanying materials are made available under the 
+ * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
  *
@@ -38,7 +38,7 @@ import static extension fr.cea.nabla.ir.ArgOrVarExtensions.*
 import static extension fr.cea.nabla.ir.transformers.ComputeCostTransformation.*
 
 enum TARGET_TAG { CPU, GPU, BOTH } // CPU = (1 << 1), GPU = (1 << 2), BOTH = (CPU | GPU) <- Not possible in Xtext...
-	
+
 
 /* Job -> EnsuredDependency<Variable> := which one needs CPU or GPU
  * Variable -> EnsuredDependency<Job> := which one needs CPU or GPU */
@@ -46,7 +46,7 @@ class EnsuredDependency
 {
 	public Set<String> GPU = new HashSet<String>();
 	public Set<String> CPU = new HashSet<String>();
-	
+
 	static def EnsuredDependency
 	newMerge(EnsuredDependency first, EnsuredDependency second)
 	{
@@ -84,14 +84,14 @@ class JobMergeFromCost extends IrTransformationStep
 
 	private enum INDEX_TYPE { NODES, CELLS, FACES, NULL } // Nabla first dimension index type
 	private enum IMPL_TYPE  { BASE, ARRAY, CONNECTIVITY, LINEARALGEBRA, NULL } // Implementation type
-	
+
 	/* Coefficients for the granularity and the synchronization of a job => priority */
 	static final double priority_coefficient_task_granularity     = 10.0   // Granularity is not really important here, and it is already the greatest number
 	static final double priority_coefficient_task_synchronization = 30.0   // We mostly care about the synchronicity of the task
 	static final double priority_coefficient_task_at              = 40.0   // The @ influence the scheduling
 
 	override boolean
-	transform(IrRoot ir) 
+	transform(IrRoot ir)
 	{
 		/* Minimal IN variables */
 		trace('    IR -> IR: ' + description + ':ComputeMinimalInVars')
@@ -125,17 +125,20 @@ class JobMergeFromCost extends IrTransformationStep
 				JobPlacedOnGPU.put(j.name, !isJobGPUBlacklisted(j))
 			]
 		]
-		
+
 		trace('    IR -> IR: ' + description + ':ComputeVarMovements')
 		VariableRegionLocality.clear
 		computeVariableRegionLocality(ir)
-		reportHashMap('VariableLocality', reverseHashMap(VariableRegionLocality), 'Region Locality', ': ')
+		computeVariableWriteRegionLocality(ir)
+		reportHashMap('VariableLocality',      reverseHashMap(VariableRegionLocality),      'Region Locality',       ': ')
+		reportHashMap('VariableWriteLocality', reverseHashMap(VariableWriteRegionLocality), 'Region Write Locality', ': ')
 
 		/* Return OK */
 		return true
 	}
-	
+
 	static HashMap<String, TARGET_TAG>		  VariableRegionLocality		= new HashMap();
+	static HashMap<String, TARGET_TAG>        VariableWriteRegionLocality   = new HashMap();
 	static HashMap<String, HashSet<String>>   AccumulatedInVariablesPerJobs = new HashMap();
 	static HashMap<String, HashSet<Variable>> MinimalInVariablesPerJobs     = new HashMap();
 	static HashMap<String, Integer>           JobSynchroCoeffs              = new HashMap();
@@ -143,22 +146,27 @@ class JobMergeFromCost extends IrTransformationStep
 	static HashMap<String, Integer>           JobPriorities                 = new HashMap();
 	static HashMap<String, Integer>           JobCostByName                 = new HashMap();
 	static HashMap<String, Boolean>           JobPlacedOnGPU                = new HashMap();
-	
+
 	static public final int num_threads = 12; // FIXME: Must be set by the user, here we generate for sandy
 	static public final int num_tasks   = num_threads * 1; // FIXME: Must be set by the user
-	
+
 	/*********************************
 	 * Get the locality of variables *
 	 *********************************/
-	
+
 	static def TARGET_TAG
 	getVariableLocality(String vname)
 	{
 		/* Will throw if the name is not found, should not if everything is fine */
 		return VariableRegionLocality.get(vname)
 	}
-	
-	/*
+
+	static def TARGET_TAG
+	getVariableWriteLocality(String vname)
+	{
+		return VariableWriteRegionLocality.get(vname)
+	}
+
 	private def void
 	computeVariableWriteRegionLocality(IrRoot ir)
 	{
@@ -169,20 +177,18 @@ class JobMergeFromCost extends IrTransformationStep
 				VariableWriteRegionLocality.put(v.name, jtag)
 			]
 		]
-		
 		ir.eAllContents.filter(Variable).filter[ const || constExpr || option ].reject[ v |
 			VariableWriteRegionLocality.keySet.contains(v.name)
 		].forEach[ v |
 			VariableWriteRegionLocality.put(v.name, TARGET_TAG::BOTH)
 		]
-		
+
 		ir.eAllContents.filter(ExecuteTimeLoopJob).map[ copies.toSet ].toSet.flatten.forEach[ copy |
 			VariableWriteRegionLocality.put(copy.source.name,      TARGET_TAG::BOTH)
 			VariableWriteRegionLocality.put(copy.destination.name, TARGET_TAG::BOTH)
 		]
 	}
-	*/
-	
+
 	private def void
 	computeVariableRegionLocality(IrRoot ir)
 	{
@@ -227,7 +233,7 @@ class JobMergeFromCost extends IrTransformationStep
 	/******************************************
 	 * Get Jobs that must be run on CPU / GPU *
 	 ******************************************/
-	
+
 	static def boolean
 	isCPUJob(String name)
 	{
@@ -251,7 +257,7 @@ class JobMergeFromCost extends IrTransformationStep
 	{
 		return isGPUJob(name)
 	}
-	
+
 	/***********
 	 * helpers *
 	 ***********/
@@ -287,7 +293,7 @@ class JobMergeFromCost extends IrTransformationStep
 		if (it === null) return #[]
 		return calls.reject[ j | j instanceof TimeLoopJob || j instanceof ExecuteTimeLoopJob ].toList
 	}
-	
+
 	/**************************************************************************
 	 * Synchronization coefficients => like a barrier, take also into account *
 	 * the 'sequenciality' of a job                                           *
@@ -316,14 +322,14 @@ class JobMergeFromCost extends IrTransformationStep
 		return (!isOption)
 		|| (GlobalVariableIndexTypes.getOrDefault(name, INDEX_TYPE::NULL) != INDEX_TYPE::NULL)
 	}
-	 
+
 	static def
 	getSynchroCoeff(Job it)
 	{
 		if (it === null) return 0
 		return JobSynchroCoeffs.getOrDefault(name, 0)
 	}
-	 
+
 	private def
 	computeSynchroCoeff(Job it)
 	{
@@ -343,7 +349,7 @@ class JobMergeFromCost extends IrTransformationStep
 		/* The number of produced variables, each one of these variable will contribute to another task */
 	 	JobSynchroCoeffs.put(name, mapped.apply(outVars))
 	}
-	
+
 	/************************************
 	 * In/Out/MinIn variables from Jobs *
 	 ************************************/
@@ -365,7 +371,7 @@ class JobMergeFromCost extends IrTransformationStep
 					  .filter(Variable)
 					  .filter[global].toSet
 	}
-	
+
 	static def int
 	getOutReusedVarsNumber(Job it)
 	{
@@ -388,7 +394,7 @@ class JobMergeFromCost extends IrTransformationStep
 		/* Null check safety */
 		if (jc === null)
 			return;
-			
+
 		/* Only the things that will be // */
 		val jobs    = jc.parallelJobs
 		val jobdeps = new JobDependencies()
@@ -464,7 +470,7 @@ class JobMergeFromCost extends IrTransformationStep
 			}
 		}
 	}
-	
+
 	/**********************
 	 * Get a Job priority *
 	 **********************/
@@ -474,17 +480,17 @@ class JobMergeFromCost extends IrTransformationStep
 	 {
 	 	/* ORDER_IN_DAG: Class of quality
 	 	 * Other terms (what in formula): modulate inside the current class of quality
-	 	 * 
+	 	 *
 	 	 * FORMULA:
 	 	 * 		PRIORITY = SUM{what}(COEFF(what) * VALUE(what))
-	 	 * 
+	 	 *
 	 	 * Take into account:
 	 	 * - the level in the DAG
 	 	 * - the synchronicity: the 'out' over 'in', the greater, the more
 	 	 *   'few variables unlock a lots of variables'.
 	 	 * - the granularity: do jobs with more work before others
 	 	 */
-	 	 
+
 	    val max_syncro = caller.parallelJobs.map[ JobSynchroCoeffs.getOrDefault(name, 0) ].reduce[ p1, p2 | p1 + p2 ]
 
 	 	val synchro     = priority_coefficient_task_synchronization * (JobSynchroCoeffs.getOrDefault(name, 0) / max_syncro);
