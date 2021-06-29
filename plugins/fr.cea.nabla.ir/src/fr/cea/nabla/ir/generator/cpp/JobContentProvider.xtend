@@ -390,7 +390,7 @@ class OpenMPGPUJobContentProvider extends JobContentProvider
 				«IF IsInsideGPUJob»
 					// GPU Job
 					#pragma omp target
-					#pragma omp teams num_teams(1)
+					#pragma omp teams // num_teams(1)
 					{
 						«innerContent»
 					}
