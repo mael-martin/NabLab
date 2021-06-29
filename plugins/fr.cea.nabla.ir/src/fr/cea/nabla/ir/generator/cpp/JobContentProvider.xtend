@@ -39,6 +39,9 @@ import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 import fr.cea.nabla.ir.ir.JobCaller
 import fr.cea.nabla.ir.ir.IrRoot
+import java.util.Set
+import java.util.HashSet
+import org.eclipse.xtext.common.services.Ecore2XtextTerminalConverters
 
 @Data
 abstract class JobContentProvider
@@ -405,18 +408,40 @@ class OpenMPGPUJobContentProvider extends JobContentProvider
 		IsInsideGPUJob = false
 		return ret
 	}
+	
+	private def Set<JobCaller>
+	getParentJobCallers(JobCaller it)
+	{
+		if (it === null)
+			return new HashSet<JobCaller>();
+			
+		val root   = EcoreUtil2.getContainerOfType(it, IrRoot)
+		val parent = root.eAllContents.filter(JobCaller).filter[ jc | jc.calls.contains(it) ]
+
+		if (parent === null)
+			return new HashSet<JobCaller>();
+			
+		val ret = new HashSet<JobCaller>();
+		ret.addAll(parent.toSet)
+		ret.addAll(parent.map[parentJobCallers].toSet.flatten)
+		return ret;
+	}
 
 	protected override dispatch CharSequence
 	getInnerContent(ExecuteTimeLoopJob it)
 	'''
-		«val theRoot         = EcoreUtil2.getContainerOfType(it, IrRoot) /* TODO: get only parent callers */»
-		«val allOtherJC      = theRoot.eAllContents.filter(JobCaller).reject[ jc | jc == it]»
-		«val CPUVarsToImport = allOtherJC.map[calls.filter[!GPUJob].map[outVars].flatten.toSet].toSet.flatten»
-		// Send all others CPU variables to GPU
-		«FOR v : CPUVarsToImport»
-		«target.update(v)»
-		«ENDFOR»
+		«IF it !== null»
+			«val allOtherJC = parentJobCallers»
+			«IF allOtherJC !== null»
+				// Send all others CPU variables to GPU
+				«FOR v : allOtherJC.map[
+					calls.filter[!GPUJob].map[outVars].flatten.toSet
+				].toSet.flatten»
+				«target.update(v)»
+				«ENDFOR»
 
+			«ENDIF»
+		«ENDIF»
 		«callsHeader»
 		«val itVar = iterationCounter.codeName»
 		«itVar» = 0;
