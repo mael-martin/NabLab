@@ -413,6 +413,12 @@ class OpenMPGPUJobContentProvider extends JobContentProvider
 		bool continueLoop = true;
 		do
 		{
+			«itVar»_glb = «itVar»;
+			«FOR copy : copies.filter[ c | !needStaticAllocation(c.destination) ]»
+			«copy.destination.name»_glb = «copy.destination.name»;
+			«ENDFOR»
+
+			#pragma omp target update to («itVar»_glb)
 			«FOR copy : copies»
 			«target.update(copy.destination)»
 			«ENDFOR»
@@ -439,9 +445,14 @@ class OpenMPGPUJobContentProvider extends JobContentProvider
 				// Switch variables to prepare next iteration
 				«FOR copy : copies»
 				«target.updateFrom(copy.source)»
+				«ENDFOR»
+
+				«FOR copy : copies»
 				std::swap(«copy.source.name», «copy.destination.name»);
+				«ENDFOR»
+
+				«FOR copy : copies»
 				std::swap(«copy.source.name»_glb, «copy.destination.name»_glb);
-				«target.update(copy.destination)»
 				«ENDFOR»
 			}
 			«IF caller.main»
