@@ -37,6 +37,8 @@ import static extension fr.cea.nabla.ir.Utils.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
+import fr.cea.nabla.ir.ir.JobCaller
+import fr.cea.nabla.ir.ir.IrRoot
 
 @Data
 abstract class JobContentProvider
@@ -407,6 +409,14 @@ class OpenMPGPUJobContentProvider extends JobContentProvider
 	protected override dispatch CharSequence
 	getInnerContent(ExecuteTimeLoopJob it)
 	'''
+		«val theRoot         = EcoreUtil2.getContainerOfType(it, IrRoot) /* TODO: get only parent callers */»
+		«val allOtherJC      = theRoot.eAllContents.filter(JobCaller).reject[ jc | jc == it]»
+		«val CPUVarsToImport = allOtherJC.map[calls.filter[!GPUJob].map[outVars].flatten.toSet].toSet.flatten»
+		// Send all others CPU variables to GPU
+		«FOR v : CPUVarsToImport»
+		«target.update(v)»
+		«ENDFOR»
+
 		«callsHeader»
 		«val itVar = iterationCounter.codeName»
 		«itVar» = 0;
@@ -468,6 +478,13 @@ class OpenMPGPUJobContentProvider extends JobContentProvider
 			ioTimer.reset();
 			«ENDIF»
 		} while (continueLoop);
+
+		// Update from the GPU all variables to store them on CPU
+		«val GPUVarsToExport = calls.filter[GPUJob].map[outVars].flatten.toSet»
+		«FOR v : GPUVarsToExport»
+		«target.update(v)»
+		«ENDFOR»
+
 		«IF caller.main && irRoot.postProcessing !== null»
 			// force a last output at the end
 			dumpVariables(«itVar», false);

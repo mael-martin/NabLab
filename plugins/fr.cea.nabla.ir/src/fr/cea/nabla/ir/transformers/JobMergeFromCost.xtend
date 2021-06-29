@@ -129,16 +129,13 @@ class JobMergeFromCost extends IrTransformationStep
 		trace('    IR -> IR: ' + description + ':ComputeVarMovements')
 		VariableRegionLocality.clear
 		computeVariableRegionLocality(ir)
-		computeVariableWriteRegionLocality(ir)
-		reportHashMap('VariableLocality',      reverseHashMap(VariableRegionLocality),      'Region Locality',       ': ')
-		reportHashMap('VariableWriteLocality', reverseHashMap(VariableWriteRegionLocality), 'Region Write Locality', ': ')
+		reportHashMap('VariableLocality', reverseHashMap(VariableRegionLocality), 'Region Locality', ': ')
 
 		/* Return OK */
 		return true
 	}
 	
 	static HashMap<String, TARGET_TAG>		  VariableRegionLocality		= new HashMap();
-	static HashMap<String, TARGET_TAG>        VariableWriteRegionLocality   = new HashMap();
 	static HashMap<String, HashSet<String>>   AccumulatedInVariablesPerJobs = new HashMap();
 	static HashMap<String, HashSet<Variable>> MinimalInVariablesPerJobs     = new HashMap();
 	static HashMap<String, Integer>           JobSynchroCoeffs              = new HashMap();
@@ -161,12 +158,7 @@ class JobMergeFromCost extends IrTransformationStep
 		return VariableRegionLocality.get(vname)
 	}
 	
-	static def TARGET_TAG
-	getVariableWriteLocality(String vname)
-	{
-		return VariableWriteRegionLocality.get(vname)
-	}
-	
+	/*
 	private def void
 	computeVariableWriteRegionLocality(IrRoot ir)
 	{
@@ -177,12 +169,19 @@ class JobMergeFromCost extends IrTransformationStep
 				VariableWriteRegionLocality.put(v.name, jtag)
 			]
 		]
+		
 		ir.eAllContents.filter(Variable).filter[ const || constExpr || option ].reject[ v |
 			VariableWriteRegionLocality.keySet.contains(v.name)
 		].forEach[ v |
 			VariableWriteRegionLocality.put(v.name, TARGET_TAG::BOTH)
 		]
+		
+		ir.eAllContents.filter(ExecuteTimeLoopJob).map[ copies.toSet ].toSet.flatten.forEach[ copy |
+			VariableWriteRegionLocality.put(copy.source.name,      TARGET_TAG::BOTH)
+			VariableWriteRegionLocality.put(copy.destination.name, TARGET_TAG::BOTH)
+		]
 	}
+	*/
 	
 	private def void
 	computeVariableRegionLocality(IrRoot ir)
