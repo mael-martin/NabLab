@@ -21,6 +21,7 @@ import fr.cea.nabla.ir.ir.IrAnnotable
 import fr.cea.nabla.ir.ir.ItemIdDefinition
 import fr.cea.nabla.ir.ir.ItemIdValueIterator
 import fr.cea.nabla.ir.ir.ItemIndexDefinition
+import fr.cea.nabla.ir.ir.IterableInstruction
 import fr.cea.nabla.ir.ir.IterationBlock
 import fr.cea.nabla.ir.ir.Iterator
 import fr.cea.nabla.ir.ir.Job
@@ -32,6 +33,7 @@ import fr.cea.nabla.ir.ir.Variable
 import fr.cea.nabla.ir.ir.VariableDeclaration
 import fr.cea.nabla.ir.ir.While
 import java.util.HashMap
+import java.util.HashSet
 import java.util.Set
 import org.eclipse.xtend.lib.annotations.Data
 import org.eclipse.xtext.EcoreUtil2
@@ -42,8 +44,6 @@ import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
-import java.util.HashSet
-import fr.cea.nabla.ir.ir.IterableInstruction
 
 @Data
 abstract class InstructionContentProvider
@@ -377,26 +377,40 @@ class OpenMpTargetInstructionContentProvider extends InstructionContentProvider
 {
 	OpenMPTargetProvider target
 
-	/* TODO:
-	   Get ride of the 'result.name' declaration and transform things to have
-	   'pure reductions' (i.e. reductions without trailing instructions, doing
-	   that will enforce the 'result.name' to be the name of a global variable)
-	*/
 	override CharSequence
 	getReductionContent(ReductionInstruction it)
-	'''
-		«result.type.cppType» «result.name» = «result.defaultValue.content»;
-		«target.loop_reduction(result.name, '''
-			«iterationBlock.defineInterval('''
-				for (size_t «iterationBlock.indexName» = 0;
-				     «iterationBlock.indexName» < «iterationBlock.nbElems»;
-				     «iterationBlock.indexName»++)
-				{
-					«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
-				}
+	{
+		/*
+		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
+		if ((!IsInsideGPUJob) && (parentJob !== null))
+		'''
+			«result.type.cppType» «result.name» = «result.defaultValue.content»;
+			#pragma omp target
+			#pragma omp teams
+			«target.loop_reduction_gpu(result.name, '''
+				«iterationBlock.defineInterval('''
+					for (size_t «iterationBlock.indexName» = 0; «
+						iterationBlock.indexName» < «iterationBlock.nbElems»; «
+						iterationBlock.indexName»++)
+						«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
+				''')»
 			''')»
-		''')»
-	'''
+		'''
+
+		else
+		*/
+		'''
+			«result.type.cppType» «result.name» = «result.defaultValue.content»;
+			«target.loop_reduction(result.name, '''
+				«iterationBlock.defineInterval('''
+					for (size_t «iterationBlock.indexName» = 0; «
+						iterationBlock.indexName» < «iterationBlock.nbElems»; «
+						iterationBlock.indexName»++)
+						«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
+				''')»
+			''')»
+		'''
+	}
 
 	protected override CharSequence
 	getSequentialLoopContent(Loop it)
