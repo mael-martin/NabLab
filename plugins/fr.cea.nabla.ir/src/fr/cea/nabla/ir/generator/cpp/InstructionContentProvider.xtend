@@ -44,6 +44,7 @@ import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.generator.cpp.ItemIndexAndIdValueContentProvider.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
+import fr.cea.nabla.ir.transformers.TARGET_TAG
 
 @Data
 abstract class InstructionContentProvider
@@ -380,13 +381,11 @@ class OpenMpTargetInstructionContentProvider extends InstructionContentProvider
 	override CharSequence
 	getReductionContent(ReductionInstruction it)
 	{
-		/*
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
-		if ((!IsInsideGPUJob) && (parentJob !== null))
-		'''
+		if ((!IsInsideGPUJob) && (parentJob !== null) &&
+			parentJob.inVars.map[ name.variableWriteLocality ].filter[ t | t == TARGET_TAG::CPU ].isEmpty
+		) '''
 			«result.type.cppType» «result.name» = «result.defaultValue.content»;
-			#pragma omp target
-			#pragma omp teams
 			«target.loop_reduction_gpu(result.name, '''
 				«iterationBlock.defineInterval('''
 					for (size_t «iterationBlock.indexName» = 0; «
@@ -398,7 +397,6 @@ class OpenMpTargetInstructionContentProvider extends InstructionContentProvider
 		'''
 
 		else
-		*/
 		'''
 			«result.type.cppType» «result.name» = «result.defaultValue.content»;
 			«target.loop_reduction(result.name, '''

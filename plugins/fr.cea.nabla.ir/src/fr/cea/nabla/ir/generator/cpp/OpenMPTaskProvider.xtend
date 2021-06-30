@@ -500,7 +500,7 @@ class OpenMPTargetProvider
 	loop_reduction_gpu(String result, CharSequence body)
 	{
 		'''
-			#pragma omp distribute parallel for reduction(min: «result») map(tofrom: «result») schedule(static,1)
+			#pragma omp target teams distribute parallel for reduction(min: «result») map(tofrom: «result») schedule(static,1)
 			«body»
 		'''
 	}

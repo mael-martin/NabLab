@@ -16,7 +16,7 @@ import fr.cea.nabla.ir.ir.JobCaller
 import fr.cea.nabla.ir.ir.TimeLoopCopy
 import fr.cea.nabla.ir.ir.TimeLoopJob
 import fr.cea.nabla.ir.ir.Variable
-import java.util.HashSet
+import fr.cea.nabla.ir.transformers.TARGET_TAG
 import java.util.Set
 
 import static extension fr.cea.nabla.ir.JobCallerExtensions.*
@@ -24,6 +24,7 @@ import static extension fr.cea.nabla.ir.JobExtensions.*
 import static extension fr.cea.nabla.ir.generator.Utils.*
 import static extension fr.cea.nabla.ir.generator.cpp.CppGeneratorUtils.*
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
+import fr.cea.nabla.ir.ir.ReductionInstruction
 
 class JobCallerContentProvider
 {
@@ -41,6 +42,16 @@ class JobCallerContentProvider
 class OpenMPGPUJobCallerContentProvider extends JobCallerContentProvider
 {
 	val OpenMPTargetProvider target = new OpenMPTargetProvider()
+	
+	private def boolean
+	hasTopLevelReductionOnGPU(Job it)
+	{
+		// All reduction that have INs on GPU will have their reduction run on
+		// GPU, even if it's a CPU job.
+		val hasNoInCPUVars = inVars.map[ name.variableWriteLocality ].filter[ t | t == TARGET_TAG::CPU ].isEmpty
+		val hasReduction   = eAllContents.filter(ReductionInstruction).size > 0
+		return hasNoInCPUVars && hasReduction
+	}
 
 	override getCallsContent(JobCaller it)
 	'''
@@ -48,7 +59,10 @@ class OpenMPGPUJobCallerContentProvider extends JobCallerContentProvider
 			«j.callName.replace('.', '->')»(); // @«j.at»
 			«IF j.GPUJob /* Get back variables produced on GPU on the CPU if needed */»
 				«val outGPU = j.outVars»
-				«val inCPU  = calls.filter[ !GPUJob ].map[ inVars ].toSet.flatten.filter[ !option && !const && !constExpr ]»
+				«val inCPU  = calls
+					.filter[ !hasTopLevelReductionOnGPU && !GPUJob ]
+					.map[ inVars ].toSet.flatten
+					.filter[ !option && !const && !constExpr ]»
 				«val getBackToCPU = inCPU.filter[ v | outGPU.contains(v) ]»
 				«FOR v : getBackToCPU»
 					«target.updateFrom(v)»
