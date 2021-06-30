@@ -384,17 +384,23 @@ class OpenMpTargetInstructionContentProvider extends InstructionContentProvider
 		val parentJob = EcoreUtil2.getContainerOfType(it, Job)
 		if ((!IsInsideGPUJob) && (parentJob !== null) &&
 			parentJob.inVars.map[ name.variableWriteLocality ].filter[ t | t == TARGET_TAG::CPU ].isEmpty
-		) '''
-			«result.type.cppType» «result.name» = «result.defaultValue.content»;
-			«target.loop_reduction_gpu(result.name, '''
-				«iterationBlock.defineInterval('''
-					for (size_t «iterationBlock.indexName» = 0; «
-						iterationBlock.indexName» < «iterationBlock.nbElems»; «
-						iterationBlock.indexName»++)
-						«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
+		) {
+			IsInsideGPUJob = true
+			val body = '''
+				for (size_t «iterationBlock.indexName» = 0; «
+					iterationBlock.indexName» < «iterationBlock.nbElems»; «
+					iterationBlock.indexName»++)
+					«result.name» = «binaryFunction.codeName»(«result.name», «lambda.content»);
+			'''
+			IsInsideGPUJob = false
+
+			'''
+				«result.type.cppType» «result.name» = «result.defaultValue.content»;
+				«target.loop_reduction_gpu(result.name, '''
+					«iterationBlock.defineInterval(body)»
 				''')»
-			''')»
-		'''
+			'''
+		}
 
 		else
 		'''
