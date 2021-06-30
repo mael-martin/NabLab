@@ -67,6 +67,9 @@ class CMakeContentProvider
 		«CMakeUtils.addSubDirectories(true, externalProviders)»
 
 		# EXECUTABLE «execName»
+		# Force clang's stl implementation
+		link_libraries(-stdlib=libc++)
+		add_compile_options(-stdlib=libc++)
 		add_executable(«execName»«FOR m : modules» «m.className + '.cc'»«ENDFOR»)
 		target_link_libraries(«execName» PUBLIC«FOR l : getTargetLinkLibs(it, (!levelDBPath.nullOrEmpty))» «l»«ENDFOR»)
 		
