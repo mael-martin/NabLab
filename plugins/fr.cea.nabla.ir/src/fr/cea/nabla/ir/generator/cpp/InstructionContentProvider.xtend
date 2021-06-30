@@ -492,7 +492,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 				{
 					const size_t lineLimit = (line + 1) * «numberOfElementsPerLine»;
 					#pragma omp task«getTaskDependencies('line')»«sharedClause» firstprivate(lines, lineLimit, «numberOfElementsPerLine»)
-					«getSequentialLoopContentBody(it, '''lines * «numberOfElementsPerLine»''', '''lineLimit''')»
+					«getSequentialLoopContentBody(it, '''line * «numberOfElementsPerLine»''', '''lineLimit''')»
 				}
 
 				// The last line + the rest
@@ -515,7 +515,7 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 				{
 					const size_t lineLimit = (line + 1) * «numberOfElementsPerLine»;
 					#pragma omp task«getTaskDependencies('line')»«sharedClause» firstprivate(lines, lineLimit, «numberOfElementsPerLine»)
-					«getSequentialLoopContentBody(it, '''lines * «numberOfElementsPerLine»''', '''lineLimit''')»
+					«getSequentialLoopContentBody(it, '''line * «numberOfElementsPerLine»''', '''lineLimit''')»
 				}
 
 				/* Last iteration: may handle things differently in the case (in: cells)->(out: nodes) */
