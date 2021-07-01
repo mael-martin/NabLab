@@ -56,7 +56,7 @@ class OpenMPGPUJobCallerContentProvider extends JobCallerContentProvider
 	override getCallsContent(JobCaller it)
 	'''
 		«FOR j : calls»
-			«j.callName.replace('.', '->')»(); // @«j.at»
+			«j.callName.replace('.', '->')»(); // @«j.at»«IF j.GPUJob» [GPU]«ENDIF»
 			«IF j.GPUJob /* Get back variables produced on GPU on the CPU if needed */»
 				«val outGPU = j.outVars»
 				«val inCPU  = calls

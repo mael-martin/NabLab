@@ -649,12 +649,22 @@ GPU_CartesianMesh2D_alloc(CartesianMesh2D *cpu)
 	mesh_glb.bottom_nodes = cpu->getBottomNodes().data();
 	mesh_glb.left_nodes   = cpu->getLeftNodes().data();
 	mesh_glb.right_nodes  = cpu->getRightNodes().data();
+
 	mesh_glb.top_cells    = cpu->getTopCells().data();
 	mesh_glb.bottom_cells = cpu->getBottomCells().data();
 	mesh_glb.left_cells   = cpu->getLeftCells().data();
 	mesh_glb.right_cells  = cpu->getRightCells().data();
 	mesh_glb.inner_cells  = cpu->getInnerCells().data();
 	mesh_glb.outer_cells  = cpu->getOuterCells().data();
+
+    mesh_glb.inner_faces  = cpu->getInnerFaces().data();
+    mesh_glb.outer_faces  = cpu->getOuterFaces().data();
+    mesh_glb.top_faces    = cpu->getTopFaces().data();
+    mesh_glb.bottom_faces = cpu->getBottomFaces().data();
+    mesh_glb.left_faces   = cpu->getLeftFaces().data();
+    mesh_glb.right_faces  = cpu->getRightFaces().data();
+    mesh_glb.inner_vertical_faces   = cpu->getInnerVerticalFaces().data();
+    mesh_glb.inner_horizontal_faces = cpu->getInnerHorizontalFaces().data();
 
     /* Copy top level data */
     #pragma omp target enter data map(alloc: mesh_glb)
@@ -691,6 +701,23 @@ GPU_CartesianMesh2D_alloc(CartesianMesh2D *cpu)
     #pragma omp target update to ((mesh_glb.left_cells)  [:mesh_glb.left_cells_count])
     #pragma omp target update to ((mesh_glb.right_cells) [:mesh_glb.right_cells_count])
     #pragma omp target update to ((mesh_glb.outer_cells) [:mesh_glb.outer_cells_count])
+
+    #pragma omp target enter data map(alloc: (mesh_glb.inner_vertical_faces)   [:mesh_glb.inner_vertical_faces_count])
+    #pragma omp target enter data map(alloc: (mesh_glb.inner_horizontal_faces) [:mesh_glb.inner_horizontal_faces_count])
+    #pragma omp target enter data map(alloc: (mesh_glb.inner_faces)            [:mesh_glb.inner_faces_count])
+    #pragma omp target enter data map(alloc: (mesh_glb.top_faces)              [:mesh_glb.top_faces_count])
+    #pragma omp target enter data map(alloc: (mesh_glb.bottom_faces)           [:mesh_glb.bottom_faces_count])
+    #pragma omp target enter data map(alloc: (mesh_glb.left_faces)             [:mesh_glb.left_faces_count])
+    #pragma omp target enter data map(alloc: (mesh_glb.right_faces)            [:mesh_glb.right_faces_count])
+    #pragma omp target enter data map(alloc: (mesh_glb.outer_faces)            [:mesh_glb.outer_faces_count])
+    #pragma omp target uptade to ((mesh_glb.inner_vertical_faces)   [:mesh_glb.inner_vertical_faces_count])
+    #pragma omp target uptade to ((mesh_glb.inner_horizontal_faces) [:mesh_glb.inner_horizontal_faces_count])
+    #pragma omp target update to ((mesh_glb.inner_faces)            [:mesh_glb.inner_faces_count])
+    #pragma omp target update to ((mesh_glb.top_faces)              [:mesh_glb.top_faces_count])
+    #pragma omp target update to ((mesh_glb.bottom_faces)           [:mesh_glb.bottom_faces_count])
+    #pragma omp target update to ((mesh_glb.left_faces)             [:mesh_glb.left_faces_count])
+    #pragma omp target update to ((mesh_glb.right_faces)            [:mesh_glb.right_faces_count])
+    #pragma omp target update to ((mesh_glb.outer_faces)            [:mesh_glb.outer_faces_count])
 }
 }
 }

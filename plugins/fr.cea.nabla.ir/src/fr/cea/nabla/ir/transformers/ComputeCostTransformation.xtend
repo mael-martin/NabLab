@@ -173,7 +173,8 @@ class ComputeCostTransformation extends IrTransformationStep
 	static val 			GPUConnectivitiyCalls       = #[
 		'nodes', 'cells', 'nodesOfCell', 'cellsOfNode',
 		'topNodes', 'bottomNodes', 'leftNodes', 'rightNodes', 'innerNodes',
-		'topCells', 'bottomCells', 'leftCells', 'rightCells', 'innerCells', 'outerCells'
+		'topCells', 'bottomCells', 'leftCells', 'rightCells', 'innerCells', 'outerCells',
+		'topFaces', 'bottomFaces', 'leftFaces', 'rightFaces', 'innerFaces', 'outerFaces', 'innerVerticalFaces', 'innerHorizontalFaces'
 	]
 
 	/* HashMaps to store cost of functions, jobs, etc */
@@ -350,7 +351,7 @@ class ComputeCostTransformation extends IrTransformationStep
 	isExpressionNotPossibleOnGPU(Expression it)
 	{
 		switch it {
-			ContractedIf: return true
+			ContractedIf: return false // true <- permit to test for swan
 			FunctionCall: return functionCantBePlacedOnGPU.getOrDefault(function.name, false)
 			default:      return false
 		}
@@ -366,9 +367,8 @@ class ComputeCostTransformation extends IrTransformationStep
 	isInstructionNotPossibleOnGPU(Instruction it)
 	{
 		switch it {
-			If | While | Exit:    return true
-			// ReductionInstruction: return true // <- permit reductions for now
-			default:              return false
+			/* If | */ While | Exit:	return true // <- permit if to test for swan
+			default:              		return false
 		}
 	}
 	
@@ -507,7 +507,7 @@ class ComputeCostTransformation extends IrTransformationStep
 		if (op == "%") return operationCostREMINDER;
 		if (op == "!") return operationCostNOT;
 		if (op == "&&" || op == "||") return operationCostLOGIC;
-		if (op == ">" || op == "<" || op == ">=" || op == "<= " || op == "!=" || op == "==") return operationCostCOMPARISON;
+		if (op == ">" || op == "<" || op == ">=" || op == "<=" || op == "!=" || op == "==") return operationCostCOMPARISON;
 		throw new Exception("Unknown operator '" + op + "', can't evaluate its cost")
 	}
 	

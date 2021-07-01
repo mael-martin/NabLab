@@ -94,7 +94,7 @@ class CppGeneratorUtils
 		case INDEX_TYPE::CELLS: return 'nbCells'
 		case INDEX_TYPE::NODES: return 'nbNodes'
 		case INDEX_TYPE::FACES: return 'nbFaces'
-		case INDEX_TYPE::NULL:  throw new Exception("No contained element for variable, index type is INDEX_TYPE::NULL")
+		case INDEX_TYPE::NULL:  return null
 		}
 	}
 	static def INDEX_TYPE getGlobalVariableType(String varName) {
