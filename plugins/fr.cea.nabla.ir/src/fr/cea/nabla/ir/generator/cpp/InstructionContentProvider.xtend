@@ -193,7 +193,8 @@ abstract class InstructionContentProvider
 	{
 		val CountVars = #[
 			'nbNodes', 'nbCells', 'nbInnerNodes', 'nbTopNodes', 'nbBottomNodes',
-			'nbLeftNodes', 'nbRightNodes', 'nbNodesOfCell', 'nbCellsOfNode'
+			'nbLeftNodes', 'nbRightNodes', 'nbNodesOfCell', 'nbCellsOfNode',
+			'nbInnerFaces', 'nbInnerNodes', 'nbInnercells'
 		]
 
 		if (container.connectivityCall.connectivity.indexEqualId)
@@ -202,13 +203,8 @@ abstract class InstructionContentProvider
 		else '''
 		{
 			«IF container instanceof ConnectivityCall»«getSetDefinitionContent(container.uniqueName, container as ConnectivityCall)»«ENDIF»
-			«IF IsInsideGPUJob && (JobContentProvider::task_mode || JobContentProvider::gpu_mode)»
-				«IF CountVars.contains(nbElems)»
-				const size_t «nbElems» = mesh_glb.getNb«(container.uniqueName + '').toFirstUpper»();
-				«ELSE»
-				const size_t «nbElems» = «container.uniqueName».size();
-				«ENDIF»
-			«ELSE»
+			«IF !(IsInsideGPUJob && (JobContentProvider::task_mode || JobContentProvider::gpu_mode))»
+				««« Variables in the CountVars list should already be on the GPU
 				const size_t «nbElems» = «container.uniqueName».size();
 			«ENDIF»
 			«innerContent»

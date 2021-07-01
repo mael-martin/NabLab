@@ -169,7 +169,7 @@ class ComputeCostTransformation extends IrTransformationStep
 	static final int    defaultUnknownCost          = 10
 
 	/* Some extern functions are available on GPU, but with a different implementation */
-	static val          externFunctionGPUWhitelist  = #[ 'sqrt', 'min' ];
+	static val          externFunctionGPUWhitelist  = #[ 'sqrt', 'min', 'max' ];
 	static val 			GPUConnectivitiyCalls       = #[
 		'faces', 'nodes', 'cells', 'nodesOfCell', 'cellsOfNode', 'neighbourCells', 'topCell', 'bottomCell', 'rightCell', 'leftCell',
 		'firstNodeOfFace', 'secondNodeOfFace', 'cellsOfFace', 'facesOfCell', 'commonFace', 'backCell', 'frontCell', 'topFaceOfCell', 'bottomFaceOfCell', 'leftFaceOfCell', 'rightFaceOfCell',

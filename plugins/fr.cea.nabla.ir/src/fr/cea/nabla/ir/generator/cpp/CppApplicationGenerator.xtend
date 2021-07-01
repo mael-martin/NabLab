@@ -324,10 +324,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDIF»
 
 	«IF isGPU»
-	«val CountVars = #[
-		'nbNodes', 'nbCells', 'nbInnerNodes', 'nbTopNodes', 'nbBottomNodes',
-		'nbLeftNodes', 'nbRightNodes', 'nbNodesOfCell', 'nbCellsOfNode'
-	]»
+	«val countVars = irRoot.eAllContents
+		.filter(ConnectivityType).toSet
+		.map[ type | 'nb' + (type as ConnectivityType)
+			.connectivities.head.name.toFirstUpper
+		].toSet»
 	/******************** GPU Mesh definition & declaration ********************/
 	extern "C" {
 	#if defined(NABLALIB_GPU) && (NABLALIB_GPU == 1)
@@ -336,7 +337,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	int omptarget_device_id;
 	int omptarget_host_id;
 	#pragma omp declare target
-	«FOR cv : CountVars»
+	«FOR cv : countVars»
 	size_t __attribute__((unused))«cv»;
 	«ENDFOR»
 	#pragma omp end declare target
@@ -345,17 +346,17 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	static inline void
 	GPU_SetMeshCountVariables(«className» *mesh) noexcept
 	{
-		«FOR cv : CountVars»
+		«FOR cv : countVars»
 		«cv» = mesh->«cv»;
 		«ENDFOR»
-		«FOR cv : CountVars»«target.allocate(cv)»«ENDFOR»
-		«FOR cv : CountVars»«target.update(cv)»«ENDFOR»
+		«FOR cv : countVars»«target.allocate(cv)»«ENDFOR»
+		«FOR cv : countVars»«target.update(cv)»«ENDFOR»
 	}
 
 	static inline void
 	GPU_UnsetMeshCountVariables(void) noexcept
 	{
-		«FOR cv : CountVars»
+		«FOR cv : countVars»
 		«target.free(cv)»
 		«ENDFOR»
 	}

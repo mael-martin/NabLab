@@ -39,7 +39,11 @@ import static extension fr.cea.nabla.ir.IrModuleExtensions.getClassName
 import static extension fr.cea.nabla.ir.Utils.getIrModule
 import static extension fr.cea.nabla.ir.transformers.JobMergeFromCost.*
 
-enum INDEX_TYPE { NODES, CELLS, FACES, NULL }
+enum INDEX_TYPE {
+	NODES, CELLS, FACES,	// Normal base types
+	INNER_CELLS,			// Partial types
+	NULL					// Joker null type
+}
 
 class CppGeneratorUtils
 {
@@ -77,7 +81,10 @@ class CppGeneratorUtils
 				case "nodes": GlobalVariableIndexTypes.put(varName, INDEX_TYPE::NODES)
 				case "cells": GlobalVariableIndexTypes.put(varName, INDEX_TYPE::CELLS)
 				case "faces": GlobalVariableIndexTypes.put(varName, INDEX_TYPE::FACES)
+				case "innerCells": GlobalVariableIndexTypes.put(varName, INDEX_TYPE::INNER_CELLS)
+				default: throw new Exception("Unsupported index type " + type)
 			}
+			println(type)
 		}
 	}
 	static def void registerGlobalVariable(IrModule it) {
@@ -91,10 +98,11 @@ class CppGeneratorUtils
 	}
 	static def String getVariableIndexTypeLimit(INDEX_TYPE idxtype) {
 		switch idxtype {
-		case INDEX_TYPE::CELLS: return 'nbCells'
-		case INDEX_TYPE::NODES: return 'nbNodes'
-		case INDEX_TYPE::FACES: return 'nbFaces'
-		case INDEX_TYPE::NULL:  return null
+		case INDEX_TYPE::CELLS: 		return 'nbCells'
+		case INDEX_TYPE::NODES: 		return 'nbNodes'
+		case INDEX_TYPE::FACES: 		return 'nbFaces'
+		case INDEX_TYPE::INNER_CELLS:	return 'nbInnerCells'
+		case INDEX_TYPE::NULL:  		return null
 		}
 	}
 	static def INDEX_TYPE getGlobalVariableType(String varName) {
