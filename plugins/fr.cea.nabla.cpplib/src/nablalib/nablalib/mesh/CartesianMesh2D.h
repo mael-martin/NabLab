@@ -542,6 +542,38 @@ public:
 	Id getRightFaceNeighbour(const Id& faceId) const noexcept { return (faceId + 2); }
 	Id getLeftFaceNeighbour(const Id& faceId)  const noexcept { return (faceId - 2); }
 
+	Id
+    getTopCell(const Id& cellId) const noexcept
+    {
+        auto [i, j] = id2IndexCell(cellId);
+        if (i == nb_y_quads-1) return cellId;
+        return index2IdCell(i+1, j);
+    }
+
+	Id
+    getBottomCell(const Id& cellId) const noexcept
+    {
+        auto [i, j] = id2IndexCell(cellId);
+        if (i==0) return cellId;
+        return index2IdCell(i-1, j);
+    }
+
+	Id
+    getLeftCell(const Id& cellId) const noexcept
+    {
+        auto [i, j] = id2IndexCell(cellId);
+        if (j==0) return cellId;
+        return index2IdCell(i, j-1);
+    }
+
+	Id
+    getRightCell(const Id& cellId) const noexcept
+    {
+        auto [i, j] = id2IndexCell(cellId);
+        if (j == nb_x_quads-1)  return cellId;
+        return index2IdCell(i, j+1);
+    }
+
 private:
     inline std::pair<size_t, size_t>
     id2IndexNode(const Id& k) const noexcept
@@ -710,8 +742,8 @@ GPU_CartesianMesh2D_alloc(CartesianMesh2D *cpu)
     #pragma omp target enter data map(alloc: (mesh_glb.left_faces)             [:mesh_glb.left_faces_count])
     #pragma omp target enter data map(alloc: (mesh_glb.right_faces)            [:mesh_glb.right_faces_count])
     #pragma omp target enter data map(alloc: (mesh_glb.outer_faces)            [:mesh_glb.outer_faces_count])
-    #pragma omp target uptade to ((mesh_glb.inner_vertical_faces)   [:mesh_glb.inner_vertical_faces_count])
-    #pragma omp target uptade to ((mesh_glb.inner_horizontal_faces) [:mesh_glb.inner_horizontal_faces_count])
+    #pragma omp target update to ((mesh_glb.inner_vertical_faces)   [:mesh_glb.inner_vertical_faces_count])
+    #pragma omp target update to ((mesh_glb.inner_horizontal_faces) [:mesh_glb.inner_horizontal_faces_count])
     #pragma omp target update to ((mesh_glb.inner_faces)            [:mesh_glb.inner_faces_count])
     #pragma omp target update to ((mesh_glb.top_faces)              [:mesh_glb.top_faces_count])
     #pragma omp target update to ((mesh_glb.bottom_faces)           [:mesh_glb.bottom_faces_count])
