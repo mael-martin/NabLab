@@ -665,6 +665,7 @@ GPU_CartesianMesh2D_alloc(CartesianMesh2D *cpu)
 	mesh_glb.bottom_cells_count = cpu->getNbBottomCells();
 	mesh_glb.left_cells_count   = cpu->getNbLeftCells();
 	mesh_glb.right_cells_count  = cpu->getNbRightCells();
+
 	mesh_glb.inner_nodes_count  = cpu->getNbInnerNodes();
 	mesh_glb.top_nodes_count    = cpu->getNbTopNodes();
 	mesh_glb.bottom_nodes_count = cpu->getNbBottomNodes();
@@ -674,6 +675,15 @@ GPU_CartesianMesh2D_alloc(CartesianMesh2D *cpu)
 	mesh_glb.top_right_node     = cpu->getTopRightNode();
 	mesh_glb.bottom_left_node   = cpu->getBottomLeftNode();
 	mesh_glb.bottom_right_node  = cpu->getBottomRightNode();
+
+    mesh_glb.inner_faces_count  = cpu->getNbInnerFaces();
+    mesh_glb.outer_faces_count  = cpu->getNbOuterFaces();
+    mesh_glb.top_faces_count    = cpu->getNbTopFaces();
+    mesh_glb.bottom_faces_count = cpu->getNbBottomFaces();
+    mesh_glb.left_faces_count   = cpu->getNbLeftFaces();
+    mesh_glb.right_faces_count  = cpu->getNbRightFaces();
+    mesh_glb.inner_vertical_faces_count   = cpu->getNbInnerVerticalFaces();
+    mesh_glb.inner_horizontal_faces_count = cpu->getNbInnerHorizontalFaces();
 
     /* nodes -> need deep copy */
 	mesh_glb.inner_nodes  = cpu->getInnerNodes().data();
