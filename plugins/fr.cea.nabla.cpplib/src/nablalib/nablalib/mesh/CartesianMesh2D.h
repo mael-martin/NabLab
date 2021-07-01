@@ -720,46 +720,87 @@ GPU_CartesianMesh2D_alloc(CartesianMesh2D *cpu)
     #pragma omp target update to ((mesh_glb.geometry.edges)[:mesh_glb.geometry.edges_count])
     #pragma omp target update to ((mesh_glb.geometry.quads)[:mesh_glb.geometry.quads_count])
 
-    #pragma omp target enter data map(alloc: (mesh_glb.inner_nodes) [:mesh_glb.inner_nodes_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.top_nodes)   [:mesh_glb.top_nodes_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.bottom_nodes)[:mesh_glb.bottom_nodes_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.left_nodes)  [:mesh_glb.left_nodes_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.right_nodes) [:mesh_glb.right_nodes_count])
-    #pragma omp target update to ((mesh_glb.inner_nodes) [:mesh_glb.inner_nodes_count])
-    #pragma omp target update to ((mesh_glb.top_nodes)   [:mesh_glb.top_nodes_count])
-    #pragma omp target update to ((mesh_glb.bottom_nodes)[:mesh_glb.bottom_nodes_count])
-    #pragma omp target update to ((mesh_glb.left_nodes)  [:mesh_glb.left_nodes_count])
-    #pragma omp target update to ((mesh_glb.right_nodes) [:mesh_glb.right_nodes_count])
+    // NODES
+    if (mesh_glb.inner_nodes_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.inner_nodes) [:mesh_glb.inner_nodes_count])
+        #pragma omp target update to ((mesh_glb.inner_nodes) [:mesh_glb.inner_nodes_count])
+    }
+    if (mesh_glb.top_nodes_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.top_nodes)   [:mesh_glb.top_nodes_count])
+        #pragma omp target update to ((mesh_glb.top_nodes)   [:mesh_glb.top_nodes_count])
+    }
+    if (mesh_glb.bottom_nodes_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.bottom_nodes)[:mesh_glb.bottom_nodes_count])
+        #pragma omp target update to ((mesh_glb.bottom_nodes)[:mesh_glb.bottom_nodes_count])
+    }
+    if (mesh_glb.left_nodes_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.left_nodes)  [:mesh_glb.left_nodes_count])
+        #pragma omp target update to ((mesh_glb.left_nodes)  [:mesh_glb.left_nodes_count])
+    }
+    if (mesh_glb.right_nodes_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.right_nodes) [:mesh_glb.right_nodes_count])
+        #pragma omp target update to ((mesh_glb.right_nodes) [:mesh_glb.right_nodes_count])
+    }
 
-    #pragma omp target enter data map(alloc: (mesh_glb.inner_cells) [:mesh_glb.inner_cells_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.top_cells)   [:mesh_glb.top_cells_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.bottom_cells)[:mesh_glb.bottom_cells_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.left_cells)  [:mesh_glb.left_cells_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.right_cells) [:mesh_glb.right_cells_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.outer_cells) [:mesh_glb.outer_cells_count])
-    #pragma omp target update to ((mesh_glb.inner_cells) [:mesh_glb.inner_cells_count])
-    #pragma omp target update to ((mesh_glb.top_cells)   [:mesh_glb.top_cells_count])
-    #pragma omp target update to ((mesh_glb.bottom_cells)[:mesh_glb.bottom_cells_count])
-    #pragma omp target update to ((mesh_glb.left_cells)  [:mesh_glb.left_cells_count])
-    #pragma omp target update to ((mesh_glb.right_cells) [:mesh_glb.right_cells_count])
-    #pragma omp target update to ((mesh_glb.outer_cells) [:mesh_glb.outer_cells_count])
+    // CELLS
+    if (mesh_glb.inner_cells_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.inner_cells) [:mesh_glb.inner_cells_count])
+        #pragma omp target update to ((mesh_glb.inner_cells) [:mesh_glb.inner_cells_count])
+    }
+    if (mesh_glb.top_cells_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.top_cells)   [:mesh_glb.top_cells_count])
+        #pragma omp target update to ((mesh_glb.top_cells)   [:mesh_glb.top_cells_count])
+    }
+    if (mesh_glb.bottom_cells_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.bottom_cells)[:mesh_glb.bottom_cells_count])
+        #pragma omp target update to ((mesh_glb.bottom_cells)[:mesh_glb.bottom_cells_count])
+    }
+    if (mesh_glb.left_cells_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.left_cells)  [:mesh_glb.left_cells_count])
+        #pragma omp target update to ((mesh_glb.left_cells)  [:mesh_glb.left_cells_count])
+    }
+    if (mesh_glb.right_cells_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.right_cells) [:mesh_glb.right_cells_count])
+        #pragma omp target update to ((mesh_glb.right_cells) [:mesh_glb.right_cells_count])
+    }
+    if (mesh_glb.outer_cells_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.outer_cells) [:mesh_glb.outer_cells_count])
+        #pragma omp target update to ((mesh_glb.outer_cells) [:mesh_glb.outer_cells_count])
+    }
 
-    #pragma omp target enter data map(alloc: (mesh_glb.inner_vertical_faces)   [:mesh_glb.inner_vertical_faces_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.inner_horizontal_faces) [:mesh_glb.inner_horizontal_faces_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.inner_faces)            [:mesh_glb.inner_faces_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.top_faces)              [:mesh_glb.top_faces_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.bottom_faces)           [:mesh_glb.bottom_faces_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.left_faces)             [:mesh_glb.left_faces_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.right_faces)            [:mesh_glb.right_faces_count])
-    #pragma omp target enter data map(alloc: (mesh_glb.outer_faces)            [:mesh_glb.outer_faces_count])
-    #pragma omp target update to ((mesh_glb.inner_vertical_faces)   [:mesh_glb.inner_vertical_faces_count])
-    #pragma omp target update to ((mesh_glb.inner_horizontal_faces) [:mesh_glb.inner_horizontal_faces_count])
-    #pragma omp target update to ((mesh_glb.inner_faces)            [:mesh_glb.inner_faces_count])
-    #pragma omp target update to ((mesh_glb.top_faces)              [:mesh_glb.top_faces_count])
-    #pragma omp target update to ((mesh_glb.bottom_faces)           [:mesh_glb.bottom_faces_count])
-    #pragma omp target update to ((mesh_glb.left_faces)             [:mesh_glb.left_faces_count])
-    #pragma omp target update to ((mesh_glb.right_faces)            [:mesh_glb.right_faces_count])
-    #pragma omp target update to ((mesh_glb.outer_faces)            [:mesh_glb.outer_faces_count])
+    // FACES
+    if (mesh_glb.inner_vertical_faces_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.inner_vertical_faces)   [:mesh_glb.inner_vertical_faces_count])
+        #pragma omp target update to ((mesh_glb.inner_vertical_faces)   [:mesh_glb.inner_vertical_faces_count])
+    }
+    if (mesh_glb.inner_horizontal_faces_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.inner_horizontal_faces) [:mesh_glb.inner_horizontal_faces_count])
+        #pragma omp target update to ((mesh_glb.inner_horizontal_faces) [:mesh_glb.inner_horizontal_faces_count])
+    }
+    if (mesh_glb.inner_faces_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.inner_faces)            [:mesh_glb.inner_faces_count])
+        #pragma omp target update to ((mesh_glb.inner_faces)            [:mesh_glb.inner_faces_count])
+    }
+    if (mesh_glb.top_faces_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.top_faces)              [:mesh_glb.top_faces_count])
+        #pragma omp target update to ((mesh_glb.top_faces)              [:mesh_glb.top_faces_count])
+    }
+    if (mesh_glb.bottom_faces_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.bottom_faces)           [:mesh_glb.bottom_faces_count])
+        #pragma omp target update to ((mesh_glb.bottom_faces)           [:mesh_glb.bottom_faces_count])
+    }
+    if (mesh_glb.left_faces_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.left_faces)             [:mesh_glb.left_faces_count])
+        #pragma omp target update to ((mesh_glb.left_faces)             [:mesh_glb.left_faces_count])
+    }
+    if (mesh_glb.right_faces_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.right_faces)            [:mesh_glb.right_faces_count])
+        #pragma omp target update to ((mesh_glb.right_faces)            [:mesh_glb.right_faces_count])
+    }
+    if (mesh_glb.outer_faces_count) {
+        #pragma omp target enter data map(alloc: (mesh_glb.outer_faces)            [:mesh_glb.outer_faces_count])
+        #pragma omp target update to ((mesh_glb.outer_faces)            [:mesh_glb.outer_faces_count])
+    }
 }
 }
 }

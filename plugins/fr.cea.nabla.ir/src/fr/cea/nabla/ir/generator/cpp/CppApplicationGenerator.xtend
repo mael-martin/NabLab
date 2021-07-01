@@ -324,11 +324,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDIF»
 
 	«IF isGPU»
-	«val countVars = irRoot.eAllContents
-		.filter(ConnectivityType).toSet
-		.map[ type | 'nb' + (type as ConnectivityType)
-			.connectivities.head.name.toFirstUpper
-		].toSet»
+	«val countVars = irRoot.connectivities.filter[multiple].map[nbElemsVar]»
 	/******************** GPU Mesh definition & declaration ********************/
 	extern "C" {
 	#if defined(NABLALIB_GPU) && (NABLALIB_GPU == 1)
