@@ -171,12 +171,12 @@ class ComputeCostTransformation extends IrTransformationStep
 	/* Some extern functions are available on GPU, but with a different implementation */
 	static val          externFunctionGPUWhitelist  = #[ 'sqrt', 'min', 'max' ];
 	static val 			GPUConnectivitiyCalls       = #[
-		'faces', 'nodes', 'cells', 'nodesOfCell', 'cellsOfNode', 'neighbourCells', 'topCell', 'bottomCell', 'rightCell', 'leftCell',
-		'firstNodeOfFace', 'secondNodeOfFace', 'cellsOfFace', 'facesOfCell', 'commonFace', 'backCell', 'frontCell', 'topFaceOfCell', 'bottomFaceOfCell', 'leftFaceOfCell', 'rightFaceOfCell',
-		'bottomFaceNeighbour', 'topFaceNeighbour', 'bottomLeftFaceNeighbour', 'bottomRightFaceNeighbour', 'topLeftFaceNeighbour', 'topRightFaceNeighbour', 'rightFaceNeighbour', 'leftFaceNeighbour',
+		/* 'faces' ,*/ 'nodes', 'cells', 'nodesOfCell', 'cellsOfNode', 'neighbourCells', 'topCell', 'bottomCell', 'rightCell', 'leftCell',
+		// 'firstNodeOfFace', 'secondNodeOfFace', 'cellsOfFace', 'facesOfCell', 'commonFace', 'backCell', 'frontCell', 'topFaceOfCell', 'bottomFaceOfCell', 'leftFaceOfCell', 'rightFaceOfCell',
+		// 'bottomFaceNeighbour', 'topFaceNeighbour', 'bottomLeftFaceNeighbour', 'bottomRightFaceNeighbour', 'topLeftFaceNeighbour', 'topRightFaceNeighbour', 'rightFaceNeighbour', 'leftFaceNeighbour',
 		'topNodes', 'bottomNodes', 'leftNodes', 'rightNodes', 'innerNodes',
-		'topCells', 'bottomCells', 'leftCells', 'rightCells', 'innerCells', 'outerCells',
-		'topFaces', 'bottomFaces', 'leftFaces', 'rightFaces', 'innerFaces', 'outerFaces', 'innerVerticalFaces', 'innerHorizontalFaces'
+		'topCells', 'bottomCells', 'leftCells', 'rightCells', 'innerCells', 'outerCells' //,
+		// 'topFaces', 'bottomFaces', 'leftFaces', 'rightFaces', 'innerFaces', 'outerFaces', 'innerVerticalFaces', 'innerHorizontalFaces'
 	]
 
 	/* HashMaps to store cost of functions, jobs, etc */
@@ -369,8 +369,9 @@ class ComputeCostTransformation extends IrTransformationStep
 	isInstructionNotPossibleOnGPU(Instruction it)
 	{
 		switch it {
-			/* If | */ While | Exit:	return true // <- permit if to test for swan
-			default:              		return false
+			// If | While | Exit:	return true // <- permit if to test for swan
+			While | Exit:	return true // <- permit if to test for swan
+			default:        return false
 		}
 	}
 	

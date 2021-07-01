@@ -672,7 +672,8 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	private def CharSequence
 	getNumberOfLines(IterableInstruction it)
 	{
-		'''«iterationBlock.nbElems» / «numberOfElementsPerLine»'''
+		val lineDivider	= 50
+		'''((«iterationBlock.nbElems» / «numberOfElementsPerLine») / «lineDivider»)'''
 	}
 
 	private def
