@@ -258,6 +258,7 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 
 	private def getSourceFileContent(IrModule it)
 	'''
+	«val countVars = irRoot.connectivities.filter[multiple].map[nbElemsVar]»
 	«IF isGPU»
 	#ifdef NABLALIB_GPU
 	#undef NABLALIB_GPU
@@ -267,6 +268,11 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	#define NABLALIB_GPU      1
 	#define NABLA_GPU         1
 	#define NABLA_NUM_THREADS 12
+	
+	// Needed connectivities on GPU
+	«FOR cv : countVars»
+	#define NABLALIB_NEED_«cv»
+	«ENDFOR»
 	«ENDIF»
 	#define NABLALIB_DEBUG    0
 	#define NABLA_DEBUG       0
@@ -324,7 +330,6 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	«ENDIF»
 
 	«IF isGPU»
-	«val countVars = irRoot.connectivities.filter[multiple].map[nbElemsVar]»
 	/******************** GPU Mesh definition & declaration ********************/
 	extern "C" {
 	#if defined(NABLALIB_GPU) && (NABLALIB_GPU == 1)
@@ -335,6 +340,9 @@ class CppApplicationGenerator extends CppGenerator implements ApplicationGenerat
 	#pragma omp declare target
 	«FOR cv : countVars»
 	size_t __attribute__((unused))«cv»;
+	«ENDFOR»
+	«FOR cv : countVars»
+	#define NEED_«cv»
 	«ENDFOR»
 	#pragma omp end declare target
 	}
