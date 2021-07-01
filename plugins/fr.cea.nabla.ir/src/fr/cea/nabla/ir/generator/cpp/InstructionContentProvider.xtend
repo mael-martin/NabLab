@@ -667,8 +667,9 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	getNumberOfElementsPerLine(IterableInstruction it)
 	{
 		val itemname = iterationBlock.nbElems + ''
-		if      (itemname.contains("Cells")) return 'nbXCells'
-		else if (itemname.contains("Nodes")) return 'nbXNodes'
+		if      (itemname == "nbCells") return 'nbXCells'
+		else if (itemname == "nbNodes") return 'nbXNodes'
+		else if (itemname == "nbFaces") return 'nbXFaces'
 		else throw new Exception("Unknown number of items: " + itemname)
 	}
 	
