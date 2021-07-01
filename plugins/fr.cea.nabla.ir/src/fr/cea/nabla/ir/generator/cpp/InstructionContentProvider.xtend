@@ -434,6 +434,8 @@ class OpenMpTargetInstructionContentProvider extends InstructionContentProvider
 @Data
 class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 {
+
+	static public val lineDivider = 50
 	override getReductionContent(ReductionInstruction it)
 	'''
 		«val vars      = modifiedVariables»
@@ -672,7 +674,6 @@ class OpenMpTaskV2InstructionContentProvider extends InstructionContentProvider
 	private def CharSequence
 	getNumberOfLines(IterableInstruction it)
 	{
-		val lineDivider	= 50
 		'''((«iterationBlock.nbElems» / «numberOfElementsPerLine») / «lineDivider»)'''
 	}
 

@@ -215,7 +215,7 @@ abstract class JobContentProvider
 	aggSlicedVariables(String which, Iterable<Variable> vars)
 	'''
 		«IF !vars.empty»
-		for (size_t line = 0; line < nb«which» / nbX«which»; ++line)
+		for (size_t line = 0; line < ((nb«which» / nbX«which») / «OpenMpTaskV2InstructionContentProvider::lineDivider»); ++line)
 		{
 			#pragma omp task depend(in: «
 				vars.map[codeName + '[line]'].join(', ')
@@ -231,7 +231,7 @@ abstract class JobContentProvider
 	sliceAggVariables(String which, Iterable<Variable> vars)
 	'''
 		«IF !vars.empty»
-		for (size_t line = 0; line < nb«which» / nbX«which»; ++line)
+		for (size_t line = 0; line < ((nb«which» / nbX«which») / «OpenMpTaskV2InstructionContentProvider::lineDivider»); ++line)
 		{
 			#pragma omp task depend(in: «
 				vars.map[codeName].join(', ')
