@@ -169,10 +169,11 @@ class ComputeCostTransformation extends IrTransformationStep
 	static final int    defaultUnknownCost          = 10
 
 	/* Some extern functions are available on GPU, but with a different implementation */
-	static val          externFunctionGPUWhitelist  = #[ 'sqrt', 'min', 'max' ];
+	static val          externFunctionGPUWhitelist  = #[ 'sqrt', 'min', 'max', 'cos', 'sin' ];
 	static val 			GPUConnectivitiyCalls       = #[
-		/* 'faces' ,*/ 'nodes', 'cells', 'nodesOfCell', 'cellsOfNode', 'neighbourCells', 'topCell', 'bottomCell', 'rightCell', 'leftCell',
-		// 'firstNodeOfFace', 'secondNodeOfFace', 'cellsOfFace', 'facesOfCell', 'commonFace', 'backCell', 'frontCell', 'topFaceOfCell', 'bottomFaceOfCell', 'leftFaceOfCell', 'rightFaceOfCell',
+		'faces' , 'nodes', 'cells', 'nodesOfCell', 'cellsOfNode', 'neighbourCells', 'topCell', 'bottomCell', 'rightCell', 'leftCell',
+		// 'firstNodeOfFace', 'secondNodeOfFace', 'cellsOfFace', 'facesOfCell', 'commonFace', 'backCell', 'frontCell',
+		'topFaceOfCell', 'bottomFaceOfCell', 'leftFaceOfCell', 'rightFaceOfCell',
 		// 'bottomFaceNeighbour', 'topFaceNeighbour', 'bottomLeftFaceNeighbour', 'bottomRightFaceNeighbour', 'topLeftFaceNeighbour', 'topRightFaceNeighbour', 'rightFaceNeighbour', 'leftFaceNeighbour',
 		'topNodes', 'bottomNodes', 'leftNodes', 'rightNodes', 'innerNodes',
 		'topCells', 'bottomCells', 'leftCells', 'rightCells', 'innerCells', 'outerCells' //,
@@ -314,15 +315,16 @@ class ComputeCostTransformation extends IrTransformationStep
 			TimeLoopCopy | TimeLoopJob: jobCantBePlacedOnGPU.put(name, true)
 
 			InstructionJob: {
-				val boolean nop1 = eAllContents.filter(Expression).filter[ expressionNotPossibleOnGPU ].size > 0
-				val boolean nop2 = eAllContents.filter(Instruction).filter[ instructionNotPossibleOnGPU ].size > 0
-				val boolean nop3 = eAllContents.filter(ConnectivityCall).filter[ connectivityNotPossibleOnGPU ].size > 0
+				val nopConnectivities = eAllContents.filter(ConnectivityCall).filter[ connectivityNotPossibleOnGPU ].toSet
+				val boolean nop1      = eAllContents.filter(Expression).filter[ expressionNotPossibleOnGPU ].size > 0
+				val boolean nop2      = eAllContents.filter(Instruction).filter[ instructionNotPossibleOnGPU ].size > 0
+				val boolean nop3      = nopConnectivities.size > 0
 				
 				/* Only puts loops on the GPU */
 				val boolean loops_present = eAllContents.filter(Loop).size > 0
 
 				if (nop3) {
-					println("Found a not allowed connectivity call in " + name)
+					println("Found a not allowed connectivity call in " + name + ": " + nopConnectivities.map[ connectivity.name ].join(", "))
 				} else {
 					println("All connectivity call in " + name + " are OK")
 				}
@@ -353,7 +355,7 @@ class ComputeCostTransformation extends IrTransformationStep
 	isExpressionNotPossibleOnGPU(Expression it)
 	{
 		switch it {
-			ContractedIf: return false // true <- permit to test for swan
+			// ContractedIf: return true // <- permit to test for swan
 			FunctionCall: return functionCantBePlacedOnGPU.getOrDefault(function.name, false)
 			default:      return false
 		}
